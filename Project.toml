@@ -1,7 +1,12 @@
 name = "ASoSEPOC"
 authors = ["Sebastian Gonzato"]
-[compat]
-julia = "1.6.3"
-DrWatson = "2.7.1"
+
 [deps]
 DrWatson = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+PowerModels = "c36e90e8-916a-50a6-bd94-075b64ef4655"
+XLSX = "fdbf4ff8-1666-58a4-91e7-1b58723a45e0"
+
+[compat]
+DrWatson = "2.7.1"
+julia = "1.6.3"
