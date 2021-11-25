@@ -12,15 +12,29 @@ To (locally) reproduce this project, do the following:
    git-history and may need to be downloaded independently.
 1. Open a Julia console and do:
 
-   ```
-   julia> using Pkg
-   julia> Pkg.add("DrWatson") # install globally, for using `quickactivate`
-   julia> Pkg.activate("path/to/this/project")
-   julia> Pkg.instantiate()
-   ```
+```julia
+julia> using Pkg
+julia> Pkg.add("DrWatson") # install globally, for using `quickactivate`
+julia> Pkg.activate("path/to/this/project")
+julia> Pkg.instantiate()
+```
 
 This will install all necessary packages for you to be able to run the scripts and
 everything should work out of the box, including correctly finding local paths.
+
+## TODO list
+
+* Double check that data is sufficient and correct (Efthymios)
+* Deal with renewables.
+  * Q: Include them in load or treat them as generation units?
+  * Q: Include them in PowerModels dictionary as seperate entry?
+* Storage.
+  * Q: See proposal below.
+* Set up GEPPR model.
+  * Convert PowerModels data to GEPPR format.
+* Select days to be considered
+  * 3 - with load shedding, with reserve shedding, with no shedding at all.
+  * Q: Run entire year to get the commitment for each timestep? (To avoid "edge" effects.)
 
 ## Data description
 
