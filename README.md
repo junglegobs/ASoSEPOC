@@ -27,7 +27,6 @@ everything should work out of the box, including correctly finding local paths.
 * Double check that data is sufficient and correct (Efthymios)
 * Deal with renewables.
   * Q: Include them in load or treat them as generation units?
-  * Q: Include them in PowerModels dictionary as seperate entry?
 * Storage.
   * Q: See proposal below.
 * Set up GEPPR model.
