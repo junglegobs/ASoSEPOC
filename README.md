@@ -15,8 +15,7 @@ To (locally) reproduce this project, do the following:
 ```julia
 julia> using Pkg
 julia> Pkg.add("DrWatson") # install globally, for using `quickactivate`
-julia> Pkg.activate("path/to/this/project")
-julia> Pkg.instantiate()
+julia> include("path/to/this/project/instantiate.jl")
 ```
 
 This will install all necessary packages for you to be able to run the scripts and
