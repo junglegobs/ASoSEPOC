@@ -6,6 +6,7 @@ DrWatson = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 PowerModels = "c36e90e8-916a-50a6-bd94-075b64ef4655"
 XLSX = "fdbf4ff8-1666-58a4-91e7-1b58723a45e0"
+YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
 DrWatson = "2.7.1"

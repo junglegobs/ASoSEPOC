@@ -12,6 +12,11 @@ network = Dict{String,Any}(
     "branch" => Dict{String,Any}(),
     "load" => Dict{String,Any}(),
     "gen" => Dict{String,Any}(),
+    "storage" => Dict{String,Any}(),
+    "shunt" => Dict{String,Any}(),
+    "switch" => Dict{String,Any}(),
+    "dcline" => Dict{String,Any}(),
+    "time_elapsed" => 1.0, # hours per timestep
 )
 grid = XLSX.readxlsx(joinpath(net_data_dir, "BE-full2015_grid.xlsx"))
 load_cols, load_labs = XLSX.readtable(
@@ -28,6 +33,7 @@ for row in XLSX.eachrow(node_sh)
     if ismissing(bus_id) == false && bus_id isa Number
         bus_type = (bus_id == 1 ? 3 : 2) # TODO
         network["bus"]["$bus_id"] = Dict(
+            "index" => bus_id,
             "string" => "$bus_id",
             "number" => "$bus_id",
             "bus_i" => "$bus_id",
@@ -44,6 +50,20 @@ for row in XLSX.eachrow(node_sh)
     end
 end
 
+# Shunts
+# TODO don't know what this is and how to do it, so making it up 
+# based on case30.m
+# network["shunt"] = Dict(
+#     "1" => Dict(
+#         "source_id" => ["bus", 1],
+#         "shunt_bus" => 10,
+#         "status"    => 1,
+#         "gs"        => 0.0,
+#         "bs"        => 0.19,
+#         "index"     => 1,
+#     )
+# )
+
 # Lines
 line_sh = grid["line_information"]
 for row in XLSX.eachrow(line_sh)
@@ -58,9 +78,11 @@ for row in XLSX.eachrow(line_sh)
             "rate_a" => row["F"], # TODO - this is the line capacity right?
             "br_r" => row["E"],
             "br_status" => 1, # = in service
-            "ang_min" => -100.0, # TODO
-            "ang_max" => 100.0, # TODO
+            "angmin" => -100.0, # TODO
+            "angmax" => 100.0, # TODO
             "transformer" => false,
+            "tap" => 1.0,
+            "shift" => 0.0,
         )
     end
 end
@@ -72,6 +94,7 @@ for i in 1:length(load_cols)
     bus_id = parse(Int, split(bus, "_")[end])
     load_vec = Float64.(load_cols[i])
     network["load"]["$bus_id"] = Dict(
+        "status" => 1,
         "source_id" => ["bus", bus_id],
         "load_bus" => bus_id,
         "pd" => load_vec,
@@ -93,7 +116,7 @@ for row in XLSX.eachrow(pp_sh)
     cost = fuel / catg_row[3] # Euros/MWh
     network["gen"]["$gen_id"] = Dict(
         "name" => row["B"],
-        "bus" => row["D"],
+        "gen_bus" => row["D"],
         "source_id" => ["gen", row["D"]], # second element is bus,
         "index" => gen_id,
         "pmax" => row["E"],
@@ -135,6 +158,60 @@ for (res_name, res_sh) in res_sh_dict
             "af" => af, "name" => res_id, "bus" => node
         )
     end
+end
+
+# Storage
+stor_sh = gen["storage_unit"]
+id = 0
+for row in XLSX.eachrow(stor_sh)
+    row["A"] in ("ID", "(integer)") && continue
+    id += 1
+    network["storage"][string(id)] = Dict(
+        "index" => id,
+        "storage_bus" => row["C"],
+        "ps" => 0.0,
+        "qs" => 0.0,
+        "energy" => 0.0,
+        "energy_rating" => row["E"],
+        "charge_rating" => row["D"],
+        "discharge_rating" => row["E"],
+        "charge_efficiency" => row["H"]/100,
+        "discharge_efficiency" => row["I"]/100,
+        "qmin" => 0.0,
+        "qmax" => 0.0,
+        "r" => 0.0,
+        "x" => 0.0,
+        "p_loss" => 0.0,
+        "q_loss" => 0.0,
+        "status" => 1,
+    )
+end
+
+# Power to Gas
+h2_sh = gen["hydrogen_storage"]
+id = 0
+for row in XLSX.eachrow(h2_sh)
+    row["A"] in ("ID", "(integer)") && continue
+    id += 1
+    network["storage"][string(id)] = Dict(
+        "index" => id,
+        "storage_bus" => row["C"],
+        "ps" => 0.0,
+        "qs" => 0.0,
+        "energy" => 0.0,
+        "energy_rating" => row["D"],
+        "charge_rating" => row["D"] / 1000,
+        "discharge_rating" => row["D"] / 1000,
+        "charge_efficiency" => 0.7,
+        "discharge_efficiency" => 0.7,
+        "qmin" => 0.0,
+        "qmax" => 0.0,
+        "r" => 0.0,
+        "x" => 0.0,
+        "p_loss" => 0.0,
+        "q_loss" => 0.0,
+        "status" => 1,
+    )
 end
 
 # Save the dictionary
