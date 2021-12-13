@@ -33,6 +33,10 @@ function param_and_config(opts::Dict)
         end,
         "reserveType" => opts["operating_reserves_type"],
         "reserveSizingType" => opts["operating_reserves_sizing_type"],
+        "optimizationHorizon" => Dict(
+            "start" => [1,1,opts["optimization_horizon"][1]],
+            "end" => [1,1,opts["optimization_horizon"][2]]
+        )
     )
     return configFiles, param
 end
