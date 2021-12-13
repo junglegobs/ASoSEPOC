@@ -157,6 +157,8 @@ function process_belderbos_data()
                 push!(af, row[col])
             end
             cap = res_sh[2, col] * res_sh["D3"]
+            af ./= max(cap, 1)
+            @assert all(af .<= 1.0) "AF_max = $(maximum(af)) for $(col) and $(res_name)."
             network["res"][res_id] = Dict(
                 "af" => af,
                 "name" => res_name,

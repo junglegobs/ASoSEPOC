@@ -1,4 +1,4 @@
-using Plots, PyPlot, Measures
+using Plots, StatsPlots, PyPlot, Measures
 
 function plot_dispatch(
     gep::GEPM,
@@ -14,9 +14,13 @@ function plot_dispatch(
 
     # Get sets
     GN = GEPPR.get_set_of_nodal_generators(gep)
-    G = first.(GN)
+    G = GEPPR.get_set_of_generators(gep)
+    GN = [(g, n) for (g, n) in GN if n in N]
+    G = [g for g in G if g in first.(GN)]
     STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
-    ST = first.(STN)
+    ST = GEPPR.get_set_of_storage_technologies(gep)
+    STN = [(st, n) for (st, n) in STN if n in N]
+    ST = [st for st in ST if st in first.(STN)]
 
     # Get dispatches
     q = gep[:q]
@@ -24,9 +28,10 @@ function plot_dispatch(
 
     # Modify / reshape
     q = [
-        sum(q[(g, n), Y[1], p, t] for n in N if (g, n) in GN) for t in T, g in G
+        reduce(+, q[(g, n), Y[1], p, t] for n in N if (g, n) in GN; init=0.0)
+        for t in T, g in G
     ]
-    q = aggregate_conventional ? sum(q; dims=2) : q
+
     ls = [sum(ls[n, Y[1], p, t] for n in N) for t in T]
 
     if GEPPR.has_storage_technologies(gep)
@@ -34,33 +39,43 @@ function plot_dispatch(
         sd = gep[:sd]
         e = gep[:e]
         sc = [
-            sum(
-                sc[(st, parse(Int, n)), Y[1], p, t] for
-                n in N if (st, parse(Int, n)) in STN
+            reduce(
+                +,
+                sc[(st, n), Y[1], p, t] for n in N if (st, n) in STN;
+                init=0.0,
             ) for t in T, st in ST
         ]
         sd = [
-            sum(
-                sd[(st, parse(Int, n)), Y[1], p, t] for
-                n in N if (st, parse(Int, n)) in STN
+            reduce(
+                +,
+                sd[(st, n), Y[1], p, t] for n in N if (st, n) in STN;
+                init=0.0,
             ) for t in T, st in ST
         ]
         e = [
-            sum(
-                e[(st, parse(Int, n)), Y[1], p, t] for
-                n in N if (st, parse(Int, n)) in STN
+            reduce(
+                +, e[(st, n), Y[1], p, t] for n in N if (st, n) in STN; init=0.0
             ) for t in T, st in ST
         ]
-        if aggregate_storage
-            sc = sum(sc; dims=2)
-            sd = sum(sd; dims=2)
-            e = sum(e; dims=2)
-        end
     end
 
     # Alter sets accordingly
-    G = aggregate_conventional ? ["Conventional"] : first.(GN)
-    ST = aggregate_storage ? ["Storage"] : first.(STN)
+    if aggregate_conventional
+        GD = GEPPR.get_set_of_dispatchable_generators(gep)
+        GR = GEPPR.get_set_of_intermittent_generators(gep)
+        q_conv = [sum(q[t, i] for i in 1:length(G) if G[i] in GD) for t in T]
+        q_res = hcat(
+            [[q[t, i] for t in T] for i in 1:length(G) if G[i] in GR]...
+        )
+        q = hcat(q_res, q_conv)
+        G = vcat(GR..., "Conventional")
+    end
+    if aggregate_storage
+        sc = sum(sc; dims=2)
+        sd = sum(sd; dims=2)
+        e = sum(e; dims=2)
+        ST = ["Storage"]
+    end
 
     # Plot
     plt = Plots.plot(; size=(1200, 800), margin=10 * mm)
@@ -125,7 +140,7 @@ function plot_dispatch(
                 xlims=(T[1], T[end]),
             ),
             plt;
-            layout=grid(2, 1; heights=[0.3, 0.7]),
+            layout=Plots.grid(2, 1; heights=[0.3, 0.7]),
         )
     end
 
