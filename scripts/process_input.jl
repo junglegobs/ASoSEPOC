@@ -13,7 +13,8 @@ opts = options(
     "operating_reserves_type" => "none",
 )
 gep = run_GEPPR(opts)
-
-# TODO
+# TODO: storage indices are not strings for some reason
+save_optimisation_values!(gep)
+save(gep, datadir("sims", "linear_w_storage"))
 storage_dispatch_2_node_injection(grid_path, grid_wo_store_path)
 powermodels_2_GEPPR(grid_wo_store_path, grid_wo_store_red_path)

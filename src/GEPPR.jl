@@ -1,4 +1,4 @@
-using Gurobi, GEPPR
+using Gurobi, GEPPR, Suppressor
 include(srcdir("util.jl"))
 
 ### UTIL
@@ -18,8 +18,12 @@ function param_and_config(opts::Dict)
     if opts["include_storage"]
         push!(configFiles, joinpath(GEPPR_dir, "storage.yaml"))
     end
-    param = Dict{String,Any}(
-        "optimizer" => Gurobi.Optimizer,
+    param = @suppress Dict{String,Any}(
+        "optimizer" => optimizer_with_attributes(
+            Gurobi.Optimizer,
+            "TimeLimit" => 1_200,
+            "OutputFlag" => 1,
+        ),
         "unitCommitmentConstraintType" => opts["unit_commitment_type"],
         "relativePathTimeSeriesCSV" => "timeseries.csv",
         "relativePathMatpowerData" => if opts["include_storage"]
