@@ -295,7 +295,7 @@ function powermodels_2_GEPPR(net_data_path, net_red_path)
                 "energyToPowerRatio" =>
                     v["energy_rating"] /
                     mean([v["charge_rating"], v["discharge_rating"]]),
-                "nodes" => [v["storage_bus"]],
+                "nodes" => [string(v["storage_bus"])],
             ) for (k, v) in network["storage"]
         ),
     )
@@ -340,4 +340,7 @@ function powermodels_2_GEPPR(net_data_path, net_red_path)
     return nothing
 end
 
-function storage_dispatch_2_node_injection(gep::GEPM) end
+function storage_dispatch_2_node_injection(gep::GEPM)
+    N, Y, P, T = GEPPR.get_get_set_of_nodes_and_time_steps(gep)
+    D = GEPPR.get_demand(gep)
+end

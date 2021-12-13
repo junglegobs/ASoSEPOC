@@ -3,6 +3,7 @@ authors = ["Sebastian Gonzato"]
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DrWatson = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"
 GEPPR = "bdf5de6c-7654-11e9-1af4-dbe25ce70594"
@@ -10,9 +11,12 @@ Gurobi = "2e9cd046-0924-5485-92f1-d5272153d98b"
 Infiltrator = "5903a43b-9cc3-4c30-8d17-598619ec4e9b"
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
+Measures = "442fdcdd-2543-5da2-b0f3-8c86c306513e"
 PowerModels = "c36e90e8-916a-50a6-bd94-075b64ef4655"
+PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
 XLSX = "fdbf4ff8-1666-58a4-91e7-1b58723a45e0"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
