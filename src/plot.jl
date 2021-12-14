@@ -21,6 +21,7 @@ function plot_dispatch(
     ST = GEPPR.get_set_of_storage_technologies(gep)
     STN = [(st, n) for (st, n) in STN if n in N]
     ST = [st for st in ST if st in first.(STN)]
+    Tm = 1:length(T)
 
     # Get dispatches
     q = gep[:q]
@@ -63,14 +64,14 @@ function plot_dispatch(
     if aggregate_conventional
         GD = GEPPR.get_set_of_dispatchable_generators(gep)
         GR = GEPPR.get_set_of_intermittent_generators(gep)
-        q_conv = [sum(q[t, i] for i in 1:length(G) if G[i] in GD) for t in T]
+        q_conv = [sum(q[t, i] for i in 1:length(G) if G[i] in GD) for t in Tm]
         q_res = hcat(
-            [[q[t, i] for t in T] for i in 1:length(G) if G[i] in GR]...
+            [[q[t, i] for t in Tm] for i in 1:length(G) if G[i] in GR]...
         )
         q = hcat(q_res, q_conv)
         G = vcat(GR..., "Conventional")
     end
-    if aggregate_storage
+    if aggregate_storage && GEPPR.has_storage_technologies(gep)
         sc = sum(sc; dims=2)
         sd = sum(sd; dims=2)
         e = sum(e; dims=2)

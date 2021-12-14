@@ -361,7 +361,7 @@ function storage_dispatch_2_node_injection(
     network["storage"] = Dict{String,Any}()
 
     # Get sum of storage charge and discharge on each node
-    N, Y, P, T = GEPPR.get_get_set_of_nodes_and_time_steps(gep)
+    N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
     STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
     ST = GEPPR.get_set_of_storage_technologies(gep)
     sc = gep[:sc]
@@ -370,7 +370,7 @@ function storage_dispatch_2_node_injection(
         n1 => [
             reduce(
                 +,
-                sd[(st, n2), y, p, t] - sc[(st, n2), y, p, t] for
+                sd[(st, n2), Y[1], P[1], t] - sc[(st, n2), Y[1], P[1], t] for
                 (st, n2) in STN if n2 == n1;
                 init=0.0,
             ) for t in T
@@ -388,5 +388,17 @@ function storage_dispatch_2_node_injection(
         JSON.print(f, network, 4)
     end
 
+    # Adapt GEPPR input as well
+    df = CSV.read(datadir("pro", "GEPPR", "timeseries.csv"), DataFrame)
+    mod_load = Float64[]
+    for row in eachrow(df)
+        n = string(row["Node"])
+        t = row["Timestep"]
+        mod_load_val = row["Load"] - grid_store_flow[n][t]
+        push!(mod_load, mod_load_val)
+    end
+    df[:,"Load"] = mod_load
+    CSV.write(datadir("pro", "GEPPR", "timeseries_wo_storage.csv"), df)
+    
     return network
 end

@@ -1,3 +1,5 @@
+using GEPPR, CSV
+
 function demand_net_of_total_supply(gep::GEPM)
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
 
@@ -42,13 +44,25 @@ function demand_net_of_total_supply(gep::GEPM)
     )
 end
 
-function days_to_run_models_on(gep::GEPM)
+function days_to_run_models_on(gep::GEPM, filename::String)
     dem_net = demand_net_of_total_supply(gep)
-    dem_net_sum = [sum(v[i] for (k,v) in dem_net) for i in 1:8_760]
+    dem_net_sum = [sum(v[i] for (k, v) in dem_net) for i in 1:8_760]
     dem_net_day = reshape(dem_net_sum, 24, :)
-    dem_net_max_day = maximum(dem_net_day, dims=1)
+    dem_net_max_day = maximum(dem_net_day; dims=1)
     day_no_scarce = findmin(dem_net_max_day)[2][2]
     day_some_scarce = findfirst(dem_net_max_day .> -1000)[2]
     day_scarce = findmax(dem_net_max_day)[2][2]
+    df = DataFrame(;
+        type=["No scarcity", "Scarcity in redispatch", "Scarcity in day ahead"],
+        days=[
+            day_no_scarce
+            day_some_scarce
+            day_scarce
+        ]
+    )
+    df[:,"timesteps"] = [
+        (df[i,"days"] * 24 + 1):((1 + df[i,"days"]) * 24) for i in 1:size(df,1)
+    ]
+    CSV.write(datadir("pro", filename), df)
     return day_no_scarce, day_some_scarce, day_scarce
 end

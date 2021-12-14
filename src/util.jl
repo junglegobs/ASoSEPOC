@@ -14,6 +14,8 @@ function mkrootdirs(dir::String)
     end
 end
 
+script_name(str) = splitext(splitdir(str)[2])[1]
+
 
 # PATHS
 grid_path = datadir("pro", "grid.json")
