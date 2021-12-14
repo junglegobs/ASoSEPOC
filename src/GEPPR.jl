@@ -18,10 +18,12 @@ function param_and_config(opts::Dict)
     if opts["include_storage"]
         push!(configFiles, joinpath(GEPPR_dir, "storage.yaml"))
     end
+    is_linear = (opts["unit_commitment_type"] == "none")
+    nT = opts["optimization_horizon"][2]
     param = @suppress Dict{String,Any}(
         "optimizer" => optimizer_with_attributes(
             Gurobi.Optimizer,
-            "TimeLimit" => 1_200,
+            "TimeLimit" => nT * (1 + (is_linear - 1) * 2),
             "OutputFlag" => 1,
         ),
         "unitCommitmentConstraintType" => opts["unit_commitment_type"],
