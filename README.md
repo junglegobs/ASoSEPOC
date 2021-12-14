@@ -24,15 +24,7 @@ everything should work out of the box, including correctly finding local paths.
 ## TODO list
 
 * Double check that data is sufficient and correct (Efthymios)
-* Deal with renewables.
-  * Q: Include them in load or treat them as generation units?
-* Storage.
-  * Q: See proposal below.
-* Set up GEPPR model.
-  * Convert PowerModels data to GEPPR format.
-* Select days to be considered
-  * 3 - with load shedding, with reserve shedding, with no shedding at all.
-  * Q: Run entire year to get the commitment for each timestep? (To avoid "edge" effects.)
+* Double check that storage bus injections were done correctly (dispatch seems wrong).
 
 ## Data description
 
