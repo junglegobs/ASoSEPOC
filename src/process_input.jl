@@ -2,8 +2,8 @@ using XLSX, PowerModels, JSON, YAML, StatsBase, DataFrames, CSV, GEPPR
 include(srcdir("util.jl"))
 nT = 8_760 # Number of timesteps
 
-function process_belderbos_data()
-    net_data_dir = datadir("raw", "Belderbos_Belgian_Model")
+function process_belderbos_data(grid_path)
+    grid_data_dir = datadir("raw", "Belderbos_Belgian_Model")
     network = Dict{String,Any}(
         "name" => "Belderbos Belgium Model",
         "baseMVA" => 1,
@@ -20,13 +20,13 @@ function process_belderbos_data()
         "dcline" => Dict{String,Any}(),
         "time_elapsed" => 1.0, # hours per timestep
     )
-    grid = XLSX.readxlsx(joinpath(net_data_dir, "BE-full2015_grid.xlsx"))
+    grid = XLSX.readxlsx(joinpath(grid_data_dir, "BE-full2015_grid.xlsx"))
     load_cols, load_labs = XLSX.readtable(
-        joinpath(net_data_dir, "BE-full2015_load.xlsx"), "load"
+        joinpath(grid_data_dir, "BE-full2015_load.xlsx"), "load"
     )
-    gen = XLSX.readxlsx(joinpath(net_data_dir, "BE-full2015_portfolio.xlsx"))
-    ts = XLSX.readxlsx(joinpath(net_data_dir, "BE-full2015_transactions.xlsx"))
-    prices = XLSX.readxlsx(joinpath(net_data_dir, "BE-full2015_prices.xlsx"))
+    gen = XLSX.readxlsx(joinpath(grid_data_dir, "BE-full2015_portfolio.xlsx"))
+    ts = XLSX.readxlsx(joinpath(grid_data_dir, "BE-full2015_transactions.xlsx"))
+    prices = XLSX.readxlsx(joinpath(grid_data_dir, "BE-full2015_prices.xlsx"))
 
     # Buses
     node_sh = grid["node_information"]
@@ -227,20 +227,20 @@ function process_belderbos_data()
 
     # Save the dictionary
     exp_pro = datadir("pro")
-    open(joinpath(exp_pro, "grid.json"), "w") do f
+    open(joinpath(exp_pro, grid_path), "w") do f
         JSON.print(f, network, 4)
     end
 
     return network
 end
 
-function powermodels_2_GEPPR(net_data_path, net_red_path)
+function powermodels_2_GEPPR(grid_data_path, grid_red_path)
     # Make GEPPR dir
     GEPPR_dir = datadir("pro", "GEPPR")
     mkrootdirs(GEPPR_dir)
 
     # Parse network
-    network = parse_file(net_data_path)
+    network = parse_file(grid_data_path)
 
     # Conventional generatios
     gen = network["gen"]
@@ -250,10 +250,12 @@ function powermodels_2_GEPPR(net_data_path, net_red_path)
                 "nameplateCapacity" => v["pmax"], # [MW]
                 "installedCapacity" => v["pmax"], # [MW]
                 "minimumStableOperatingPoint" => v["pmin"] / v["pmax"], # [-]
-                "commitmentCost" => v["cost"] * v["pmin"],
+                "commitmentCost" => v["cost"] * v["pmin"], # [€/commit]
+                # = Cost when running at MSOP
                 "startUpCost" => v["startup"], # [€/startup]
                 "shutDownCost" => v["shutdown"], # [€/shutdown]
                 "marginalGenerationCost" => v["cost"], # [€/MWh]
+                "averageGenerationCost" => v["cost"], # [€/MWh]
                 "nodes" => [string(v["gen_bus"])],
                 "fuelType" => "Dummy",
             ) for (k, v) in gen
@@ -287,21 +289,24 @@ function powermodels_2_GEPPR(net_data_path, net_red_path)
     YAML.write_file(joinpath(GEPPR_dir, "RES.yaml"), d)
 
     # Storage
-    d = Dict(
-        "storageTechnologies" => Dict(
-            v["name"] => Dict(
-                "installedEnergyCapacity" => v["energy_rating"],
-                "roundTripEfficiency" =>
-                    v["charge_efficiency"] * v["discharge_efficiency"],
-                "marginalCost" => 0.0,
-                "energyToPowerRatio" =>
-                    v["energy_rating"] /
-                    mean([v["charge_rating"], v["discharge_rating"]]),
-                "nodes" => [string(v["storage_bus"])],
-            ) for (k, v) in network["storage"]
-        ),
-    )
-    YAML.write_file(joinpath(GEPPR_dir, "storage.yaml"), d)
+    if isempty(network["storage"]) == false
+        d = Dict(
+            "storageTechnologies" => Dict(
+                v["name"] => Dict(
+                    "installedEnergyCapacity" => v["energy_rating"],
+                    "roundTripEfficiency" =>
+                        v["charge_efficiency"] * v["discharge_efficiency"],
+                    "marginalCost" => 0.0,
+                    "energyToPowerRatio" =>
+                        v["energy_rating"] / mean([
+                            v["charge_rating"], v["discharge_rating"]
+                        ]),
+                    "nodes" => [string(v["storage_bus"])],
+                ) for (k, v) in network["storage"]
+            ),
+        )
+        YAML.write_file(joinpath(GEPPR_dir, "storage.yaml"), d)
+    end
 
     # Time series
     nodes = sort([v["string"] for (k, v) in network["bus"]])
@@ -323,26 +328,65 @@ function powermodels_2_GEPPR(net_data_path, net_red_path)
             ) for t in res_names
         ]...,
     )
-    CSV.write(joinpath(GEPPR_dir, "timeseries.csv"), df)
+    name = if isempty(network["storage"])
+        "timeseries_wo_storage.csv"
+    else
+        "timeseries.csv"
+    end
+    CSV.write(joinpath(GEPPR_dir, name), df)
 
     # Reduced network file to avoid memory issues
-    net_red = copy(network)
-    for (k, v) in net_red["load"]
+    grid_red = copy(network)
+    for (k, v) in grid_red["load"]
         v["pd"] = 0.0
     end
-    for (k, v) in net_red["res"]
+    for (k, v) in grid_red["res"]
         v["af"] = 0.0
     end
 
     # Save the reduced network
-    open(net_red_path, "w") do f
-        JSON.print(f, net_red, 4)
+    open(grid_red_path, "w") do f
+        JSON.print(f, grid_red, 4)
     end
 
     return nothing
 end
 
-function storage_dispatch_2_node_injection(gep::GEPM)
+function storage_dispatch_2_node_injection(
+    gep::GEPM, grid_orig_path::AbstractString, grid_mod_path::AbstractString
+)
+    network = parse_file(grid_orig_path)
+
+    # Remove storage
+    network["storage"] = Dict{String,Any}()
+
+    # Get sum of storage charge and discharge on each node
     N, Y, P, T = GEPPR.get_get_set_of_nodes_and_time_steps(gep)
-    D = GEPPR.get_demand(gep)
+    STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
+    ST = GEPPR.get_set_of_storage_technologies(gep)
+    sc = gep[:sc]
+    sd = gep[:sd]
+    grid_store_flow = Dict(
+        n1 => [
+            reduce(
+                +,
+                sd[(st, n2), y, p, t] - sc[(st, n2), y, p, t] for
+                (st, n2) in STN if n2 == n1;
+                init=0.0,
+            ) for t in T
+        ] for n1 in N
+    )
+
+    # Add a key in the bus dictionaries for the injection
+    for (i, bus) in network["bus"]
+        bus["store_inj"] = grid_store_flow[bus["string"]]
+    end
+
+    # Save the dictionary
+    exp_pro = datadir("pro")
+    open(joinpath(exp_pro, grid_mod_path), "w") do f
+        JSON.print(f, network, 4)
+    end
+
+    return network
 end
