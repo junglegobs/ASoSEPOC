@@ -87,7 +87,7 @@ function plot_dispatch(
     if GEPPR.has_storage_technologies(gep)
         StatsPlots.groupedbar!(
             plt,
-            T,
+            T .+ 0.5,
             hcat(ls, q, sd);
             label=hcat("Load shedding", G..., (ST .* " discharging")...),
             bar_position=:stack,
@@ -96,12 +96,12 @@ function plot_dispatch(
             ylab="Generation [GW]",
             xlab="Time [h]",
             legend=:outerright,
-            xlims=(T[1], T[end]),
+            xlims=(T[1], T[end] + 1),
         )
 
         StatsPlots.groupedbar!(
             plt,
-            T,
+            T .+ 0.5,
             -sc;
             label=hcat((ST .* " charging")...),
             bar_position=:stack,
@@ -113,7 +113,7 @@ function plot_dispatch(
     else
         StatsPlots.groupedbar!(
             plt,
-            T,
+            T .+ 0.5,
             hcat(ls, q);
             label=hcat("Load shedding", G...),
             bar_position=:stack,
@@ -122,6 +122,7 @@ function plot_dispatch(
             ylab="Generation [GW]",
             xlab="Time [h]",
             legend=:outerright,
+            xlims=(T[1], T[end] + 1)
         )
     end
 

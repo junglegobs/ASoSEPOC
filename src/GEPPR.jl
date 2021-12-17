@@ -61,7 +61,7 @@ function run_GEPPR(opts::Dict)
         make_JuMP_model!(gep)
         optimize_GEP_model!(gep)
         save_optimisation_values!(gep) # In case not saved due to TimeOut limit
-        save(gep, opts)
+        isempty(save_path) == false && save(gep, opts)
         gep
     end
     return gep
