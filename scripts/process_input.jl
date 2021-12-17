@@ -33,11 +33,14 @@ days_to_run_models_on(gep, "days_for_analysis.csv")
 storage_dispatch_2_node_injection(gep, grid_path, grid_wo_store_path)
 
 # Check that dispatches make sense
+opts["save_path"] = ""
+opts["optimization_horizon"] = [1,48]
+opts["include_storage"] = true
+gep = run_GEPPR(opts)
 plt_1 = plot_dispatch(gep, 1; T=1:48, N=["42"])
-savefig(plt_1, datadir("sims", "$(sn)_with_storage"))
+Plots.savefig(plt_1, datadir("sims", sn, "dispatch_with_storage.pdf"))
 
 opts["include_storage"] = false
-opts["optimization_horizon"] = [1,48]
 gep = run_GEPPR(opts)
 plt_2 = plot_dispatch(gep, 1; T=1:48, N=["42"])
-savefig(plt_2, datadir("sims", "$(sn)_without_storage"))
+Plots.savefig(plt_2, datadir("sims", sn, "dispatch_without_storage.pdf"))

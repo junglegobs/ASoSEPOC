@@ -1,0 +1,26 @@
+# TIMESERIES DATA
+relativePathTimeSeriesCSV: ""
+timeSeriesCSVColumnNames:
+  Year: "Year"
+  Period: "Period"
+  Timestep: "Timestep"
+  Weight: "Weight"
+  Load: "Load"
+
+# MODEL TYPE
+chronologyModelType: "none" # Determines how periods are linked to each other chronologically
+unitCommitmentConstraintType: "binary"
+imposeCyclicConstraintOnStorage: false
+
+# RESERVE
+reserveType: "probabilistic"
+reserveSizingType: "given"
+
+### MISC PARAMETERS
+RESPenetrationTarget: 0 # as fraction of total electricity [-]
+planningReserveMargin: 0.0 # Fraction of total installed capacity
+lowerValueOfLostLoad: 10000.0 # [€/MWh]
+valueOfLostLoad: 10100.0 # [€/MWh]
+elasticLoadSheddingAmount: 10000.0 # [MW]
+samplingTime: 1 # [hours]
+isOperationalModel: true
