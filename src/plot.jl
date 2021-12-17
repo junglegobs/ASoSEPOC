@@ -39,21 +39,21 @@ function plot_dispatch(
         sc = gep[:sc]
         sd = gep[:sd]
         e = gep[:e]
-        sc = [
+        sc = Float64[
             reduce(
                 +,
                 sc[(st, n), Y[1], p, t] for n in N if (st, n) in STN;
                 init=0.0,
             ) for t in T, st in ST
         ]
-        sd = [
+        sd = Float64[
             reduce(
                 +,
                 sd[(st, n), Y[1], p, t] for n in N if (st, n) in STN;
                 init=0.0,
             ) for t in T, st in ST
         ]
-        e = [
+        e = Float64[
             reduce(
                 +, e[(st, n), Y[1], p, t] for n in N if (st, n) in STN; init=0.0
             ) for t in T, st in ST
@@ -64,18 +64,22 @@ function plot_dispatch(
     if aggregate_conventional
         GD = GEPPR.get_set_of_dispatchable_generators(gep)
         GR = GEPPR.get_set_of_intermittent_generators(gep)
-        q_conv = [sum(q[t, i] for i in 1:length(G) if G[i] in GD) for t in Tm]
+        q_conv = [
+            reduce(+, q[t, i] for i in 1:length(G) if G[i] in GD; init=0.0) for
+            t in Tm
+        ]
         q_res = hcat(
             [[q[t, i] for t in Tm] for i in 1:length(G) if G[i] in GR]...
         )
         q = hcat(q_res, q_conv)
-        G = vcat(GR..., "Conventional")
+        G = vcat([g for (g, n) in GN if n in N && g in GR]...)
+        G = isempty(q_conv) ? G : vcat(G..., "Conventional")
     end
     if aggregate_storage && GEPPR.has_storage_technologies(gep)
         sc = sum(sc; dims=2)
         sd = sum(sd; dims=2)
         e = sum(e; dims=2)
-        ST = ["Storage"]
+        ST = isempty(e) ? String[] : ["Storage"]
     end
 
     # Plot

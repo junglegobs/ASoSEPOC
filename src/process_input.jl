@@ -116,7 +116,7 @@ function process_belderbos_data(grid_path)
         catg_row = gen_catg_sh["A$catg:X$catg"]
         fuel = catg_row[5]
         fuel_cost = prices["fuel_prices"][4, fuel + 1]
-        cost = fuel / catg_row[3] # Euros/MWh
+        cost = (fuel / catg_row[3]) * 1000 # Euros/MWh
         network["gen"]["$gen_id"] = Dict(
             "name" => row["B"],
             "gen_bus" => row["D"],
@@ -197,9 +197,9 @@ function process_belderbos_data(grid_path)
         )
     end
 
-    # Power to Gas        v["af"] = 0.0
-
+    # Power to Gas
     h2_sh = gen["hydrogen_storage"]
+    duration = 1000
     for row in XLSX.eachrow(h2_sh)
         row["A"] in ("ID", "(integer)") && continue
         id += 1
@@ -210,8 +210,8 @@ function process_belderbos_data(grid_path)
             "qs" => 0.0,
             "energy" => 0.0,
             "energy_rating" => row["D"],
-            "charge_rating" => row["D"] / 1000,
-            "discharge_rating" => row["D"] / 1000,
+            "charge_rating" => row["D"] / duration,
+            "discharge_rating" => row["D"] / duration,
             "charge_efficiency" => 0.7,
             "discharge_efficiency" => 0.7,
             "qmin" => 0.0,
