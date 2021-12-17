@@ -4,6 +4,9 @@ includet(srcdir("process_input.jl"))
 includet(srcdir("opts.jl"))
 includet(srcdir("GEPPR.jl"))
 includet(srcdir("analysis.jl"))
+includet(srcdir("plot.jl"))
+sn = script_name(@__FILE__)
+mkrootdirs(datadir("sims", sn))
 
 # Process Excel sheets into a PowerModels.json format
 process_belderbos_data(grid_path)
@@ -28,3 +31,13 @@ days_to_run_models_on(gep, "days_for_analysis.csv")
 
 # Save storage dispatch as a node injection
 storage_dispatch_2_node_injection(gep, grid_path, grid_wo_store_path)
+
+# Check that dispatches make sense
+plt_1 = plot_dispatch(gep, 1; T=1:48, N=["42"])
+savefig(plt_1, datadir("sims", "$(sn)_with_storage"))
+
+opts["include_storage"] = false
+opts["optimization_horizon"] = [1,48]
+gep = run_GEPPR(opts)
+plt_2 = plot_dispatch(gep, 1; T=1:48, N=["42"])
+savefig(plt_2, datadir("sims", "$(sn)_without_storage"))
