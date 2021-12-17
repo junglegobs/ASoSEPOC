@@ -39,7 +39,7 @@ function param_and_config(opts::Dict)
         "optimizationHorizon" => Dict(
             "start" => [1, 1, opts["optimization_horizon"][1]],
             "end" => [1, 1, opts["optimization_horizon"][end]],
-        ),
+        )
     )
     return configFiles, param
 end

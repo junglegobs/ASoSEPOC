@@ -17,7 +17,7 @@ opts_vec = [
         opts,
         Dict(
             "optimization_horizon" => parse(UnitRange{Int}, df[i,"timesteps"]),
-            "save_path" => datadir("sims", "sn_$(df[i,"days"])"),
+            "save_path" => datadir("sims", "$(sn)_$(df[i,"days"])"),
         ),
     ) for i in 1:size(df, 1)
 ]
