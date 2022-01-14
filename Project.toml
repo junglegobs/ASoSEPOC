@@ -7,7 +7,6 @@ CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DrWatson = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"
-GEPPR = "bdf5de6c-7654-11e9-1af4-dbe25ce70594"
 Gurobi = "2e9cd046-0924-5485-92f1-d5272153d98b"
 Infiltrator = "5903a43b-9cc3-4c30-8d17-598619ec4e9b"
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
@@ -25,4 +24,4 @@ YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
 DrWatson = "2.7.1"
-julia = "1.6.3"
+julia = "1.6"
