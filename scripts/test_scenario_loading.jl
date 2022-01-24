@@ -1,6 +1,4 @@
-using DrWatson, Revise
-@quickactivate
-includet.(srcdir.(["opts.jl", "process_input.jl"]))
+include(joinpath(@__DIR__, "..", "intro.jl"))
 
 files_dict = Dict(
     "Load" => datadir(
