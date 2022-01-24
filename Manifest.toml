@@ -417,7 +417,7 @@ deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 
 [[GEPPR]]
-deps = ["AxisArrays", "CSV", "Cbc", "DataFrames", "Dates", "Distributions", "FileIO", "JLD2", "JuMP", "LinearAlgebra", "Match", "OrderedCollections", "PowerModels", "SparseArrays", "UnPack", "YAML"]
+deps = ["AxisArrays", "CSV", "Cbc", "DataFrames", "Dates", "Distributions", "FileIO", "Infiltrator", "JLD2", "JuMP", "LinearAlgebra", "Match", "OrderedCollections", "PowerModels", "SparseArrays", "UnPack", "YAML"]
 path = "dev/GEPPR"
 uuid = "bdf5de6c-7654-11e9-1af4-dbe25ce70594"
 version = "0.1.2"
