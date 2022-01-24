@@ -1,8 +1,4 @@
-using DrWatson, Revise
-@quickactivate
-includet(srcdir("opts.jl"))
-includet(srcdir("GEPPR.jl"))
-includet(srcdir("plot.jl"))
+include(joinpath(@__DIR__, "..", "intro.jl"))
 sn = script_name(@__FILE__)
 
 df = CSV.read(datadir("pro", "days_for_analysis.csv"), DataFrame)

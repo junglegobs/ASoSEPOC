@@ -1,10 +1,4 @@
-using DrWatson, Revise
-@quickactivate
-includet(srcdir("process_input.jl"))
-includet(srcdir("opts.jl"))
-includet(srcdir("GEPPR.jl"))
-includet(srcdir("analysis.jl"))
-includet(srcdir("plot.jl"))
+include(joinpath(@__DIR__, "..", "intro.jl"))
 sn = script_name(@__FILE__)
 mkrootdirs(datadir("sims", sn))
 

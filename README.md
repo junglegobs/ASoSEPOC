@@ -21,11 +21,6 @@ julia> include("path/to/this/project/instantiate.jl")
 This will install all necessary packages for you to be able to run the scripts and
 everything should work out of the box, including correctly finding local paths.
 
-## TODO list
-
-* Double check that data is sufficient and correct (Efthymios)
-* Double check that storage bus injections were done correctly (dispatch seems wrong).
-
 ## Data
 
 ### Download
