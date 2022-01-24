@@ -26,7 +26,13 @@ everything should work out of the box, including correctly finding local paths.
 * Double check that data is sufficient and correct (Efthymios)
 * Double check that storage bus injections were done correctly (dispatch seems wrong).
 
-## Data description
+## Data
+
+### Download
+
+Input data can be found [here](https://www.dropbox.com/sh/mdvmc082gwng0tr/AABRyc3fZpxAFycmUfZmh8Csa?dl=0).
+
+### Description
 
 Grid, load, renewables and capacity mix data come from [this paper](https://www.mech.kuleuven.be/en/tme/research/energy-systems-integration-modeling/pdf-publications/wp-en2019-02). It is a Belgium-like system with a very high share of renewables (~80%).
 

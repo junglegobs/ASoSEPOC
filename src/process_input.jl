@@ -1,4 +1,4 @@
-using XLSX, PowerModels, JSON, YAML, StatsBase, DataFrames, CSV, GEPPR
+using XLSX, PowerModels, JSON, YAML, StatsBase, DataFrames, CSV, GEPPR, Dates
 include(srcdir("util.jl"))
 nT = 8_760 # Number of timesteps
 
@@ -401,4 +401,164 @@ function storage_dispatch_2_node_injection(
     CSV.write(datadir("pro", "GEPPR", "timeseries_wo_storage.csv"), df)
     
     return network
+end
+
+"""
+    load_scenarios(opts, files_dict; err_file)
+
+Iterate over paths in `files_dict` to return forecasts and error scenarios.
+
+# Keyword arguments
+
+* `err_file`: log output to a file of this name in `datadir("pro", "scenario_loading")`.
+"""
+function load_scenarios(
+    opts::Dict, files_dict::Dict; err_file=string(round(now(), Dates.Minute))
+)
+    myscens = Dict()
+    mkrootdirs(datadir("pro", "scenario_loading"))
+    myf = open(datadir("pro", "scenario_loading", err_file * ".dat"), "w")
+    for (name, file_prefix) in files_dict
+        print(myf, "-"^80 * "\nReading $name error scenarios\n")
+
+        f_err = string(file_prefix, ".csv")
+        forecast = string(file_prefix, "_forecast.csv")
+
+        err_data = CSV.read(f_err, DataFrame; header=false) #--> 1st row is treated as a data row
+        (err_rw, err_cl) = size(err_data)
+
+        num_err = err_cl - 3 #-->first 3 columns are identifiers
+        num_err_scens = (err_rw - 3) / 24 #--> first 3 rows are also identifiers
+        print(myf, "Found $num_err_scens scenarios for $name error\n")
+
+        if isinteger(num_err_scens) != true
+            print(
+                myf,
+                "\n**** Terminal error: non-integer $name error scenario size",
+            )
+            close(myf)
+            error()
+        end
+
+        myscens[name] = Dict()  #-- 1 subdict per branch + scenario (starting with 0)
+        myscens[name]["total"] = Dict()
+        myscens[name]["total"]["scenarios"] = Dict()
+        myscens[name]["total"]["forecast"] = Dict()
+
+        for jdx in 4:err_cl
+            id = err_data[1, jdx]
+            full_name = err_data[2, jdx]
+
+            myscens[name][full_name] = Dict()
+            myscens[name][full_name]["id"] = parse(Int64, id)
+            myscens[name][full_name]["pmax_mw"] = parse(
+                Float64, err_data[6, jdx]
+            )
+            myscens[name][full_name]["scenarios"] = Dict()
+            myscens[name][full_name]["forecast"] = Dict()
+
+            #-- reading row entrys for this column
+            for idx in 4:err_rw
+                the_scen = convert(
+                    Int64, (parse(Float64, err_data[idx, 2]) + 1)
+                )
+                the_hour = parse(Float64, err_data[idx, 3])
+                the_hour = convert(Int64, the_hour)
+
+                if the_hour <= 9
+                    hkey = string("0", "$the_hour", ":00")
+                else
+                    hkey = string("$the_hour", ":00")
+                end
+
+                #-- setting up (if needed) the scenario sub-dict for this substation
+                if haskey(myscens[name][full_name]["scenarios"], the_scen) !=
+                   true
+                    myscens[name][full_name]["scenarios"][the_scen] = Dict()
+                end
+
+                #-- setting up (if needed) the scenario sub-dict for the total
+                if haskey(myscens[name]["total"]["scenarios"], the_scen) !=
+                   true
+                    myscens[name]["total"]["scenarios"][the_scen] = Dict()
+                end
+
+                #-- hourly error for substation & scenario
+                myscens[name][full_name]["scenarios"][the_scen][hkey] = parse(
+                    Float64, err_data[idx, jdx]
+                ) #-- already in MWh
+
+                #-- adding to the total value
+                if haskey(
+                    myscens[name]["total"]["scenarios"][the_scen], hkey
+                ) != true
+                    myscens[name]["total"]["scenarios"][the_scen][hkey] = parse(
+                        Float64, err_data[idx, jdx]
+                    )
+                else
+                    myscens[name]["total"]["scenarios"][the_scen][hkey] += parse(
+                        Float64, err_data[idx, jdx]
+                    )
+                end
+            end
+        end #- per column (substation)
+        print(myf, "\n" * "-"^80 * "\n" * "-"^80 * "\nReading $name forecast\n")
+
+        for_data = CSV.read(forecast, DataFrame; header=false) #--> 1st row is treated as a data row
+        for_rw, for_cl = size(for_data)
+
+        num_for = for_cl - 3 #-->first 3 columns are identifiers
+        num_for_scens = (for_rw - 3) / 24 #--> first 3 rows are also identifiers
+        print(myf, "Found $num_for_scens $name forecast\n")
+
+        if isinteger(num_for_scens) != true
+            print(myf, "\n****Terminal error: non-integer $name forecast size")
+            close(myf)
+            error()
+        end
+
+        for jdx in 4:for_cl
+            full_name = for_data[2, jdx]
+
+            if haskey(myscens[name], full_name)
+
+                #-- reading row entrys for this column
+                for idx in 4:for_rw
+                    the_hour = parse(Float64, for_data[idx, 3])
+                    the_hour = convert(Int64, the_hour)
+
+                    if the_hour <= 9
+                        hkey = string("0", "$the_hour", ":00")
+                    else
+                        hkey = string("$the_hour", ":00")
+                    end
+
+                    #-- hourly forecast for substation
+                    myscens[name][full_name]["forecast"][hkey] = parse(
+                        Float64, for_data[idx, jdx]
+                    ) #-- already in MWh
+
+                    #-- adding to the total value
+                    if haskey(myscens[name]["total"]["forecast"], hkey) != true
+                        myscens[name]["total"]["forecast"][hkey] = parse(
+                            Float64, for_data[idx, jdx]
+                        )
+                    else
+                        myscens[name]["total"]["forecast"][hkey] += parse(
+                            Float64, for_data[idx, jdx]
+                        )
+                    end
+                end #- row entries per column
+
+            else
+                print(
+                    myf,
+                    "** I found a forecast but no scenarios for $name @ $full_name",
+                )
+            end
+        end #- per column (substation)
+        print(myf, "\n" * "-"^80)
+    end
+    close(myf)
+    return myscens
 end

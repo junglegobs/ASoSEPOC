@@ -4,9 +4,11 @@ authors = ["Sebastian Gonzato"]
 [deps]
 AxisArrays = "39de3d68-74b9-583c-8d2d-e117c070f3a9"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+Cbc = "9961bab8-2fa3-5c5a-9d89-47fab24efd76"
 Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DrWatson = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"
+GEPPR = "bdf5de6c-7654-11e9-1af4-dbe25ce70594"
 Gurobi = "2e9cd046-0924-5485-92f1-d5272153d98b"
 Infiltrator = "5903a43b-9cc3-4c30-8d17-598619ec4e9b"
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
