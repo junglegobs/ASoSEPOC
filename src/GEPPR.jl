@@ -1,4 +1,6 @@
-using Gurobi, GEPPR, Suppressor, UnPack
+using GEPPR, Suppressor, UnPack
+isdefined(Main, :GRB_EXISTS) == false && const GRB_EXISTS = haskey(ENV, "GUROBI_HOME") 
+GRB_EXISTS && using Gurobi
 include(srcdir("util.jl"))
 
 ### UTIL
@@ -18,15 +20,8 @@ function param_and_config(opts::Dict)
     if opts["include_storage"]
         push!(configFiles, joinpath(GEPPR_dir, "storage.yaml"))
     end
-    is_linear = (opts["unit_commitment_type"] == "none")
-    opt_hrzn = opts["optimization_horizon"]
-    nT = opt_hrzn[end] - opt_hrzn[1] + 1
     param = @suppress Dict{String,Any}(
-        "optimizer" => optimizer_with_attributes(
-            Gurobi.Optimizer,
-            "TimeLimit" => nT * (2 + (1 - is_linear) * 2),
-            "OutputFlag" => 1,
-        ),
+        "optimizer" => optimizer(opts),
         "unitCommitmentConstraintType" => opts["unit_commitment_type"],
         "relativePathTimeSeriesCSV" => if opts["include_storage"]
             "timeseries.csv"
@@ -42,6 +37,21 @@ function param_and_config(opts::Dict)
         )
     )
     return configFiles, param
+end
+
+function optimizer(opts::Dict)
+    is_linear = (opts["unit_commitment_type"] == "none")
+    opt_hrzn = opts["optimization_horizon"]
+    nT = opt_hrzn[end] - opt_hrzn[1] + 1
+    if GRB_EXISTS
+        return optimizer_with_attributes(
+            Gurobi.Optimizer,
+            "TimeLimit" => nT * (2 + (1 - is_linear) * 2),
+            "OutputFlag" => 1,
+        )
+    else
+        return Cbc.Optimizer
+    end
 end
 
 function gepm(opts::Dict)
