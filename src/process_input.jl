@@ -607,7 +607,7 @@ function scenarios_2_GEPPR(opts::Dict, scens)
 
     # Get quantiles
     D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻ = get_probabilistic_reserve_parameters_from_scenarios(
-        transpose(NLFEMat);
+        transpose(total_NLFE);
         n_up=upward_reserve_levels,
         n_down=downward_reserve_levels,
         coverage=10, # Number of scenarios ignored on tail ends
@@ -625,7 +625,7 @@ end
 * `coverage`: Reserve coverage, cuts off `coverage` number of scenarios with highest and lowest values. 
 """
 function get_probabilistic_reserve_parameters_from_scenarios(
-    scenarios::Matrix; n_up=10, n_down=10, coverage=0
+    scenarios::AbstractMatrix; n_up=10, n_down=10, coverage=0
 )
     sorted_scenarios = sort(scenarios; dims=1)
     nS = size(scenarios, 1)
