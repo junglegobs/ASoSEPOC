@@ -32,11 +32,12 @@ function process_belderbos_data(grid_path)
     node_sh = grid["node_information"]
     for row in XLSX.eachrow(node_sh)
         bus_id = row["A"]
+        name = row["E"]
         if ismissing(bus_id) == false && bus_id isa Number
             bus_type = (bus_id == 1 ? 3 : 2) # TODO
             network["bus"]["$bus_id"] = Dict(
                 "index" => bus_id,
-                "string" => "$bus_id",
+                "string" => name,
                 "number" => bus_id,
                 "bus_i" => "$bus_id",
                 "source_id" => ["bus", bus_id],
@@ -309,7 +310,7 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
     end
 
     # Time series
-    nodes = sort([v["string"] for (k, v) in network["bus"]])
+    nodes = sort([v["bus_i"] for (k, v) in network["bus"]])
     d = Dict(string(v["load_bus"]) => v["pd"] for (k, v) in network["load"])
     af = Dict(
         (string(v["bus"]), v["name"]) => Float64.(v["af"]) for
@@ -370,8 +371,8 @@ function storage_dispatch_2_node_injection(
         n1 => [
             reduce(
                 +,
-                sd[(st, n2), Y[1], P[1], t] - sc[(st, n2), Y[1], P[1], t] for
-                (st, n2) in STN if n2 == n1;
+                sd[(st, n2), Y[1], P[1], t] - sc[(st, n2), Y[1], P[1], t]
+                for (st, n2) in STN if n2 == n1;
                 init=0.0,
             ) for t in T
         ] for n1 in N
@@ -379,7 +380,7 @@ function storage_dispatch_2_node_injection(
 
     # Add a key in the bus dictionaries for the injection
     for (i, bus) in network["bus"]
-        bus["store_inj"] = grid_store_flow[bus["string"]]
+        bus["store_inj"] = grid_store_flow[bus["bus_i"]]
     end
 
     # Save the dictionary
@@ -397,9 +398,9 @@ function storage_dispatch_2_node_injection(
         mod_load_val = row["Load"] - grid_store_flow[n][t]
         push!(mod_load, mod_load_val)
     end
-    df[:,"Load"] = mod_load
+    df[:, "Load"] = mod_load
     CSV.write(datadir("pro", "GEPPR", "timeseries_wo_storage.csv"), df)
-    
+
     return network
 end
 
@@ -473,13 +474,12 @@ function load_scenarios(
 
                 #-- setting up (if needed) the scenario sub-dict for this substation
                 if haskey(myscens[name][full_name]["scenarios"], the_scen) !=
-                   true
+                    true
                     myscens[name][full_name]["scenarios"][the_scen] = Dict()
                 end
 
                 #-- setting up (if needed) the scenario sub-dict for the total
-                if haskey(myscens[name]["total"]["scenarios"], the_scen) !=
-                   true
+                if haskey(myscens[name]["total"]["scenarios"], the_scen) != true
                     myscens[name]["total"]["scenarios"][the_scen] = Dict()
                 end
 
@@ -561,4 +561,117 @@ function load_scenarios(
     end
     close(myf)
     return myscens
+end
+
+function load_scenarios(opts::Dict)
+    return load_scenarios(
+        opts,
+        Dict(
+            "Load" => opts["load_scenario_data_paths"],
+            "Wind" => opts["wind_scenario_data_paths"],
+            "Solar" => opts["solar_scenario_data_paths"],
+        ),
+    )
+end
+
+function scenarios_2_GEPPR(opts::Dict, scens)
+    @unpack upward_reserve_levels, downward_reserve_levels = opts
+    pm = PowerModels.parse_file(grid_red_path)
+    mult = Dict("Load" => -1, "Wind" => 1, "Solar" => 1)
+
+    # Convolute scenarios to get total net load forecast error
+    net_load_forecast_error_dict = Dict{String,Matrix{Float64}}()
+    for (k, bus) in pm["bus"]
+        name = bus["string"]
+        bus_scen_dicts = Dict(
+            k1 => scens[k1][name] for
+            (k1, v) in scens if haskey(scens[k1], name)
+        )
+        bus_scen_mat = Dict(
+            k1 => hcat(
+                [
+                    [val for (hr, val) in sort(scen_dict)] for
+                    (scen_id, scen_dict) in sort(v1["scenarios"])
+                ]...,
+            ) for (k1, v1) in bus_scen_dicts
+        )
+        # Net load is negative -> upward reserves are activated
+        # Net load is positive -> downward reserves are activated 
+        net_load_forecast_error_dict[name] = sum(
+            scen_mat * mult[source] for (source, scen_mat) in bus_scen_mat
+        )
+    end
+
+    # Sum up uncertainty over entire network
+    total_NLFE = sum(v for (k,v) in net_load_forecast_error_dict)
+
+    # Get quantiles
+    D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻ = get_probabilistic_reserve_parameters_from_scenarios(
+        transpose(NLFEMat);
+        n_up=upward_reserve_levels,
+        n_down=downward_reserve_levels,
+        coverage=10, # Number of scenarios ignored on tail ends
+    )
+
+    return D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻
+end
+
+"""
+    get_probabilistic_reserve_parameters_from_scenarios(scenarios; kwargs...)
+
+# Keyword arguments #md
+* `n_up`: Number of upward reserve (discretisation) levels
+* `n_down`: Number of downward reserve (discretisation) levels
+* `coverage`: Reserve coverage, cuts off `coverage` number of scenarios with highest and lowest values. 
+"""
+function get_probabilistic_reserve_parameters_from_scenarios(
+    scenarios::Matrix; n_up=10, n_down=10, coverage=0
+)
+    sorted_scenarios = sort(scenarios; dims=1)
+    nS = size(scenarios, 1)
+    nT = size(scenarios, 2)
+    @assert n_up + n_down + coverage < nS
+    sorted_scenarios = sorted_scenarios[(coverage + 1):(nS - coverage), :]
+    D⁺ = fill(NaN, n_up, nT)
+    D⁻ = fill(NaN, n_down, nT)
+    P⁺ = fill(NaN, n_up, nT)
+    P⁻ = fill(NaN, n_down, nT)
+    Dmid⁺ = fill(NaN, n_up, nT)
+    Dmid⁻ = fill(NaN, n_down, nT)
+    for t in 1:nT
+        q_cut_up, q_mid_up, p_up, q_cut_down, q_mid_down, p_down = quantiles_and_probabilities(
+            sorted_scenarios[:, t]; n_up=n_up, n_down=n_down
+        )
+
+        for l in 1:n_up
+            D⁺[l, t] = q_cut_up[l + 1] - q_cut_up[l]
+            Dmid⁺[l, t] = q_mid_up[l]
+            P⁺[l, t] = p_up[l]
+        end
+        for l in 1:n_down
+            D⁻[l, t] = q_cut_down[l] - q_cut_down[l + 1]
+            Dmid⁻[l, t] = q_mid_down[l]
+            P⁻[l, t] = p_down[l]
+        end
+    end
+    return D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻
+end
+
+"""
+    quantiles_and_probabilities(vec; n_up, n_down)
+    
+Returns the quantile cut off points, mid points and probabilities of deviating from the median to the mid points for above and below the median of `vec`.
+"""
+function quantiles_and_probabilities(vec; n_up=n_up, n_down=n_down)
+    dist = ecdf(vec)
+
+    qcf_down = reverse(range(minimum(vec), 0; length=n_down + 1)) # quantile cut of points
+    qmp_down = [mean([qcf_down[j], qcf_down[j + 1]]) for j in 1:n_down] # quantile mid points
+    qp_down = [dist(qmp_down[j]) for j in 1:n_down] # Quantile probabilities
+
+    qcf_up = range(0, maximum(vec); length=n_up + 1) # quantile cut of points
+    qmp_up = [mean([qcf_up[j], qcf_up[j + 1]]) for j in 1:n_up] # quantile mid points
+    qp_up = [1 - dist(qmp_up[j]) for j in 1:n_up] # Quantile probabilities
+
+    return vcat(qcf_up...), qmp_up, qp_up, vcat(qcf_down...), qmp_down, qp_down
 end

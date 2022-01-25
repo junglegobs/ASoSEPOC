@@ -120,6 +120,38 @@ function apply_initial_commitment!(gep::GEPM, opts::Dict)
     return nothing
 end
 
+function apply_operating_reserves!(gep::GEPM, opts::Dict)
+    
+
+    modify_parameter!(gep, "reserveType", "probabilistic")
+    modify_parameter!(gep, "reserveSizingType", "given")
+    modify_parameter!(gep, "includeReserveActivationCosts", true)
+    modify_parameter!(gep, "includeDownwardReserves", true)
+    L⁺ = gep[:I, :sets, :L⁺] = 1:n_levels
+    L⁻ = gep[:I, :sets, :L⁻] = 1:n_levels
+    ORBZ = GEPPR.get_set_of_operating_reserve_balancing_zones(gep)
+    gep[:I, :uncertainty, :P⁺] = AxisArray(
+        [P⁺[l,t] for l in L⁺, y=Y, p=P, t=T],
+        Axis{:Level}(L⁺), Axis{:Year}(Y), 
+        Axis{:Period}(P), Axis{:Timestep}(T)
+    )
+    gep[:I, :uncertainty, :P⁻] = AxisArray(
+        [P⁻[l,t] for l in L⁺, y=Y, p=P, t=T],
+        Axis{:Level}(L⁺), Axis{:Year}(Y), 
+        Axis{:Period}(P), Axis{:Timestep}(T)
+    )
+    gep[:I, :uncertainty, :D⁺] = AxisArray(
+        [D⁺[l,t] for z=ORBZ, l in L⁺, y=Y, p=P, t=T],
+        Axis{:Zone}(ORBZ), Axis{:Level}(L⁺), Axis{:Year}(Y), 
+        Axis{:Period}(P), Axis{:Timestep}(T)
+    )
+    gep[:I, :uncertainty, :D⁻] = AxisArray(
+        [D⁻[l,t] for z=ORBZ, l in L⁺, y=Y, p=P, t=T],
+        Axis{:Zone}(ORBZ), Axis{:Level}(L⁺), Axis{:Year}(Y), 
+        Axis{:Period}(P), Axis{:Timestep}(T)
+    )
+end
+
 function save(gep::GEPM, opts::Dict)
     @unpack save_path = opts
     vars_2_save = get(opts, "vars_2_save", nothing)
