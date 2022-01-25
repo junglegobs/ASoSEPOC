@@ -10,6 +10,7 @@ function options(pairs...)
         "unit_commitment_type" => "binary",
         "operating_reserves_sizing_type" => "given",
         "operating_reserves_type" => "none",
+        "initial_commitment_data_path" => "",
     )
     for (k,v) in pairs
         opts[k] = v

@@ -16,6 +16,10 @@ end
 
 script_name(str) = splitext(splitdir(str)[2])[1]
 
+function parse(::Type{UnitRange{T}}, str::AbstractString) where T<:Integer
+    split_str = split(str,":")
+    return parse(T, split_str[1]), parse(T, split_str[2])
+end
 
 # PATHS
 grid_path = datadir("pro", "grid.json")
