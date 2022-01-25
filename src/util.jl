@@ -16,7 +16,7 @@ end
 
 script_name(str) = splitext(splitdir(str)[2])[1]
 
-function parse(::Type{UnitRange{T}}, str::AbstractString) where T<:Integer
+function Base.parse(::Type{UnitRange{T}}, str::AbstractString) where T<:Integer
     split_str = split(str,":")
     return parse(T, split_str[1]), parse(T, split_str[2])
 end
@@ -25,4 +25,5 @@ end
 grid_path = datadir("pro", "grid.json")
 grid_red_path = datadir("pro", "GEPPR", "grid_red.json")
 grid_wo_store_path = datadir("pro", "grid_wo_storage.json")
-grid_wo_store_red_path = joinpath("pro", "GEPPR", "grid_red_wo_storage.json")
+grid_wo_store_red_path = datadir("pro", "GEPPR", "grid_red_wo_storage.json")
+scendir(args...) = datadir("raw", "Forecast_Error_Scenarios", args...)

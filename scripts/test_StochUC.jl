@@ -8,9 +8,22 @@ opts = options(
     "operating_reserves_sizing_type" => "given",
     "operating_reserves_type" => "none",
     "initial_commitment_data_path" => datadir("sims", "rolling_UC_full_year"),
-    "optimization_horizon" => [
-        parse(UnitRange{Int}, df[i,"timesteps"]) for i in size(df,1)
-    ]
+    "include_probabilistic_operating_reserves" => true,
 )
-opts_vec = dict_list(opts)
+scen_ids = [1, 2, 7]
+opts_vec = [
+    merge(
+        opts,
+        Dict(
+            "optimization_horizon" => parse(UnitRange{Int}, df[i, "timesteps"]),
+            "save_path" => datadir("sims", "$(sn)_$(df[i,"days"])"),
+            "load_scenario_data_paths" =>
+                scendir.("1000SC_BELDERBOS_load_$(scen_ids[i])_01-20-2022",),
+            "solar_scenario_data_paths" =>
+                scendir.("1000SC_BELDERBOS_solar_$(scen_ids[i])_01-20-2022"),
+            "wind_scenario_data_paths" =>
+                scendir.("1000SC_BELDERBOS_wind_$(scen_ids[i])_01-20-2022"),
+        ),
+    ) for i in 1:size(df, 1)
+]
 gep = run_GEPPR(opts_vec[1])
