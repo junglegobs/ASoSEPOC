@@ -121,8 +121,13 @@ function apply_initial_commitment!(gep::GEPM, opts::Dict)
 end
 
 function apply_operating_reserves!(gep::GEPM, opts::Dict)
-    
+    @info "Getting scenarios..."
+    scens = load_scenarios(opts)
 
+    @info "Converting scenarios to quantiles..."
+    D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻ = scenarios_2_GEPPR(opts, scens)
+
+    @info "Applying to GEPPR..."
     modify_parameter!(gep, "reserveType", "probabilistic")
     modify_parameter!(gep, "reserveSizingType", "given")
     modify_parameter!(gep, "includeReserveActivationCosts", true)
@@ -150,6 +155,7 @@ function apply_operating_reserves!(gep::GEPM, opts::Dict)
         Axis{:Zone}(ORBZ), Axis{:Level}(L⁺), Axis{:Year}(Y), 
         Axis{:Period}(P), Axis{:Timestep}(T)
     )
+    return gep
 end
 
 function save(gep::GEPM, opts::Dict)
