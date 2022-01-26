@@ -11,9 +11,11 @@ function options(pairs...)
         "operating_reserves_sizing_type" => "given",
         "operating_reserves_type" => "none",
         "initial_commitment_data_path" => "",
+        "optimization_horizon" => [1,48],
         "rolling_horizon" => false,
         "upward_reserve_levels" => 10,
         "downward_reserve_levels" => 10,
+        "include_probabilistic_operating_reserves" => false
     )
     for (k,v) in pairs
         opts[k] = v
