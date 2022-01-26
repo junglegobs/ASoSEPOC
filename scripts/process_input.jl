@@ -27,7 +27,7 @@ storage_dispatch_2_node_injection(gep, grid_path, grid_wo_store_path)
 
 # Check that dispatches make sense
 opts["save_path"] = ""
-opts["optimization_horizon"] = [1,48]
+opts["optimization_horizon"] = [1, 48]
 opts["include_storage"] = true
 gep = run_GEPPR(opts)
 plt_1 = plot_dispatch(gep, 1; T=1:48, N=["RODENHUIZE"])

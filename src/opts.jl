@@ -15,7 +15,6 @@ function options(pairs...)
         "rolling_horizon" => false,
         "upward_reserve_levels" => 10,
         "downward_reserve_levels" => 10,
-        "include_probabilistic_operating_reserves" => false
     )
     for (k,v) in pairs
         opts[k] = v
