@@ -243,6 +243,14 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
     # Parse network
     network = parse_file(grid_data_path)
 
+    # Utilities
+    nodes = sort([v["string"] for (k, v) in network["bus"]])
+    node2ids = sort(Dict(
+        v["string"] => v["index"] for (k, v) in network["bus"]
+    ))
+    ids2node = sort(Dict(v => k for (k,v) in node2ids))
+    node_ids = [node2ids[name] for name in nodes]
+
     # Conventional generatios
     gen = network["gen"]
     d = Dict(
@@ -257,7 +265,7 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
                 "shutDownCost" => v["shutdown"], # [€/shutdown]
                 "marginalGenerationCost" => v["cost"], # [€/MWh]
                 "averageGenerationCost" => v["cost"], # [€/MWh]
-                "nodes" => [string(v["gen_bus"])],
+                "nodes" => [ids2node[v["gen_bus"]]],
                 "fuelType" => "Dummy",
             ) for (k, v) in gen
         ),
@@ -267,19 +275,19 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
     # Renewable generation
     res = network["res"]
     res_names = unique([v["name"] for (k, v) in res])
-    nodes = Dict(
-        t => [string(v["bus"]) for (k, v) in res if v["name"] == t] for
+    res_nodes = Dict(
+        t => [ids2node[v["bus"]] for (k, v) in res if v["name"] == t] for
         t in res_names
     )
     cap = Dict(
         t => Dict(
-            string(v["bus"]) => v["cap"] for (k, v) in res if v["name"] == t
+            ids2node[v["bus"]] => v["cap"] for (k, v) in res if v["name"] == t
         ) for t in res_names
     )
     d = Dict(
         "intermittentGeneration" => Dict(
             t => Dict(
-                "nodes" => nodes[t],
+                "nodes" => res_nodes[t],
                 "availabilityFactor" => t, # [-]
                 "installedCapacity" =>
                     Dict(string(k) => Float64(v) for (k, v) in cap[t]), # [MW]
@@ -302,7 +310,7 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
                         v["energy_rating"] / mean([
                             v["charge_rating"], v["discharge_rating"]
                         ]),
-                    "nodes" => [string(v["storage_bus"])],
+                    "nodes" => [ids2node[v["storage_bus"]]],
                 ) for (k, v) in network["storage"]
             ),
         )
@@ -310,16 +318,15 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
     end
 
     # Time series
-    nodes = sort([v["bus_i"] for (k, v) in network["bus"]])
-    d = Dict(string(v["load_bus"]) => v["pd"] for (k, v) in network["load"])
+    d = Dict(v["load_bus"] => v["pd"] for (k, v) in network["load"])
     af = Dict(
-        (string(v["bus"]), v["name"]) => Float64.(v["af"]) for
+        (ids2node[v["bus"]], v["name"]) => Float64.(v["af"]) for
         (k, v) in network["res"]
     )
     df = DataFrame(
         "Timestep" => repeat(1:nT; outer=length(nodes)),
         "Node" => repeat(nodes; inner=nT),
-        "Load" => vcat([d[n] for n in nodes]...),
+        "Load" => vcat([d[n] for n in node_ids]...),
         [
             t => vcat(
                 [
@@ -380,7 +387,7 @@ function storage_dispatch_2_node_injection(
 
     # Add a key in the bus dictionaries for the injection
     for (i, bus) in network["bus"]
-        bus["store_inj"] = grid_store_flow[bus["bus_i"]]
+        bus["store_inj"] = grid_store_flow[bus["string"]]
     end
 
     # Save the dictionary

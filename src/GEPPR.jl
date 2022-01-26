@@ -110,14 +110,14 @@ run_GEPPR(opts_vec) = [run_GEPPR(opts) for opts in opts_vec]
 # TODO: so as to save model load time
 
 function apply_initial_commitment!(gep::GEPM, opts::Dict)
-    @unpack save_path, optimisation_horizon, initial_commitment_data_path = opts
+    @unpack save_path, optimization_horizon, initial_commitment_data_path = opts
     isempty(initial_commitment_data_path) && return nothing
 
     z_val = load_GEP(save_path)[:z]
     z = GEPPR.get_online_units_var(gep)
     N, Y, P, T = GEPPR.get_set_of_time_indices(gep)
     GN = GEPPR.get_set_of_nodal_generators(gep)
-    t_init = optimisation_horizon[1]
+    t_init = optimization_horizon[1]
     for gn in GN, y in Y, p in P
         fix(z[gn, y, p, t_init], z_val[gn, y, p, t_init]; force=true)
     end
