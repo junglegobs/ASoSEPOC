@@ -16,5 +16,18 @@ cd(joinpath(@__DIR__, "dev", "GEPPR"))
 run(`git checkout a_sos_EPOC`) # If this fails then do this manually
 cd(joinpath("..", ".."))
 
+# Deal with possibly not having Gurobi or CPLEX
+include(joinpath(@__DIR__, "src", "solvers.jl"))
+if CPLEX_EXISTS
+    Pkg.add("CPLEX")
+else
+    Pkg.remove("CPLEX")
+end
+if GRB_EXISTS
+    Pkg.add("Gurobi")
+else
+    Pkg.remove("Gurobi")
+end
+
 # Instantiate
 Pkg.instantiate()
