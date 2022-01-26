@@ -245,10 +245,10 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
 
     # Utilities
     nodes = sort([v["string"] for (k, v) in network["bus"]])
-    node2ids = sort(Dict(
-        v["string"] => v["index"] for (k, v) in network["bus"]
-    ))
-    ids2node = sort(Dict(v => k for (k,v) in node2ids))
+    node2ids = sort(
+        Dict(v["string"] => v["index"] for (k, v) in network["bus"])
+    )
+    ids2node = sort(Dict(v => k for (k, v) in node2ids))
     node_ids = [node2ids[name] for name in nodes]
 
     # Conventional generatios
@@ -292,6 +292,8 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
                 "installedCapacity" =>
                     Dict(string(k) => Float64(v) for (k, v) in cap[t]), # [MW]
                 "averageGenerationCost" => 0.0,
+                "variableOperationAndMaintenanceCost" => 0.0, 
+                # Otherwise reserve activation doesn't work
             ) for t in res_names
         ),
     )
@@ -610,7 +612,7 @@ function scenarios_2_GEPPR(opts::Dict, scens)
     end
 
     # Sum up uncertainty over entire network
-    total_NLFE = sum(v for (k,v) in net_load_forecast_error_dict)
+    total_NLFE = sum(v for (k, v) in net_load_forecast_error_dict)
 
     # Get quantiles
     D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻ = get_probabilistic_reserve_parameters_from_scenarios(

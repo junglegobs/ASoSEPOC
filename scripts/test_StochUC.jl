@@ -8,7 +8,9 @@ opts = options(
     "operating_reserves_sizing_type" => "given",
     "operating_reserves_type" => "none",
     "initial_commitment_data_path" => datadir("sims", "rolling_UC_full_year"),
-    "include_probabilistic_operating_reserves" => true,
+    "operating_reserves_type" => "probabilistic",
+    "operating_reserves_sizing_type" => "given",
+    "vars_2_save" => [:z, :q]
 )
 scen_ids = [1, 2, 7]
 opts_vec = [
@@ -26,4 +28,4 @@ opts_vec = [
         ),
     ) for i in 1:size(df, 1)
 ]
-gep = run_GEPPR(opts_vec[1])
+gep = run_GEPPR(opts_vec)

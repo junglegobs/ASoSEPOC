@@ -423,7 +423,7 @@ deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 
 [[GEPPR]]
-deps = ["AxisArrays", "CSV", "Cbc", "DataFrames", "Dates", "Distributions", "FileIO", "JLD2", "JuMP", "LinearAlgebra", "Match", "OrderedCollections", "PowerModels", "SparseArrays", "UnPack", "YAML"]
+deps = ["AxisArrays", "CSV", "Cbc", "DataFrames", "Dates", "Distributions", "FileIO", "Infiltrator", "JLD2", "JuMP", "LinearAlgebra", "Match", "OrderedCollections", "PowerModels", "SparseArrays", "UnPack", "YAML"]
 path = "dev/GEPPR"
 uuid = "bdf5de6c-7654-11e9-1af4-dbe25ce70594"
 version = "0.1.2"
@@ -572,9 +572,9 @@ version = "1.0.0"
 
 [[JLD2]]
 deps = ["DataStructures", "FileIO", "MacroTools", "Mmap", "Pkg", "Printf", "Reexport", "TranscodingStreams", "UUIDs"]
-git-tree-sha1 = "5335c4c9a30b4b823d1776d2db09882cbfac9f1e"
+git-tree-sha1 = "39f22411266cdd1621092c762a3f0648dbdc8433"
 uuid = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
-version = "0.4.16"
+version = "0.4.18"
 
 [[JLLWrappers]]
 deps = ["Preferences"]

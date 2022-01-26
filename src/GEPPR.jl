@@ -1,8 +1,4 @@
-using GEPPR, Suppressor, UnPack, Cbc, Infiltrator
-isdefined(Main, :GRB_EXISTS) == false &&
-    const GRB_EXISTS = haskey(ENV, "GUROBI_HOME")
-isedefined(Main, :CPLEX_EXISTS) == false &&
-    const CPLEX_EXISTS = haskey(ENV, "CPLEX_STUDIO_BINARIES")
+using GEPPR, Suppressor, UnPack, Cbc, Infiltrator, JLD2, JuMP, AxisArrays
 include(srcdir("util.jl"))
 
 ### UTIL
@@ -33,8 +29,6 @@ function param_and_config(opts::Dict)
             "timeseries_wo_storage.csv"
         end,
         "relativePathMatpowerData" => basename(grid_red_path),
-        "reserveType" => opts["operating_reserves_type"],
-        "reserveSizingType" => opts["operating_reserves_sizing_type"],
         "optimizationHorizon" => Dict(
             "start" => [1, 1, optimization_horizon[1]],
             "end" => [1, 1, optimization_horizon[end]],
@@ -81,7 +75,7 @@ function run_GEPPR(opts::Dict)
     @unpack save_path, rolling_horizon = opts
     gep = if isdir(save_path) && isfile(joinpath(save_path, "data.csv"))
         @info "GEPM found at $(save_path), loading..."
-        load_GEP(save_path)
+        load_GEP(opts, save_path)
     else
         @info "Running GEPM..."
         gep = gepm(opts)
@@ -106,6 +100,18 @@ end
 
 run_GEPPR(opts_vec) = [run_GEPPR(opts) for opts in opts_vec]
 
+function GEPPR.load_GEP(opts::Dict, path::String)
+    @load eval(joinpath(path, "config.jld2")) dictConfig
+    cFVec = String[]
+    for cf in dictConfig["configFile"]
+        split_path = split(cf, "/data/")
+        push!(cFVec, datadir(splitpath(split_path[2])...))
+    end
+    dictConfig["configFile"] = cFVec
+    @save eval(joinpath(path, "config.jld2")) dictConfig
+    return load_GEP(path)
+end
+
 # TODO: alternative run_GEPPR which keeps GEPPR the same in between runs
 # TODO: so as to save model load time
 
@@ -113,10 +119,10 @@ function apply_initial_commitment!(gep::GEPM, opts::Dict)
     @unpack save_path, optimization_horizon, initial_commitment_data_path = opts
     isempty(initial_commitment_data_path) && return nothing
 
-    z_val = load_GEP(save_path)[:z]
+    z_val = load_GEP(opts, initial_commitment_data_path)[:z]
     z = GEPPR.get_online_units_var(gep)
-    N, Y, P, T = GEPPR.get_set_of_time_indices(gep)
-    GN = GEPPR.get_set_of_nodal_generators(gep)
+    N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
+    GN = GEPPR.get_set_of_nodal_dispatchable_generators(gep)
     t_init = optimization_horizon[1]
     for gn in GN, y in Y, p in P
         fix(z[gn, y, p, t_init], z_val[gn, y, p, t_init]; force=true)
@@ -125,8 +131,12 @@ function apply_initial_commitment!(gep::GEPM, opts::Dict)
 end
 
 function apply_operating_reserves!(gep::GEPM, opts::Dict)
-    @unpack include_probabilistic_operating_reserves = opts
-    include_probabilistic_operating_reserves == false && return gep
+    @unpack operating_reserves_type,
+    operating_reserves_sizing_type, upward_reserve_levels,
+    downward_reserve_levels = opts
+    operating_reserves_type == "none" && return gep
+    @assert operating_reserves_type == "probabilistic"
+    @assert operating_reserves_sizing_type == "given"
 
     @info "Getting scenarios..."
     scens = load_scenarios(opts)
@@ -139,39 +149,27 @@ function apply_operating_reserves!(gep::GEPM, opts::Dict)
     modify_parameter!(gep, "reserveSizingType", "given")
     modify_parameter!(gep, "includeReserveActivationCosts", true)
     modify_parameter!(gep, "includeDownwardReserves", true)
-    L⁺ = gep[:I, :sets, :L⁺] = 1:n_levels
-    L⁻ = gep[:I, :sets, :L⁻] = 1:n_levels
+    L⁺ = gep[:I, :sets, :L⁺] = 1:upward_reserve_levels
+    L⁻ = gep[:I, :sets, :L⁻] = 1:downward_reserve_levels
     ORBZ = GEPPR.get_set_of_operating_reserve_balancing_zones(gep)
-    gep[:I, :uncertainty, :P⁺] = AxisArray(
-        [P⁺[l, t] for l in L⁺, y in Y, p in P, t in T],
-        Axis{:Level}(L⁺),
-        Axis{:Year}(Y),
-        Axis{:Period}(P),
-        Axis{:Timestep}(T),
+    N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
+    gep[:I, :uncertainty, :P⁺] = Dict(
+        (l, y, p, T[t]) => P⁺[l, t] for l in L⁺, y in Y, p in P,
+        t in 1:length(T)
     )
-    gep[:I, :uncertainty, :P⁻] = AxisArray(
-        [P⁻[l, t] for l in L⁺, y in Y, p in P, t in T],
-        Axis{:Level}(L⁺),
-        Axis{:Year}(Y),
-        Axis{:Period}(P),
-        Axis{:Timestep}(T),
+    gep[:I, :uncertainty, :P⁻] = Dict(
+        (l, y, p, T[t]) => P⁻[l, t] for l in L⁻, y in Y, p in P,
+        t in 1:length(T)
     )
-    gep[:I, :uncertainty, :D⁺] = AxisArray(
-        [D⁺[l, t] for z in ORBZ, l in L⁺, y in Y, p in P, t in T],
-        Axis{:Zone}(ORBZ),
-        Axis{:Level}(L⁺),
-        Axis{:Year}(Y),
-        Axis{:Period}(P),
-        Axis{:Timestep}(T),
+    gep[:I, :uncertainty, :D⁺] = Dict(
+        (z, l, y, p, T[t]) => D⁺[l, t] for z in ORBZ, l in L⁺, y in Y, p in P,
+        t in 1:length(T)
     )
-    gep[:I, :uncertainty, :D⁻] = AxisArray(
-        [D⁻[l, t] for z in ORBZ, l in L⁺, y in Y, p in P, t in T],
-        Axis{:Zone}(ORBZ),
-        Axis{:Level}(L⁺),
-        Axis{:Year}(Y),
-        Axis{:Period}(P),
-        Axis{:Timestep}(T),
+    gep[:I, :uncertainty, :D⁻] = Dict(
+        (z, l, y, p, T[t]) => D⁺[l, t] for z in ORBZ, l in L⁻, y in Y, p in P,
+        t in 1:length(T)
     )
+    make_JuMP_model!(gep)
     return gep
 end
 
