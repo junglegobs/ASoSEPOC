@@ -1,7 +1,8 @@
 using GEPPR, Suppressor, UnPack, Cbc, Infiltrator
 isdefined(Main, :GRB_EXISTS) == false &&
     const GRB_EXISTS = haskey(ENV, "GUROBI_HOME")
-GRB_EXISTS && using Gurobi
+isedefined(Main, :CPLEX_EXISTS) == false &&
+    const CPLEX_EXISTS = haskey(ENV, "CPLEX_STUDIO_BINARIES")
 include(srcdir("util.jl"))
 
 ### UTIL
@@ -42,8 +43,8 @@ function param_and_config(opts::Dict)
             rolling_horizon ? false : true,
     )
     if length(optimization_horizon[1]:optimization_horizon[end]) > 100 &&
-       is_linear == false &&
-       rolling_horizon == false
+        is_linear == false &&
+        rolling_horizon == false
         error(
             "Optimisation length too long for unit commitment model, consider setting `rolling_horizon = true`.",
         )
@@ -63,6 +64,8 @@ function optimizer(opts::Dict)
                 rolling_horizon ? 100 : nT * (2 + (1 - is_linear) * 2),
             "OutputFlag" => 1,
         )
+    elseif CPLEX_EXISTS
+        return optimizer_with_attributes(CPLEX.Optimizer)
     else
         return Cbc.Optimizer
     end
@@ -84,7 +87,8 @@ function run_GEPPR(opts::Dict)
         gep = gepm(opts)
         if rolling_horizon == false
             make_JuMP_model!(gep)
-            apply_initial_commitment!(opts, gep)
+            apply_initial_commitment!(gep, opts)
+            apply_operating_reserves!(gep, opts)
             optimize_GEP_model!(gep)
             save_optimisation_values!(gep)
         else
@@ -108,19 +112,22 @@ run_GEPPR(opts_vec) = [run_GEPPR(opts) for opts in opts_vec]
 function apply_initial_commitment!(gep::GEPM, opts::Dict)
     @unpack save_path, optimisation_horizon, initial_commitment_data_path = opts
     isempty(initial_commitment_data_path) && return nothing
-    
+
     z_val = load_GEP(save_path)[:z]
     z = GEPPR.get_online_units_var(gep)
     N, Y, P, T = GEPPR.get_set_of_time_indices(gep)
     GN = GEPPR.get_set_of_nodal_generators(gep)
     t_init = optimisation_horizon[1]
     for gn in GN, y in Y, p in P
-        fix(z[gn,y,p,t_init], z_val[gn,y,p,t_init]; force=true)
+        fix(z[gn, y, p, t_init], z_val[gn, y, p, t_init]; force=true)
     end
     return nothing
 end
 
 function apply_operating_reserves!(gep::GEPM, opts::Dict)
+    @unpack include_probabilistic_operating_reserves = opts
+    include_probabilistic_operating_reserves == false && return gep
+
     @info "Getting scenarios..."
     scens = load_scenarios(opts)
 
@@ -136,24 +143,34 @@ function apply_operating_reserves!(gep::GEPM, opts::Dict)
     L⁻ = gep[:I, :sets, :L⁻] = 1:n_levels
     ORBZ = GEPPR.get_set_of_operating_reserve_balancing_zones(gep)
     gep[:I, :uncertainty, :P⁺] = AxisArray(
-        [P⁺[l,t] for l in L⁺, y=Y, p=P, t=T],
-        Axis{:Level}(L⁺), Axis{:Year}(Y), 
-        Axis{:Period}(P), Axis{:Timestep}(T)
+        [P⁺[l, t] for l in L⁺, y in Y, p in P, t in T],
+        Axis{:Level}(L⁺),
+        Axis{:Year}(Y),
+        Axis{:Period}(P),
+        Axis{:Timestep}(T),
     )
     gep[:I, :uncertainty, :P⁻] = AxisArray(
-        [P⁻[l,t] for l in L⁺, y=Y, p=P, t=T],
-        Axis{:Level}(L⁺), Axis{:Year}(Y), 
-        Axis{:Period}(P), Axis{:Timestep}(T)
+        [P⁻[l, t] for l in L⁺, y in Y, p in P, t in T],
+        Axis{:Level}(L⁺),
+        Axis{:Year}(Y),
+        Axis{:Period}(P),
+        Axis{:Timestep}(T),
     )
     gep[:I, :uncertainty, :D⁺] = AxisArray(
-        [D⁺[l,t] for z=ORBZ, l in L⁺, y=Y, p=P, t=T],
-        Axis{:Zone}(ORBZ), Axis{:Level}(L⁺), Axis{:Year}(Y), 
-        Axis{:Period}(P), Axis{:Timestep}(T)
+        [D⁺[l, t] for z in ORBZ, l in L⁺, y in Y, p in P, t in T],
+        Axis{:Zone}(ORBZ),
+        Axis{:Level}(L⁺),
+        Axis{:Year}(Y),
+        Axis{:Period}(P),
+        Axis{:Timestep}(T),
     )
     gep[:I, :uncertainty, :D⁻] = AxisArray(
-        [D⁻[l,t] for z=ORBZ, l in L⁺, y=Y, p=P, t=T],
-        Axis{:Zone}(ORBZ), Axis{:Level}(L⁺), Axis{:Year}(Y), 
-        Axis{:Period}(P), Axis{:Timestep}(T)
+        [D⁻[l, t] for z in ORBZ, l in L⁺, y in Y, p in P, t in T],
+        Axis{:Zone}(ORBZ),
+        Axis{:Level}(L⁺),
+        Axis{:Year}(Y),
+        Axis{:Period}(P),
+        Axis{:Timestep}(T),
     )
     return gep
 end
@@ -162,7 +179,9 @@ function save(gep::GEPM, opts::Dict)
     @unpack save_path = opts
     vars_2_save = get(opts, "vars_2_save", nothing)
     if vars_2_save !== nothing
-        gep[:O, :variables] = GEPPR.OrderedDict(k => gep[k] for k in vars_2_save)
+        gep[:O, :variables] = GEPPR.OrderedDict(
+            k => gep[k] for k in vars_2_save
+        )
         gep[:O, :constraints] = nothing
         gep[:O, :expressions] = nothing
     end
