@@ -185,3 +185,48 @@ function save(gep::GEPM, opts::Dict)
     end
     return GEPPR.save(gep, save_path)
 end
+
+"""
+    save_gep_for_security_analysis(gep::GEPM)
+
+Saves data in the format: hour -> generator (with associated bus) -> value
+"""
+function save_gep_for_security_analysis(gep::GEPM, path::String)
+    q = gep[:q]
+    z = gep[:z]
+    UC_results = Dict{Integer,Dict}()
+    N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
+    GDN = GEPPR.get_set_of_nodal_dispatchable_generators(gep)
+    GRN = GEPPR.get_set_of_nodal_intermittent_generators(gep)
+    y, p = first.([Y, P])
+    for t in T
+        UC_results[t] = Dict(
+            "gen" => Dict(
+                (g, n) => Dict(
+                    "q" => q[(g, n), y, p, atval(t, typeof(q))],
+                    "z" => z[(g, n), y, p, atval(t, typeof(z))],
+                ) for (g, n) in GDN
+            ),
+            "res" => Dict(
+                (g, n) => Dict(q => q[(g, n), y, p, atval(t, typeof(q))]) for
+                (g, n) in GRN
+            ),
+        )
+    end
+    @save eval(path) UC_results
+    return UC_results
+end
+
+function atval(idx, T::Type)
+    if T <: AxisArray
+        return atvalue(idx)
+    else
+        return idx
+    end
+end
+
+function save_gep_for_security_analysis(gep::GEPM, opts::Dict)
+    return save_gep_for_security_analysis(
+        gep, joinpath(opts["save_path"], "security_analysis.jld2")
+    )
+end
