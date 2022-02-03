@@ -173,6 +173,23 @@ function apply_operating_reserves!(gep::GEPM, opts::Dict)
     return gep
 end
 
+function constraint_reserve_shedding!(gep::GEPM, opts::Dict)
+    @unpack reserve_shedding_limit = opts
+    rsL⁺ = GEPPR.get_upward_reserve_level_shedding_var(gep)
+    D⁺ = GEPPR.get_upward_reserve_level_expression(gep)
+    N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
+    ORBZ = GEPPR.get_set_of_operating_reserve_balancing_zones(gep)
+    ORBZ2N = get_set_linking_operating_reserve_balancing_zones_to_nodes(gep)
+    L⁺ = get_set_of_upward_reserve_levels(gep)
+
+    @constraint(gep.model, [z=ORBZ],
+        reserve_level_shedding_limit <= sum(
+			rsL⁺[n,l,y,p,t] for n in ORBZ2N[z], l in L⁺, y in Y, p in P, t in T
+		) / sum(D⁻[z,l,y,p,t] for z in ORBZ, l in L⁺, y in Y, p in P, t in T)
+    )
+    return gep
+end
+
 function save(gep::GEPM, opts::Dict)
     @unpack save_path = opts
     vars_2_save = get(opts, "vars_2_save", nothing)
