@@ -34,11 +34,7 @@ function options_3_days(sn)
     "operating_reserves_sizing_type" => "given",
     "vars_2_save" => [:z, :q],
     )
-    scen_ids = [
-        7 1 2
-        7 1 2
-        7 1 6
-    ]
+    scen_ids = [7,1,2]
     opts_vec = [
         merge(
             opts,
@@ -46,11 +42,11 @@ function options_3_days(sn)
                 "optimization_horizon" => parse(UnitRange{Int}, df[i, "timesteps"]),
                 "save_path" => datadir("sims", "$(sn)_$(df[i,"days"])"),
                 "load_scenario_data_paths" =>
-                    scendir.("1000SC_BELDERBOS_load_$(scen_ids[1,i])_01-20-2022",),
+                    scendir.("1000SC_BELDERBOS_load_$(scen_ids[i])_01-20-2022",),
                 "solar_scenario_data_paths" =>
-                    scendir.("1000SC_BELDERBOS_solar_$(scen_ids[2,i])_01-20-2022"),
+                    scendir.("1000SC_BELDERBOS_solar_$(scen_ids[i])_01-20-2022"),
                 "wind_scenario_data_paths" =>
-                    scendir.("1000SC_BELDERBOS_wind_$(scen_ids[3,i])_01-20-2022"),
+                    scendir.("1000SC_BELDERBOS_wind_$(scen_ids[i])_01-20-2022"),
             ),
         ) for i in 1:size(df, 1)
     ]

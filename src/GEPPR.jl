@@ -47,21 +47,27 @@ function param_and_config(opts::Dict)
 end
 
 function optimizer(opts::Dict)
-    @unpack rolling_horizon = opts
-    is_linear = (opts["unit_commitment_type"] == "none")
-    opt_hrzn = opts["optimization_horizon"]
-    nT = opt_hrzn[end] - opt_hrzn[1] + 1
     if GRB_EXISTS
         return optimizer_with_attributes(
-            Gurobi.Optimizer,
-            "TimeLimit" =>
-                rolling_horizon ? 100 : nT * (2 + (1 - is_linear) * 2),
-            "OutputFlag" => 1,
+            Gurobi.Optimizer, "TimeLimit" => time_out(opts), "OutputFlag" => 1
         )
     elseif CPLEX_EXISTS
         return optimizer_with_attributes(CPLEX.Optimizer)
     else
         return Cbc.Optimizer
+    end
+end
+
+function time_out(opts::Dict)
+    @unpack rolling_horizon = opts
+    time_out = get(opts, "time_out", missing)
+    if ismissing(time_out) == false
+        return time_out
+    else
+        is_linear = (opts["unit_commitment_type"] == "none")
+        opt_hrzn = opts["optimization_horizon"]
+        nT = opt_hrzn[end] - opt_hrzn[1] + 1
+        return rolling_horizon ? 100 : nT * (2 + (1 - is_linear) * 2)
     end
 end
 
@@ -77,12 +83,13 @@ function run_GEPPR(opts::Dict)
         @info "GEPM found at $(save_path), loading..."
         load_GEP(opts, save_path)
     else
-        @info "Running GEPM..."
+        @info "Running GEPM (save path is $(save_path))..."
         gep = gepm(opts)
         if rolling_horizon == false
             make_JuMP_model!(gep)
             apply_initial_commitment!(gep, opts)
             apply_operating_reserves!(gep, opts)
+            constrain_reserve_shedding!(gep, opts)
             optimize_GEP_model!(gep)
             save_optimisation_values!(gep)
         else
@@ -98,7 +105,14 @@ function run_GEPPR(opts::Dict)
     return gep
 end
 
-run_GEPPR(opts_vec) = [run_GEPPR(opts) for opts in opts_vec]
+run_GEPPR(opts_vec) = [
+    try
+        run_GEPPR(opts)
+    catch
+        @warn "Optimisation failed"
+    end
+    for opts in opts_vec
+]
 
 function GEPPR.load_GEP(opts::Dict, path::String)
     @load eval(joinpath(path, "config.jld2")) dictConfig
@@ -144,7 +158,7 @@ function apply_operating_reserves!(gep::GEPM, opts::Dict)
     @info "Converting scenarios to quantiles..."
     D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻ = scenarios_2_GEPPR(opts, scens)
 
-    @info "Applying to GEPPR..."
+    @info "Applying reserves to GEPPR model..."
     modify_parameter!(gep, "reserveType", "probabilistic")
     modify_parameter!(gep, "reserveSizingType", "given")
     modify_parameter!(gep, "includeReserveActivationCosts", true)
@@ -173,19 +187,26 @@ function apply_operating_reserves!(gep::GEPM, opts::Dict)
     return gep
 end
 
-function constraint_reserve_shedding!(gep::GEPM, opts::Dict)
+function constrain_reserve_shedding!(gep::GEPM, opts::Dict)
     @unpack reserve_shedding_limit = opts
     rsL⁺ = GEPPR.get_upward_reserve_level_shedding_var(gep)
     D⁺ = GEPPR.get_upward_reserve_level_expression(gep)
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
     ORBZ = GEPPR.get_set_of_operating_reserve_balancing_zones(gep)
-    ORBZ2N = get_set_linking_operating_reserve_balancing_zones_to_nodes(gep)
-    L⁺ = get_set_of_upward_reserve_levels(gep)
+    ORBZ2N = GEPPR.get_set_linking_operating_reserve_balancing_zones_to_nodes(
+        gep
+    )
+    L⁺ = GEPPR.get_set_of_upward_reserve_levels(gep)
 
-    @constraint(gep.model, [z=ORBZ],
-        reserve_level_shedding_limit <= sum(
-			rsL⁺[n,l,y,p,t] for n in ORBZ2N[z], l in L⁺, y in Y, p in P, t in T
-		) / sum(D⁻[z,l,y,p,t] for z in ORBZ, l in L⁺, y in Y, p in P, t in T)
+    @constraint(
+        gep.model,
+        [z = ORBZ],
+        sum(
+            rsL⁺[n, l, y, p, t] for n in ORBZ2N[z], l in L⁺, y in Y, p in P,
+            t in T
+        ) /
+        sum(D⁺[z, l, y, p, t] for z in ORBZ, l in L⁺, y in Y, p in P, t in T) <=
+            reserve_shedding_limit
     )
     return gep
 end
@@ -225,8 +246,8 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
                 ) for (g, n) in GDN
             ),
             "res" => Dict(
-                (g, n) => Dict(q => q[(g, n), y, p, atval(t, typeof(q))]) for
-                (g, n) in GRN
+                (g, n) => Dict(q => q[(g, n), y, p, atval(t, typeof(q))])
+                for (g, n) in GRN
             ),
         )
     end
