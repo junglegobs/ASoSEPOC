@@ -3,7 +3,7 @@ include(srcdir("util.jl"))
 
 ### UTIL
 function param_and_config(opts::Dict)
-    @unpack optimization_horizon, rolling_horizon = opts
+    @unpack optimization_horizon, rolling_horizon, include_downward_reserves = opts
     is_linear = (opts["unit_commitment_type"] == "none")
     GEPPR_dir = datadir("pro", "GEPPR")
     configFiles =
@@ -28,6 +28,7 @@ function param_and_config(opts::Dict)
         else
             "timeseries_wo_storage.csv"
         end,
+        "includeDownwardReserves" => include_downward_reserves,
         "relativePathMatpowerData" => basename(grid_red_path),
         "optimizationHorizon" => Dict(
             "start" => [1, 1, optimization_horizon[1]],

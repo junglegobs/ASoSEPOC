@@ -585,8 +585,27 @@ end
 
 function scenarios_2_GEPPR(opts::Dict, scens)
     @unpack upward_reserve_levels, downward_reserve_levels = opts
-    pm = PowerModels.parse_file(grid_red_path)
+    
+    # Get net load forecast error per node
     mult = Dict("Load" => -1, "Wind" => 1, "Solar" => 1)
+    scenarios_2_net_load_forecast_error(opts, scens, mult)
+
+    # Sum up uncertainty over entire network
+    total_NLFE = sum(v for (k, v) in net_load_forecast_error_dict)
+
+    # Get quantiles
+    D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻ = get_probabilistic_reserve_parameters_from_scenarios(
+        transpose(total_NLFE);
+        n_up=upward_reserve_levels,
+        n_down=downward_reserve_levels,
+        coverage=10, # Number of scenarios ignored on tail ends
+    )
+
+    return D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻
+end
+
+function scenarios_2_net_load_forecast_error(opts::Dict, scens, mult)
+    pm = PowerModels.parse_file(grid_red_path)
 
     # Convolute scenarios to get total net load forecast error
     net_load_forecast_error_dict = Dict{String,Matrix{Float64}}()
@@ -604,25 +623,24 @@ function scenarios_2_GEPPR(opts::Dict, scens)
                 ]...,
             ) for (k1, v1) in bus_scen_dicts
         )
+
         # Net load is negative -> upward reserves are activated
         # Net load is positive -> downward reserves are activated 
         net_load_forecast_error_dict[name] = sum(
             scen_mat * mult[source] for (source, scen_mat) in bus_scen_mat
         )
     end
+    return net_load_forecast_error_dict
+end
 
-    # Sum up uncertainty over entire network
-    total_NLFE = sum(v for (k, v) in net_load_forecast_error_dict)
-
-    # Get quantiles
-    D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻ = get_probabilistic_reserve_parameters_from_scenarios(
-        transpose(total_NLFE);
-        n_up=upward_reserve_levels,
-        n_down=downward_reserve_levels,
-        coverage=10, # Number of scenarios ignored on tail ends
-    )
-
-    return D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻
+function scenarios_2_forecast(opts, scens; src_name=first(collect(keys(k))))
+    pm = PowerModels.parse_file(grid_red_path)
+    forecast = Dict{String,Vector{Float64}}()
+    for (k, bus) in pm["bus"]
+        bname = bus["string"]
+        forecast[bname] = collect(values(sort(scens[src_name][bname]["forecast"])))
+    end
+    return forecast
 end
 
 """
