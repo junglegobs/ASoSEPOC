@@ -61,7 +61,7 @@ function days_to_run_models_on(gep::GEPM, filename::String)
         ]
     )
     df[:,"timesteps"] = [
-        (df[i,"days"] * 24 + 1):((1 + df[i,"days"]) * 24) for i in 1:size(df,1)
+        (i - 1) * 24 + 1:i * 24 for i in df[:,"days"]
     ]
     CSV.write(datadir("pro", filename), df)
     return day_no_scarce, day_some_scarce, day_scarce
