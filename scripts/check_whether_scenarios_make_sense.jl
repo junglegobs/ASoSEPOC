@@ -34,20 +34,37 @@ function check_scenarios()
     f = open(datadir("sims", sn, "scen_errors.dat"), "w")
     for i in 1:size(df, 1)
         month = months[i]
-        row_idx = months_2_rows[i]
         d = df[i, "days"]
         print(f, "-"^80 * "\n\nDay is $d\n" * "-"^80)
         for g in ["solar", "wind"]
             print(f, "\nSource is $g\n\n")
             files_dict = Dict(g => scendir("1000SC_BELDERBOS_$(g)_$(month)"))
             scen_dict = load_scenarios(Dict(), files_dict)
-            t_start, t_end = parse(UnitRange{Int}, df[row_idx, "timesteps"])
+            t_start, t_end = parse(UnitRange{Int}, df[i, "timesteps"])
             T_day = t_start:t_end
             scens = hcat(
                 [
                     [v[k] for k in sort(collect(keys(v)))] for
                     (s, v) in scen_dict[g]["total"]["scenarios"]
                 ]...,
+            )
+            scens_summed = Dict(
+                node => scen_dict[g][node]["scenarios"] for
+                node in keys(scen_dict[g]) if node ∉ ("total",)
+            )
+            for (node, node_vals) in scens_summed
+                for (scen, scen_vals) in node_vals
+                    scens_summed[node][scen] = [
+                        scen_vals[i] for i in sort(collect(keys(scen_vals)))
+                    ]
+                end
+            end
+            scen_set = 1:size(scens, 2)
+            scens_summed = hcat(
+                [
+                    sum(node_vals[i] for (node, node_vals) in scens_summed)
+                    for i in scen_set
+                ]...
             )
 
             # Check that forecasts agree
@@ -62,7 +79,7 @@ function check_scenarios()
 
                 # If forecasts don't agree, find the one which does
                 test_bool = false
-                for T_test in [1 + (i-1)*24:i*24 for i in 1:365]
+                for T_test in [(1 + (i - 1) * 24):(i * 24) for i in 1:365]
                     fnd_test = norm(forecast .- gen_res_forecast[g][T_test])
                     if fnd_test < 1
                         print(
@@ -81,8 +98,12 @@ function check_scenarios()
                 end
             end
 
-            scenarios_max = maximum(scens; dims=2)
-            scenarios_min = minimum(scens; dims=2)
+            # scenarios_max = maximum(scens; dims=2)
+            # scenarios_min = minimum(scens; dims=2)
+            # Even though these "total forecast error" scenarios are different
+            # The result is the same...
+            scenarios_max = maximum(scens_summed; dims=2)
+            scenarios_min = minimum(scens_summed; dims=2)
             for j in 1:length(T_day)
                 # Check that upwards forecast error not greater than capacity
                 up_diff =
@@ -111,3 +132,7 @@ function check_scenarios()
 end
 
 check_scenarios()
+
+# TODO: fix the scenarios (fuck this shit)
+
+# NOTE: Sometimes you get Infs in the CSV files, watch out for this!
