@@ -28,15 +28,15 @@ function check_scenarios()
         "solar" => sum(K[(g, n), Y[1]] for (g, n) in GN if g == "Sun"),
         "wind" => sum(K[(g, n), Y[1]] for (g, n) in GN if occursin("Wind", g)),
     )
-    months = [1, 2, 7]
+    months = [7, 1, 2]
     months_2_rows = [2, 1, 3]
     mkrootdirs(datadir("sims", sn))
     f = open(datadir("sims", sn, "scen_errors.dat"), "w")
     for i in 1:size(df, 1)
         month = months[i]
         row_idx = months_2_rows[i]
-        day = df[i, "days"]
-        print(f, "-"^80 * "\n\nDay is $day\n" * "-"^80)
+        d = df[i, "days"]
+        print(f, "-"^80 * "\n\nDay is $d\n" * "-"^80)
         for g in ["solar", "wind"]
             print(f, "\nSource is $g\n\n")
             files_dict = Dict(g => scendir("1000SC_BELDERBOS_$(g)_$(month)"))
@@ -59,6 +59,26 @@ function check_scenarios()
                     f,
                     "\nScenario generated forecasts and GEPPR forecasts do not agree, norm diff is $(fnd).\n\n",
                 )
+
+                # If forecasts don't agree, find the one which does
+                test_bool = false
+                for T_test in [1 + (i-1)*24:i*24 for i in 1:365]
+                    fnd_test = norm(forecast .- gen_res_forecast[g][T_test])
+                    if fnd_test < 1
+                        print(
+                            f,
+                            "\nScenario generated forecasts match GEPPR forecasts for T=$(T_test).\n\n",
+                        )
+                        test_bool = true
+                        break
+                    end
+                end
+                if test_bool == false
+                    print(
+                        f,
+                        "\nScenario generated forecasts do not match any of the GEPPR forecasts.\n\n",
+                    )
+                end
             end
 
             scenarios_max = maximum(scens; dims=2)
@@ -86,6 +106,7 @@ function check_scenarios()
         end
     end
     close(f)
+
     return nothing
 end
 
