@@ -131,8 +131,92 @@ function check_scenarios()
     return nothing
 end
 
-check_scenarios()
-
-# TODO: fix the scenarios (fuck this shit)
+# check_scenarios()
 
 # NOTE: Sometimes you get Infs in the CSV files, watch out for this!
+
+function fix_scenarios()
+    gep = gepm(options())
+    df = CSV.read(datadir("pro", "days_for_analysis.csv"), DataFrame)
+    GN = GEPPR.get_set_of_nodal_intermittent_generators(gep)
+    AF = GEPPR.get_generator_availability_factors(gep)
+    N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
+    T = 1:8_760
+    K = GEPPR.get_generator_installed_capacity(gep)
+    gen_res_forecast = Dict(
+        "solar" => Dict(
+            n => [
+                AF[(g, n), Y[1], P[1], t] * K[(g, n), Y[1]]
+                for t in T
+            ]
+            for (g, n) in GN if g == "Sun"
+        ),
+        "wind" => Dict(
+            n => [
+                AF[(g, n), Y[1], P[1], t] * K[(g, n), Y[1]]
+                for t in T
+            ]
+            for (g, n) in GN if occursin("Wind", g)
+        ),
+    )
+    gen_cap = Dict(
+        "solar" => sum(K[(g, n), Y[1]] for (g, n) in GN if g == "Sun"),
+        "wind" => sum(K[(g, n), Y[1]] for (g, n) in GN if occursin("Wind", g)),
+    )
+    months = [7, 1, 2]
+
+    # Save all files from scendir somewhere else - to avoid issues
+    # bkcp_dir = scendir("backup_$(Dates.format(now(), "yyyy-mm-dd_HH:MM:SS"))")
+    # mkrootdirs(bkcp_dir)
+    # for f in readdir(scendir())
+    #     if isfile(joinpath(scendir(), f))
+    #         cp(joinpath(scendir(), f), joinpath(bkcp_dir, f))
+    #     end
+    # end
+
+    for i in 1:size(df, 1) # Days
+        mnth = months[i]
+        t_start, t_end = parse(UnitRange{Int}, df[i, "timesteps"])
+        T_day = t_start:t_end
+        for g in ["solar", "wind"]
+            file_scen = scendir("1000SC_BELDERBOS_$(g)_$(mnth).csv")
+            df_scen = CSV.read(file_scen, DataFrame; skipto=4, header=2)
+            for name in N
+                if name ∉ names(df_scen)
+                    @info "Skipping $(name) for source $g"
+                    continue
+                end
+                for s in 1:1000 # Hardcoded!
+                    Ts = (s-1)*24+1:s*24
+                    scen_vals = df_scen[Ts,name]
+                    for j in eachindex(scen_vals)
+                        up_diff =
+                        gen_res_forecast[g][name][T_day[j]] + scen_vals[j] -
+                        gen_cap[g]
+                        if up_diff > 0
+                            # @info "Updiff error for source $g, node $name, scenario $s, timestep $j."
+                            scen_vals[j] = 
+                            gen_cap[g] - gen_res_forecast[g][name][T_day[j]]
+                        end
+                        down_diff = gen_res_forecast[g][name][T_day[j]] + scen_vals[j]
+                        if down_diff < 0
+                            # @info "Downdiff error for source $g, node $name, scenario $s, timestep $j."
+                            scen_vals[j] = -gen_res_forecast[g][name][T_day[j]]
+                        end
+                    end
+                    df_scen[Ts,name] = scen_vals
+                end
+            end
+
+            # Write the changes to the file
+            @info "Overwriting $file_scen..."
+            df_scen_all = CSV.read(file_scen, DataFrame; stringtype=String)
+            df_scen_all[3:end,4:end] = string.(Matrix(df_scen[:,4:end]))
+            CSV.write(file_scen, df_scen_all)
+        end
+    end
+end
+
+fix_scenarios()
+
+check_scenarios()
