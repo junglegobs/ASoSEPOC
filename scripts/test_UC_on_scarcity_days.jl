@@ -7,7 +7,7 @@ opts = options(
     "include_operating_reserves" => false,
     "operating_reserves_sizing_type" => "given",
     "operating_reserves_type" => "none",
-    "initial_commitment_data" => datadir("sims", "rolling_UC_full_year")
+    "initial_commitment_data" => datadir("sims", "rolling_UC_full_year"),
 )
 opts_vec = [
     merge(

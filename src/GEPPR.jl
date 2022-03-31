@@ -189,7 +189,12 @@ function apply_operating_reserves!(gep::GEPM, opts::Dict)
 end
 
 function constrain_reserve_shedding!(gep::GEPM, opts::Dict)
-    @unpack reserve_shedding_limit = opts
+    @unpack reserve_shedding_limit, include_operating_reserves = opts
+    
+    if include_operating_reserves == false
+        return gep
+    end
+
     rsL⁺ = GEPPR.get_upward_reserve_level_shedding_var(gep)
     D⁺ = GEPPR.get_upward_reserve_level_expression(gep)
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
