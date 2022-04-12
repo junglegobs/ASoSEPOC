@@ -181,7 +181,7 @@ function apply_operating_reserves!(gep::GEPM, opts::Dict)
         t in 1:length(T)
     )
     gep[:I, :uncertainty, :D⁻] = Dict(
-        (z, l, y, p, T[t]) => D⁺[l, t] for z in ORBZ, l in L⁻, y in Y, p in P,
+        (z, l, y, p, T[t]) => D⁻[l, t] for z in ORBZ, l in L⁻, y in Y, p in P,
         t in 1:length(T)
     )
     make_JuMP_model!(gep)
@@ -206,12 +206,11 @@ function constrain_reserve_shedding!(gep::GEPM, opts::Dict)
 
     @constraint(
         gep.model,
-        [z = ORBZ],
+        [z = ORBZ, y in Y, p in P, t = T],
         sum(
-            rsL⁺[n, l, y, p, t] for n in ORBZ2N[z], l in L⁺, y in Y, p in P,
-            t in T
+            rsL⁺[n, l, y, p, t] for n in ORBZ2N[z], l in L⁺
         ) /
-        sum(D⁺[z, l, y, p, t] for z in ORBZ, l in L⁺, y in Y, p in P, t in T) <=
+        sum(D⁺[z, l, y, p, t] for z in ORBZ, l in L⁺) <=
             reserve_shedding_limit
     )
     return gep
