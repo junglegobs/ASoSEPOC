@@ -12,4 +12,6 @@ for i in 1:length(opts_vec)
     opts = opts_vec[i]
     plt = plot_dispatch(gep, 1)
     Plots.savefig(plt, joinpath(opts["save_path"], "dispatch.pdf"))
+    plt = plot_reserves_simple(gep, 1)
+    Plots.savefig(plt, joinpath(opts["save_path"], "reserves.pdf"))
 end
