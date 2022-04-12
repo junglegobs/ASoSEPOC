@@ -5,6 +5,7 @@ function plot_dispatch(
     p::Int;
     plot_state_of_charge=true,
     aggregate_conventional=true,
+    aggregate_renewable=true,
     aggregate_storage=true,
     N=GEPPR.get_set_of_nodes_and_time_indices(gep)[1],
     Y=GEPPR.get_set_of_nodes_and_time_indices(gep)[2],
@@ -25,7 +26,7 @@ function plot_dispatch(
 
     # Get dispatches
     q = gep[:q]
-    ls = gep[:ls]
+    ls = gep[:loadShedding]
 
     # Modify / reshape
     q = [
@@ -61,19 +62,52 @@ function plot_dispatch(
     end
 
     # Alter sets accordingly
-    if aggregate_conventional
+    if aggregate_conventional || aggregate_renewable
         GD = GEPPR.get_set_of_dispatchable_generators(gep)
         GR = GEPPR.get_set_of_intermittent_generators(gep)
-        q_conv = [
-            reduce(+, q[t, i] for i in 1:length(G) if G[i] in GD; init=0.0) for
-            t in Tm
-        ]
-        q_res = hcat(
-            [[q[t, i] for t in Tm] for i in 1:length(G) if G[i] in GR]...
-        )
+        if aggregate_conventional
+            q_conv = [
+                reduce(+, q[t, i] for i in 1:length(G) if G[i] in GD; init=0.0)
+                for t in Tm
+            ]
+        else
+            q_conv = hcat(
+                [[q[t, i] for t in Tm] for i in 1:length(G) if G[i] in GD]...
+            )
+        end
+        if aggregate_renewable
+            q_res = hcat(
+                [
+                    [
+                        reduce(
+                            +,
+                            q[t, i] for i in 1:length(G) if G[i] == g;
+                            init=0.0,
+                        ) for t in Tm
+                    ] for g in ["Sun", "Wind onshore", "Wind offshore"]
+                ]...,
+            )
+        else
+            q_res = hcat(
+                [[q[t, i] for t in Tm] for i in 1:length(G) if G[i] in GR]...
+            )
+        end
         q = hcat(q_res, q_conv)
-        G = vcat([g for (g, n) in GN if n in N && g in GR]...)
-        G = isempty(q_conv) ? G : vcat(G..., "Conventional")
+        GRl = vcat([g for (g, n) in GN if n in N && g in GR]...)
+        GRs = unique(GRl)
+        GDl = vcat([g for (g, n) in GN if n in N && g in GD]...)
+        GDs = ["Conventional"]
+        G = String[]
+        if aggregate_renewable
+            push!(G, GRs...)
+        else
+            push!(G, GRl...)
+        end
+        if aggregate_conventional
+            push!(G, GDs...)
+        else
+            push!(G, GDl...)
+        end
     end
     if aggregate_storage && GEPPR.has_storage_technologies(gep)
         sc = sum(sc; dims=2)
@@ -122,14 +156,20 @@ function plot_dispatch(
             ylab="Generation [MW]",
             xlab="Time [h]",
             legend=:outerright,
-            xlims=(T[1], T[end] + 1)
+            xlims=(T[1], T[end] + 1),
         )
     end
 
     # Plot the load
     D = GEPPR.get_demand(gep)
     Plots.plot!(
-        plt, T, [sum(D[n, Y[1], p, t] for n in N) for t in T]; lab="", lc=:black
+        plt,
+        T,
+        [sum(D[n, Y[1], p, t] for n in N) for t in T];
+        lab="",
+        lc=:black,
+        line=:steppost,
+        lw=2,
     )
 
     # Plot the state of charge
