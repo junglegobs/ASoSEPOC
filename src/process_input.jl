@@ -598,7 +598,7 @@ function scenarios_2_GEPPR(opts::Dict, scens)
         transpose(total_NLFE);
         n_up=upward_reserve_levels,
         n_down=downward_reserve_levels,
-        coverage=50, # Number of scenarios ignored on tail ends
+        coverage=10, # Number of scenarios ignored on tail ends
     )
 
     return D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻
@@ -671,12 +671,12 @@ function get_probabilistic_reserve_parameters_from_scenarios(
         )
 
         for l in 1:n_up
-            D⁺[l, t] = maximum(q_cut_up[l + 1] - q_cut_up[l], 0)
+            D⁺[l, t] = max(q_cut_up[l + 1] - q_cut_up[l], 0)
             Dmid⁺[l, t] = q_mid_up[l]
             P⁺[l, t] = p_up[l]
         end
         for l in 1:n_down
-            D⁻[l, t] = maximum(q_cut_down[l] - q_cut_down[l + 1], 0)
+            D⁻[l, t] = max(q_cut_down[l] - q_cut_down[l + 1], 0)
             Dmid⁻[l, t] = q_mid_down[l]
             P⁻[l, t] = p_down[l]
         end

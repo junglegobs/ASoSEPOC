@@ -9,4 +9,4 @@ Path of active project: $(projectdir())
 """
 )
 
-includet.(srcdir.(readdir(srcdir())))
+includet.(srcdir.(readdir(srcdir())));

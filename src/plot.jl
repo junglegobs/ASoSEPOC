@@ -24,9 +24,11 @@ function plot_dispatch(
     ST = [st for st in ST if st in first.(STN)]
     Tm = 1:length(T)
 
-    # Get dispatches
+    # Get dispatches and load
     q = gep[:q]
     ls = gep[:loadShedding]
+    D = GEPPR.get_demand(gep)
+    D = [sum(D[n, Y[1], p, t] for n in N) for t in T]
 
     # Modify / reshape
     q = [
@@ -117,7 +119,7 @@ function plot_dispatch(
     end
 
     # Plot
-    plt = Plots.plot(; size=(1200, 800), margin=10 * mm)
+    plt = Plots.plot(; size=(900, 600), margin=10 * mm)
     if GEPPR.has_storage_technologies(gep)
         StatsPlots.groupedbar!(
             plt,
@@ -131,6 +133,7 @@ function plot_dispatch(
             xlab="Time [h]",
             legend=:outerright,
             xlims=(T[1], T[end] + 1),
+            ylims=(0, maximum(D)*1.1)
         )
 
         StatsPlots.groupedbar!(
@@ -161,11 +164,10 @@ function plot_dispatch(
     end
 
     # Plot the load
-    D = GEPPR.get_demand(gep)
     Plots.plot!(
         plt,
         T,
-        [sum(D[n, Y[1], p, t] for n in N) for t in T];
+        D;
         lab="",
         lc=:black,
         line=:steppost,
@@ -191,6 +193,21 @@ function plot_dispatch(
     end
 
     return plt
+end
+
+function plot_reserves(
+        gep::GEPM,
+        p::Int;
+        
+        plot_state_of_charge=true,
+        aggregate_conventional=true,
+        aggregate_renewable=true,
+        aggregate_storage=true,
+        N=GEPPR.get_set_of_nodes_and_time_indices(gep)[1],
+        Y=GEPPR.get_set_of_nodes_and_time_indices(gep)[2],
+        T=GEPPR.get_set_of_nodes_and_time_indices(gep)[4],
+    )
+
 end
 
 nothing
