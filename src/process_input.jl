@@ -588,7 +588,7 @@ function scenarios_2_GEPPR(opts::Dict, scens)
     
     # Get net load forecast error per node
     mult = Dict("Load" => -1, "Wind" => 1, "Solar" => 1)
-    scenarios_2_net_load_forecast_error(opts, scens, mult)
+    net_load_forecast_error_dict = scenarios_2_net_load_forecast_error(opts, scens, mult)
 
     # Sum up uncertainty over entire network
     total_NLFE = sum(v for (k, v) in net_load_forecast_error_dict)
@@ -598,7 +598,7 @@ function scenarios_2_GEPPR(opts::Dict, scens)
         transpose(total_NLFE);
         n_up=upward_reserve_levels,
         n_down=downward_reserve_levels,
-        coverage=10, # Number of scenarios ignored on tail ends
+        coverage=50, # Number of scenarios ignored on tail ends
     )
 
     return D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻
@@ -671,12 +671,12 @@ function get_probabilistic_reserve_parameters_from_scenarios(
         )
 
         for l in 1:n_up
-            D⁺[l, t] = q_cut_up[l + 1] - q_cut_up[l]
+            D⁺[l, t] = maximum(q_cut_up[l + 1] - q_cut_up[l], 0)
             Dmid⁺[l, t] = q_mid_up[l]
             P⁺[l, t] = p_up[l]
         end
         for l in 1:n_down
-            D⁻[l, t] = q_cut_down[l] - q_cut_down[l + 1]
+            D⁻[l, t] = maximum(q_cut_down[l] - q_cut_down[l + 1], 0)
             Dmid⁻[l, t] = q_mid_down[l]
             P⁻[l, t] = p_down[l]
         end
