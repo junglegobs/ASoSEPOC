@@ -35,7 +35,6 @@ function plot_dispatch(
         reduce(+, q[(g, n), Y[1], p, t] for n in N if (g, n) in GN; init=0.0)
         for t in T, g in G
     ]
-
     ls = [sum(ls[n, Y[1], p, t] for n in N) for t in T]
 
     if GEPPR.has_storage_technologies(gep)
@@ -133,7 +132,7 @@ function plot_dispatch(
             xlab="Time [h]",
             legend=:outerright,
             xlims=(T[1], T[end] + 1),
-            ylims=(0, maximum(D)*1.1)
+            ylims=(0, maximum(D) * 1.1),
         )
 
         StatsPlots.groupedbar!(
@@ -164,15 +163,7 @@ function plot_dispatch(
     end
 
     # Plot the load
-    Plots.plot!(
-        plt,
-        T,
-        D;
-        lab="",
-        lc=:black,
-        line=:steppost,
-        lw=2,
-    )
+    Plots.plot!(plt, T, D; lab="", lc=:black, line=:steppost, lw=2)
 
     # Plot the state of charge
     if GEPPR.has_storage_technologies(gep) && plot_state_of_charge
@@ -195,19 +186,73 @@ function plot_dispatch(
     return plt
 end
 
-function plot_reserves(
-        gep::GEPM,
-        p::Int;
-        
-        plot_state_of_charge=true,
-        aggregate_conventional=true,
-        aggregate_renewable=true,
-        aggregate_storage=true,
-        N=GEPPR.get_set_of_nodes_and_time_indices(gep)[1],
-        Y=GEPPR.get_set_of_nodes_and_time_indices(gep)[2],
-        T=GEPPR.get_set_of_nodes_and_time_indices(gep)[4],
+function plot_reserves_simple(
+    gep::GEPM,
+    p::Int;
+    Y=GEPPR.get_set_of_nodes_and_time_indices(gep)[2],
+    T=GEPPR.get_set_of_nodes_and_time_indices(gep)[4],
+)
+    pyplot()
+
+    # Get sets
+    ORBZ = GEPPR.get_set_of_operating_reserve_balancing_zones(gep)
+    L⁺ = GEPPR.get_set_of_upward_reserve_levels(gep)
+    L⁻ = GEPPR.get_set_of_downward_reserve_levels(gep)
+    Tm = 1:length(T)
+
+    # Get reserve provision and aggregate
+    rL⁺ = sum(gep[:rL⁺].data; dims=(1, 2, 3, 4))[:]
+    rL⁻ = sum(gep[:rL⁻].data; dims=(1, 2, 3, 4))[:]
+    rsL⁺ = sum(gep[:rsL⁺].data; dims=(1, 2, 3, 4))[:]
+    D⁺ = gep[:I][:uncertainty][:D⁺]
+    D⁺ = [sum(D⁺[z, l, y, p, t] for z in ORBZ, l in L⁺, y in Y) for t in T]
+    D⁻ = gep[:I][:uncertainty][:D⁻]
+    D⁻ = [sum(D⁻[z, l, y, p, t] for z in ORBZ, l in L⁻, y in Y) for t in T]
+
+    # Plot
+    ymax = max(D⁺..., D⁻...)
+    plt_up = StatsPlots.groupedbar(
+        T,
+        hcat(rsL⁺, rL⁺);
+        color=[:red :blue],
+        lab=["Shedding" "Provision"],
+        ylabel="Power [MW]",
+        xlab="Time [h]",
+        bar_width=1.0,
+        bar_position=:stack,
+        lw=0.0,
+        ylims=(0,ymax),
+        legend=:topleft
+    )
+    Plots.plot!(
+        plt_up, T, D⁺; lc=:black, lw=2, line=:stepmid, lab="Upward reserve demand"
     )
 
+    plt_down = StatsPlots.bar(
+        T,
+        -rL⁻;
+        color=:blue,
+        lab="Provision",
+        ylabel="- Power [MW]",
+        xlab="",
+        xticks=:none,
+        bar_width=1.0,
+        # bar_position=:stack,
+        lw=0.0,
+        ylims=(-ymax,0),
+    )
+    Plots.plot!(
+        plt_down,
+        T,
+        -D⁻;
+        lc=:black,
+        lw=2,
+        line=:stepmid,
+        lab="Downward reserve demand",
+        legend=:bottomright
+    )
+    plt_all = Plots.plot(plt_up, plt_down, layout=(2,1), size=(800,500), xlims=extrema(T))
+    return plt_all
 end
 
 nothing
