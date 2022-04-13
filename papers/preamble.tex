@@ -1,0 +1,287 @@
+% \usepackage[utf8]{inputenc}
+\usepackage[dvipsnames,svgnames,x11names,hyperref]{xcolor}
+
+% Main packages
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{physics} % For partial derivatives
+\usepackage{bbm}
+\usepackage[makeroom]{cancel}
+\usepackage[textsize=tiny]{todonotes}
+\usepackage[hyphens]{url}
+\usepackage{hyperref}
+\hypersetup{
+ colorlinks=true,
+ linkcolor=black,
+ filecolor=black,
+ urlcolor=black,
+ citecolor=OliveGreen,
+}
+
+% Bibliography
+% \usepackage[round,numbers]{natbib} % Not used since loaded by elsarticle
+
+% For graphics
+\usepackage{graphicx}
+
+% For tikz figures
+\usepackage{tikz}
+\usetikzlibrary{positioning,calc} % I think for \matrix command and also for at=($()$) expression
+\usetikzlibrary{shapes.geometric}
+\usetikzlibrary{decorations.pathreplacing, calligraphy} % For curly braces
+\usetikzlibrary{shapes, arrows.meta, positioning}
+\usetikzlibrary{intersections} % Not sure if background needed?
+\tikzstyle{arrow} = [thin, ->, >=stealth]
+\tikzset{
+    connect/.style args={(#1) to (#2) over (#3) by #4}{
+        insert path={
+            let \p1=($(#1)-(#3)$), \n1={veclen(\x1,\y1)}, 
+            \n2={atan2(\y1,\x1)}, \n3={abs(#4)}, \n4={#4>0 ?180:-180}  in 
+            (#1) -- ($(#1)!\n1-\n3!(#3)$) 
+            arc (\n2:\n2+\n4:\n3) -- (#2)
+        }
+    },
+}
+\usetikzlibrary{shapes.geometric, arrows}
+% \tikzstyle{startstop} = [rectangle, rounded corners, minimum width=3cm, minimum height=1cm,text centered, draw=black, fill=red!30]
+\tikzstyle{io} = [trapezium, trapezium left angle=70, trapezium right angle=110, text width=0.3\columnwidth, minimum height=1cm, text centered, draw=black, fill=blue!30]
+\tikzstyle{process} = [rectangle, minimum height=1cm, text centered, draw=black, fill=orange!30]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+\tikzstyle{dashedarrow} = [thick,dashed,->,>=stealth]
+\tikzstyle{box} = [draw, rectangle, minimum height=0.05\textwidth, minimum width=0.05\textwidth, align=left]
+\tikzstyle{thinbox} = [draw, rectangle, minimum height=0.05\textwidth, minimum width=0.008\textwidth, align=left]
+\newcommand{\dayplotheight}{0.05\textwidth}
+
+% For nicer tables
+\usepackage{booktabs}
+\usepackage{csvsimple}
+\usepackage{rotating} % For sideways tables
+\usepackage{pdflscape} % To rotate pdf for one page 
+\usepackage{longtable} % Since review table is too long otherwise
+\usepackage{tabularx} % Automatically adjusts column widths (hopefully well../)
+
+% For plotting
+\usepackage{pgfplots}
+\usepgfplotslibrary{groupplots,units} % For groupplots
+\usepackage{pgfplotstable} % For plotting csv files as tables
+\usepgfplotslibrary{statistics} % For boxplots
+\usepgfplotslibrary{colorbrewer} % Nice color set
+\pgfplotsset{
+ compat=newest,
+ % initialize Dark2
+ cycle list/Dark2,
+ % combine it with 'mark list*':
+ cycle multiindex* list={
+  mark list*\nextlist
+  Dark2\nextlist
+ },
+} % Mainly for cycling through lists
+\usepgfplotslibrary{groupplots} % For groupplots
+
+% Style to select only points from #1 to #2 (inclusive)
+% Useful for not having too many csv files
+\pgfplotsset{select coords between index/.style 2 args={
+    x filter/.code={
+        \ifnum\coordindex<#1\def\pgfmathresult{}\fi
+        \ifnum\coordindex>#2\def\pgfmathresult{}\fi
+    }
+}}
+
+
+% For caching tikz figures
+% \usetikzlibrary{external}
+% \tikzexternalize[prefix=pgfplots_figs/]
+
+\usepackage{float}
+
+% For si units
+\usepackage{siunitx}
+% \NewDocumentCommand{\NaN}{}{\text{NaN}} % Attempt to also be able to parse nans
+\sisetup{
+ round-mode=figures,
+ round-precision=3,
+ % input-symbols=\NaN
+} % Use \num{...} to round
+
+% For creating a frame around the nomenclature
+\usepackage{framed}
+
+% For spaces after commands (see simulation names)
+\usepackage{xspace}
+
+% For subfigures
+\usepackage[font={scriptsize}]{subcaption}
+
+% To read csv files into e.g. tables
+\usepackage{csvsimple}
+
+% For the euro sign
+\usepackage[gen]{eurosym} % use \EUR or \euro
+
+% For \verb++ or \verbatim environments
+\usepackage{verbatim}
+
+% For cross and checkmarks
+\usepackage{pifont}
+\newcommand{\xmark}{\ding{55}}
+
+% Acronyms
+\usepackage{acronym}
+\AtBeginDocument{%
+  \renewcommand*{\AC@hyperlink}[2]{%
+    \begingroup
+      \hypersetup{hidelinks}%
+      \hyperlink{#1}{#2}%
+    \endgroup
+  }
+}
+
+% Inserting code
+\usepackage{listings}
+\lstset{
+basicstyle=\small\ttfamily,
+columns=flexible,
+breaklines=true
+}
+
+% Nomenclature
+\usepackage{nomencl}
+% \makenomenclature % Very important!
+
+\usepackage{etoolbox} % For comparing prefixes
+\renewcommand\nomgroup[1]{%
+ \item[\bfseries
+ \ifstrequal{#1}{A}{Sets}{%
+ \ifstrequal{#1}{B}{Variables}{%
+ \ifstrequal{#1}{C}{Parameters}{}}}%
+]}
+
+% You can specify parts of text which become e.g. two or three column
+\usepackage{multicol}
+
+% \newcommand{\DimensUnits}[1]{\hfill\makebox[2em]{#1\hfill}\ignorespaces}
+% \newcommand{\nomdescr}[1]{\parbox[t]{10cm}{\RaggedRight #1}}
+\newcommand{\nomwithunit}[4]{\nomenclature[#1]{#2}{#3 #4}}
+
+% Font stuff and some defaults
+% \usepackage[cm]{sfmath} % for sans serif maths
+% \renewcommand{\rmdefault}{cmr}
+% \renewcommand{\sfdefault}{cmss}
+% \renewcommand{\ttdefault}{cmtt}
+% \renewcommand{\familydefault}{\sfdefault}
+% \usepackage[T1]{fontenc}
+\setlength{\parskip}{\smallskipamount}
+\setlength{\parindent}{0pt}
+% \usepackage{babel}
+
+\usepackage{array} % Define new column types!
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\renewcommand{\arraystretch}{1}
+
+% Redefine vector to be bold font, not arrow on top
+\let\vec\mathbf
+
+% For drawing a grid
+\makeatletter
+\def\grd@save@target#1{%
+  \def\grd@target{#1}}
+\def\grd@save@start#1{%
+  \def\grd@start{#1}}
+\tikzset{
+  grid with coordinates/.style={
+    to path={%
+      \pgfextra{%
+        \edef\grd@@target{(\tikztotarget)}%
+        \tikz@scan@one@point\grd@save@target\grd@@target\relax
+        \edef\grd@@start{(\tikztostart)}%
+        \tikz@scan@one@point\grd@save@start\grd@@start\relax
+        \draw[minor help lines] (\tikztostart) grid (\tikztotarget);
+        \draw[major help lines] (\tikztostart) grid (\tikztotarget);
+        \grd@start
+        \pgfmathsetmacro{\grd@xa}{\the\pgf@x/1cm}
+        \pgfmathsetmacro{\grd@ya}{\the\pgf@y/1cm}
+        \grd@target
+        \pgfmathsetmacro{\grd@xb}{\the\pgf@x/1cm}
+        \pgfmathsetmacro{\grd@yb}{\the\pgf@y/1cm}
+        \pgfmathsetmacro{\grd@xc}{\grd@xa + \pgfkeysvalueof{/tikz/grid with coordinates/major step}}
+        \pgfmathsetmacro{\grd@yc}{\grd@ya + \pgfkeysvalueof{/tikz/grid with coordinates/major step}}
+        \foreach \x in {\grd@xa,\grd@xc,...,\grd@xb}
+        \node[anchor=north] at (\x,\grd@ya) {\pgfmathprintnumber{\x}};
+        \foreach \y in {\grd@ya,\grd@yc,...,\grd@yb}
+        \node[anchor=east] at (\grd@xa,\y) {\pgfmathprintnumber{\y}};
+      }
+    }
+  },
+  minor help lines/.style={
+    help lines,
+    step=\pgfkeysvalueof{/tikz/grid with coordinates/minor step}
+  },
+  major help lines/.style={
+    help lines,
+    line width=\pgfkeysvalueof{/tikz/grid with coordinates/major line width},
+    step=\pgfkeysvalueof{/tikz/grid with coordinates/major step}
+  },
+  grid with coordinates/.cd,
+  minor step/.initial=.2,
+  major step/.initial=1,
+  major line width/.initial=2pt,
+}
+
+% Colors
+\usepackage{color} % To define colours?
+
+% Commands
+
+% Other
+\renewcommand{\eqref}[1]{Eq. \ref{#1}}
+\newcommand{\figref}[1]{Figure \ref{#1}}
+\newcommand{\bref}[1]{(\ref{#1})}
+\newcommand{\tabref}[1]{Table \ref{#1}}
+\newcommand{\appref}[1]{Appendix \ref{#1}}
+\newcommand{\secref}[1]{Section \ref{#1}}
+
+% Technologies
+\newcommand{\CCGT}{CCGT\xspace}
+\newcommand{\OCGT}{OCGT\xspace}
+\newcommand{\WindOnsh}{Onshore Wind\xspace}
+\newcommand{\WindOffsh}{Offshore Wind\xspace}
+\renewcommand{\PV}{Solar\xspace}
+\newcommand{\Battery}{Short Term\xspace}
+\newcommand{\LTS}{Long Term\xspace}
+
+% Storage operations
+\newcommand{\mincost}{\emph{Min Cost}\xspace}
+\newcommand{\ddvoll}{\emph{DDVOLL}\xspace}
+\newcommand{\minlol}{\emph{Min LOL}\xspace}
+\newcommand{\maxlol}{\emph{Max LOL}\xspace}
+\newcommand{\minpeak}{\emph{Min Peak}\xspace}
+\newcommand{\greedy}{\emph{Greedy}\xspace}
+
+% Capacity credits
+\newcommand{\avCC}{\emph{AvCC}\xspace}
+\newcommand{\efceens}{\emph{EFC-EENS}\xspace}
+\newcommand{\efclole}{\emph{EFC-LOLE}\xspace}
+
+% Expectation operator
+\newcommand{\Expct}{\mathop{\mathbb{E}}}
+
+% Commands for comments
+\usepackage{ulem} % For striking through text
+\definecolor{SG}{rgb}{0,0,0} % Once it's done
+\definecolor{citecol}{rgb}{0.5,0.5,0.5} % Once it's done
+% \definecolor{SG}{rgb}{1,0,0} % Change later
+\newcommand{\edst}[1]{} % For getting rid of strikethroughs
+\newcommand{\ed}[1]{\textcolor{SG}{#1}}
+% \textcolor{SG}{#1}
+% \newcommand{\edst}[1]{\ed{\sout{#1}}}
+
+\newcommand{\addcite}[1]{[\textcolor{citecol}{#1}]}
+
+\newcommand{\paramessage}[1]{#1}
+% \newcommand{\paramessage}[1]{1}
+
+% \newcommand{\hide}[1]{\itshape #1 \normalfont}
+\newcommand{\hide}[1]{}
