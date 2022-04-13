@@ -292,7 +292,7 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
                 "installedCapacity" =>
                     Dict(string(k) => Float64(v) for (k, v) in cap[t]), # [MW]
                 "averageGenerationCost" => 0.0,
-                "variableOperationAndMaintenanceCost" => 0.0, 
+                "variableOperationAndMaintenanceCost" => 0.0,
                 # Otherwise reserve activation doesn't work
             ) for t in res_names
         ),
@@ -585,10 +585,12 @@ end
 
 function scenarios_2_GEPPR(opts::Dict, scens)
     @unpack upward_reserve_levels, downward_reserve_levels = opts
-    
+
     # Get net load forecast error per node
     mult = Dict("Load" => -1, "Wind" => 1, "Solar" => 1)
-    net_load_forecast_error_dict = scenarios_2_net_load_forecast_error(opts, scens, mult)
+    net_load_forecast_error_dict = scenarios_2_net_load_forecast_error(
+        opts, scens, mult
+    )
 
     # Sum up uncertainty over entire network
     total_NLFE = sum(v for (k, v) in net_load_forecast_error_dict)
@@ -604,7 +606,9 @@ function scenarios_2_GEPPR(opts::Dict, scens)
     return D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻
 end
 
-function scenarios_2_net_load_forecast_error(opts::Dict, scens, mult)
+function scenarios_2_net_load_forecast_error(
+    opts::Dict, scens, mult; init_val=zeros(24, 1000)
+)
     pm = PowerModels.parse_file(grid_red_path)
 
     # Convolute scenarios to get total net load forecast error
@@ -625,9 +629,11 @@ function scenarios_2_net_load_forecast_error(opts::Dict, scens, mult)
         )
 
         # Net load is negative -> upward reserves are activated
-        # Net load is positive -> downward reserves are activated 
-        net_load_forecast_error_dict[name] = sum(
-            scen_mat * mult[source] for (source, scen_mat) in bus_scen_mat
+        # Net load is positive -> downward reserves are activated
+        net_load_forecast_error_dict[name] = reduce(
+            +,
+            scen_mat * mult[source] for (source, scen_mat) in bus_scen_mat;
+            init=init_val,
         )
     end
     return net_load_forecast_error_dict
@@ -638,7 +644,9 @@ function scenarios_2_forecast(opts, scens; src_name=first(collect(keys(k))))
     forecast = Dict{String,Vector{Float64}}()
     for (k, bus) in pm["bus"]
         bname = bus["string"]
-        forecast[bname] = collect(values(sort(scens[src_name][bname]["forecast"])))
+        forecast[bname] = collect(
+            values(sort(scens[src_name][bname]["forecast"]))
+        )
     end
     return forecast
 end
