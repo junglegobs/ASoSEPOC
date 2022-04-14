@@ -3,7 +3,8 @@ include(srcdir("util.jl"))
 
 ### UTIL
 function param_and_config(opts::Dict)
-    @unpack optimization_horizon, rolling_horizon, include_downward_reserves = opts
+    @unpack optimization_horizon, rolling_horizon, include_downward_reserves =
+        opts
     is_linear = (opts["unit_commitment_type"] == "none")
     GEPPR_dir = datadir("pro", "GEPPR")
     configFiles =
@@ -111,8 +112,7 @@ run_GEPPR(opts_vec) = [
         run_GEPPR(opts)
     catch
         @warn "Optimisation failed"
-    end
-    for opts in opts_vec
+    end for opts in opts_vec
 ]
 
 function GEPPR.load_GEP(opts::Dict, path::String)
@@ -147,8 +147,12 @@ end
 
 function apply_operating_reserves!(gep::GEPM, opts::Dict)
     @unpack operating_reserves_type,
-    operating_reserves_sizing_type, upward_reserve_levels,
-    downward_reserve_levels = opts
+    operating_reserves_sizing_type,
+    upward_reserve_levels,
+    downward_reserve_levels,
+    upward_reserve_levels_included_in_redispatch,
+    downward_reserve_levels_included_in_redispatch = opts
+
     operating_reserves_type == "none" && return gep
     @assert operating_reserves_type == "probabilistic"
     @assert operating_reserves_sizing_type == "given"
@@ -164,6 +168,12 @@ function apply_operating_reserves!(gep::GEPM, opts::Dict)
     modify_parameter!(gep, "reserveSizingType", "given")
     modify_parameter!(gep, "includeReserveActivationCosts", true)
     modify_parameter!(gep, "includeDownwardReserves", true)
+    modify_parameter!(
+        gep, "upwardReserveLevelsIncludedInNetworkRedispatch", 1:10
+    )
+    modify_parameter!(
+        gep, "downwardReserveLevelsIncludedInNetworkRedispatch", 1:10
+    )
     L⁺ = gep[:I, :sets, :L⁺] = 1:upward_reserve_levels
     L⁻ = gep[:I, :sets, :L⁻] = 1:downward_reserve_levels
     ORBZ = GEPPR.get_set_of_operating_reserve_balancing_zones(gep)
@@ -190,7 +200,7 @@ end
 
 function constrain_reserve_shedding!(gep::GEPM, opts::Dict)
     @unpack reserve_shedding_limit, include_operating_reserves = opts
-    
+
     if include_operating_reserves == false
         return gep
     end
@@ -207,11 +217,8 @@ function constrain_reserve_shedding!(gep::GEPM, opts::Dict)
     @constraint(
         gep.model,
         [z = ORBZ, y in Y, p in P, t = T],
-        sum(
-            rsL⁺[n, l, y, p, t] for n in ORBZ2N[z], l in L⁺
-        ) /
-        sum(D⁺[z, l, y, p, t] for z in ORBZ, l in L⁺) <=
-            reserve_shedding_limit
+        sum(rsL⁺[n, l, y, p, t] for n in ORBZ2N[z], l in L⁺) /
+        sum(D⁺[z, l, y, p, t] for z in ORBZ, l in L⁺) <= reserve_shedding_limit
     )
     return gep
 end
