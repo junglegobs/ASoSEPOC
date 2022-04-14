@@ -3,7 +3,7 @@ sn = script_name(@__FILE__)
 
 opts_vec = options_3_days(sn)
 opts_vec = map(
-    opts -> (opts["vars_2_save"] = [:z, :q, :ls, :rsl⁺]; opts), opts_vec
+    opts -> (opts["vars_2_save"] = [:z, :q, :ls, :rsL⁺]; opts), opts_vec
 )
 opts_vec = vcat(
     [
