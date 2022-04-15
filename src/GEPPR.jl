@@ -91,7 +91,7 @@ function run_GEPPR(opts::Dict)
             apply_operating_reserves!(gep, opts)
             @info "Building JuMP model..."
             make_JuMP_model!(gep)
-            # apply_initial_commitment!(gep, opts)
+            apply_initial_commitment!(gep, opts)
             constrain_reserve_shedding!(gep, opts)
             optimize_GEP_model!(gep)
             save_optimisation_values!(gep)

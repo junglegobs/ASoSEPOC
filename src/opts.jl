@@ -32,7 +32,7 @@ function options_3_days(sn)
     "include_storage" => false,
     "operating_reserves_sizing_type" => "given",
     "operating_reserves_type" => "none",
-    "initial_commitment_data_path" => datadir("sims", "rolling_UC_full_year"),
+    # "initial_commitment_data_path" => datadir("sims", "rolling_UC_full_year"),
     "operating_reserves_type" => "probabilistic",
     "operating_reserves_sizing_type" => "given",
     "vars_2_save" => [:z, :q],
