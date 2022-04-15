@@ -573,36 +573,54 @@ function load_scenarios(
 end
 
 function load_scenarios(opts::Dict)
-    return load_scenarios(
-        opts,
-        Dict(
-            "Load" => opts["load_scenario_data_paths"],
-            "Wind" => opts["wind_scenario_data_paths"],
-            "Solar" => opts["solar_scenario_data_paths"],
-        ),
-    )
+    scen_id = scenario_id(opts)
+    file_name = datadir("scenarios", "month=$(scen_id).jld2")
+    mkrootdirs(dirname(file_name))
+    if isfile(file_name)
+        @load eval(file_name) scens
+        return scens
+    else
+        scens = load_scenarios(
+            opts,
+            Dict(
+                "Load" => opts["load_scenario_data_paths"],
+                "Wind" => opts["wind_scenario_data_paths"],
+                "Solar" => opts["solar_scenario_data_paths"],
+            ),
+        )
+        @save eval(file_name) scens
+        return scens
+    end
 end
 
 function scenarios_2_GEPPR(opts::Dict, scens)
-    @unpack upward_reserve_levels, downward_reserve_levels = opts
+    scen_id = scenario_id(opts)
+    file_name = datadir("scenarios", "GEPPR_frmt_month=$(scen_id).jld2")
+    mkrootdirs(dirname(file_name))
+    if isfile(file_name)
+        @load eval(file_name) D⁺ D⁻ P⁺ P⁻ Dmid⁺ Dmid⁻
+    else
+        @unpack upward_reserve_levels, downward_reserve_levels = opts
 
-    # Get net load forecast error per node
-    mult = Dict("Load" => -1, "Wind" => 1, "Solar" => 1)
-    net_load_forecast_error_dict = scenarios_2_net_load_forecast_error(
-        opts, scens, mult
-    )
+        # Get net load forecast error per node
+        mult = Dict("Load" => -1, "Wind" => 1, "Solar" => 1)
+        net_load_forecast_error_dict = scenarios_2_net_load_forecast_error(
+            opts, scens, mult
+        )
 
-    # Sum up uncertainty over entire network
-    total_NLFE = sum(v for (k, v) in net_load_forecast_error_dict)
+        # Sum up uncertainty over entire network
+        total_NLFE = sum(v for (k, v) in net_load_forecast_error_dict)
 
-    # Get quantiles
-    D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻ = get_probabilistic_reserve_parameters_from_scenarios(
-        transpose(total_NLFE);
-        n_up=upward_reserve_levels,
-        n_down=downward_reserve_levels,
-        coverage=10, # Number of scenarios ignored on tail ends
-    )
+        # Get quantiles
+        D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻ = get_probabilistic_reserve_parameters_from_scenarios(
+            transpose(total_NLFE);
+            n_up=upward_reserve_levels,
+            n_down=downward_reserve_levels,
+            coverage=10, # Number of scenarios ignored on tail ends
+        )
 
+        @save eval(file_name) D⁺ D⁻ P⁺ P⁻ Dmid⁺ Dmid⁻
+    end
     return D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻
 end
 

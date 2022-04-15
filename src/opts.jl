@@ -30,7 +30,6 @@ function options_3_days(sn)
     df = CSV.read(datadir("pro", "days_for_analysis.csv"), DataFrame)
     opts = options(
     "include_storage" => false,
-    "include_operating_reserves" => false,
     "operating_reserves_sizing_type" => "given",
     "operating_reserves_type" => "none",
     "initial_commitment_data_path" => datadir("sims", "rolling_UC_full_year"),
