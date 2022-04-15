@@ -88,9 +88,9 @@ function run_GEPPR(opts::Dict)
         @info "Running GEPM (save path is $(save_path))..."
         gep = gepm(opts)
         if rolling_horizon == false
+            apply_operating_reserves!(gep, opts)
             make_JuMP_model!(gep)
             apply_initial_commitment!(gep, opts)
-            apply_operating_reserves!(gep, opts)
             constrain_reserve_shedding!(gep, opts)
             optimize_GEP_model!(gep)
             save_optimisation_values!(gep)
@@ -194,7 +194,6 @@ function apply_operating_reserves!(gep::GEPM, opts::Dict)
         (z, l, y, p, T[t]) => D⁻[l, t] for z in ORBZ, l in L⁻, y in Y, p in P,
         t in 1:length(T)
     )
-    make_JuMP_model!(gep)
     return gep
 end
 
