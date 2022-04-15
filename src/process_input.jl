@@ -572,8 +572,16 @@ function load_scenarios(
     return myscens
 end
 
-function load_scenarios(opts::Dict)
+function load_scenarios(opts::Dict; for_GEPPR=false)
     scen_id = scenario_id(opts)
+
+    # If scenarios are being loaded for GEPPR, this step may be superfluous
+    GEPPR_file_name = datadir("scenarios", "GEPPR_frmt_month=$(scen_id).jld2")
+    if for_GEPPR == true && isfile(GEPPR_file_name)
+        return nothing
+    end
+
+    # Else, produce or load the scenarios
     file_name = datadir("scenarios", "month=$(scen_id).jld2")
     mkrootdirs(dirname(file_name))
     if isfile(file_name)
