@@ -3,7 +3,12 @@ sn = script_name(@__FILE__)
 
 opts_vec = options_3_days(sn)
 opts_vec = map(
-    opts -> (opts["vars_2_save"] = [:z, :q, :ls, :rsL⁺]; opts), opts_vec
+    opts -> (
+        opts["vars_2_save"] = [:z, :q, :ls, :rsL⁺]; opts["exprs_2_save"] = [
+            :loadShedding
+        ]; opts
+    ),
+    opts_vec,
 )
 opts_vec = vcat(
     [
@@ -21,15 +26,17 @@ gep_vec = run_GEPPR(opts_vec)
 sid_vec = [scenario_id(opts_vec[i]) for i in 1:length(opts_vec)]
 rsl_vec = [opts_vec[i]["reserve_shedding_limit"] for i in 1:length(opts_vec)]
 ls = Dict(
-    (sid_vec[i], rsl_vec[i]) => sum(gep_vec[i][:ls].data; dims=(1, 2, 3))[:] for
-    i in 1:length(opts_vec)
+    (sid_vec[i], rsl_vec[i]) =>
+        sum(gep_vec[i][:loadShedding, GEPPR.SVC(NaN)].data; dims=(1, 2, 3))[:]
+    for i in 1:length(opts_vec)
 )
 P⁺ = Dict(
     (sid_vec[i], rsl_vec[i]) => gep_vec[i][:I, :uncertainty, :P⁺] for
     i in 1:length(opts_vec)
 )
 rsLt = Dict(
-    (sid_vec[i], rsl_vec[i]) => gep_vec[i][:rsL⁺] for i in 1:length(opts_vec)
+    (sid_vec[i], rsl_vec[i]) => gep_vec[i][:rsL⁺, GEPPR.SVC(NaN)] for
+    i in 1:length(opts_vec)
 )
 rsL⁺ = Dict(
     (sid_vec[i], rsl_vec[i]) => sum(
@@ -40,8 +47,8 @@ rsL⁺ = Dict(
         t in GEPPR.get_set_of_time_indices(gep_vec[i])[3]
     ) for i in 1:length(opts_vec)
 )
-x = reshape([sum(ls[sid_vec[i],rsl_vec[i]]) for i in 1:length(opts_vec)], 6, 3)
-y = reshape([rsL⁺[sid_vec[i],rsl_vec[i]] for i in 1:length(opts_vec)], 6, 3)
+x = reshape([sum(ls[sid_vec[i], rsl_vec[i]]) for i in 1:length(opts_vec)], 6, 3)
+y = reshape([rsL⁺[sid_vec[i], rsl_vec[i]] for i in 1:length(opts_vec)], 6, 3)
 Plots.plot(
     x,
     y;

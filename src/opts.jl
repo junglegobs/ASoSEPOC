@@ -14,9 +14,9 @@ function options(pairs...)
         "optimization_horizon" => [1,48],
         "rolling_horizon" => false,
         "upward_reserve_levels" => 10,
-        "upward_reserve_levels_included_in_redispatch" => 1:10,
+        "upward_reserve_levels_included_in_redispatch" => [],
         "downward_reserve_levels" => 10,
-        "downward_reserve_levels_included_in_redispatch" => 1:10,
+        "downward_reserve_levels_included_in_redispatch" => [],
         "include_downward_reserves" => true,
         "reserve_shedding_limit" => 1.0
     )

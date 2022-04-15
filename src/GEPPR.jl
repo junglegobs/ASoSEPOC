@@ -89,8 +89,9 @@ function run_GEPPR(opts::Dict)
         gep = gepm(opts)
         if rolling_horizon == false
             apply_operating_reserves!(gep, opts)
+            @info "Building JuMP model..."
             make_JuMP_model!(gep)
-            apply_initial_commitment!(gep, opts)
+            # apply_initial_commitment!(gep, opts)
             constrain_reserve_shedding!(gep, opts)
             optimize_GEP_model!(gep)
             save_optimisation_values!(gep)
@@ -134,6 +135,7 @@ function apply_initial_commitment!(gep::GEPM, opts::Dict)
     @unpack save_path, optimization_horizon, initial_commitment_data_path = opts
     isempty(initial_commitment_data_path) && return nothing
 
+    @info "Applying initial commitment..."
     z_val = load_GEP(opts, initial_commitment_data_path)[:z]
     z = GEPPR.get_online_units_var(gep)
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
@@ -158,7 +160,7 @@ function apply_operating_reserves!(gep::GEPM, opts::Dict)
     @assert operating_reserves_sizing_type == "given"
 
     @info "Getting scenarios..."
-    scens = load_scenarios(opts)
+    scens = load_scenarios(opts; for_GEPPR=true)
 
     @info "Converting scenarios to quantiles..."
     D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻ = scenarios_2_GEPPR(opts, scens)
@@ -169,10 +171,14 @@ function apply_operating_reserves!(gep::GEPM, opts::Dict)
     modify_parameter!(gep, "includeReserveActivationCosts", true)
     modify_parameter!(gep, "includeDownwardReserves", true)
     modify_parameter!(
-        gep, "upwardReserveLevelsIncludedInNetworkRedispatch", 1:10
+        gep,
+        "upwardReserveLevelsIncludedInNetworkRedispatch",
+        upward_reserve_levels_included_in_redispatch,
     )
     modify_parameter!(
-        gep, "downwardReserveLevelsIncludedInNetworkRedispatch", 1:10
+        gep,
+        "downwardReserveLevelsIncludedInNetworkRedispatch",
+        downward_reserve_levels_included_in_redispatch,
     )
     L⁺ = gep[:I, :sets, :L⁺] = 1:upward_reserve_levels
     L⁻ = gep[:I, :sets, :L⁻] = 1:downward_reserve_levels
@@ -198,7 +204,8 @@ function apply_operating_reserves!(gep::GEPM, opts::Dict)
 end
 
 function constrain_reserve_shedding!(gep::GEPM, opts::Dict)
-    @unpack reserve_shedding_limit, operating_reserves_type,
+    @unpack reserve_shedding_limit,
+    operating_reserves_type,
     operating_reserves_sizing_type = opts
 
     operating_reserves_type == "none" && return gep
@@ -228,12 +235,15 @@ end
 function save(gep::GEPM, opts::Dict)
     @unpack save_path = opts
     vars_2_save = get(opts, "vars_2_save", nothing)
+    exprs_2_save = get(opts, "exprs_2_save", nothing)
     if vars_2_save !== nothing
         gep[:O, :variables] = GEPPR.OrderedDict(
             k => gep[k] for k in vars_2_save
         )
         gep[:O, :constraints] = nothing
-        gep[:O, :expressions] = nothing
+        gep[:O, :expressions] = GEPPR.OrderedDict(
+            k => gep[k] for k in exprs_2_save
+        )
     end
     return GEPPR.save(gep, save_path)
 end
