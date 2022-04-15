@@ -199,11 +199,14 @@ function apply_operating_reserves!(gep::GEPM, opts::Dict)
 end
 
 function constrain_reserve_shedding!(gep::GEPM, opts::Dict)
-    @unpack reserve_shedding_limit, include_operating_reserves = opts
+    @unpack reserve_shedding_limit, operating_reserves_type,
+    operating_reserves_sizing_type = opts
 
-    if include_operating_reserves == false
-        return gep
-    end
+    operating_reserves_type == "none" && return gep
+    @assert operating_reserves_type == "probabilistic"
+    @assert operating_reserves_sizing_type == "given"
+
+    @info "Constraining reserve shedding..."
 
     rsL⁺ = GEPPR.get_upward_reserve_level_shedding_var(gep)
     D⁺ = GEPPR.get_upward_reserve_level_expression(gep)
@@ -214,7 +217,7 @@ function constrain_reserve_shedding!(gep::GEPM, opts::Dict)
     )
     L⁺ = GEPPR.get_set_of_upward_reserve_levels(gep)
 
-    @constraint(
+    gep[:M, :constraints, :reserveSheddingLimit] = @constraint(
         gep.model,
         [z = ORBZ, y in Y, p in P, t = T],
         sum(rsL⁺[n, l, y, p, t] for n in ORBZ2N[z], l in L⁺) /
