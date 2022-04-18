@@ -256,6 +256,7 @@ Saves data in the format: hour -> generator (with associated bus) -> value
 function save_gep_for_security_analysis(gep::GEPM, path::String)
     q = gep[:q]
     z = gep[:z]
+    ls = gep[:loadShedding]
     UC_results = Dict{Integer,Dict}()
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
     GDN = GEPPR.get_set_of_nodal_dispatchable_generators(gep)
@@ -270,9 +271,13 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
                 ) for (g, n) in GDN
             ),
             "res" => Dict(
-                (g, n) => Dict(q => q[(g, n), y, p, atval(t, typeof(q))])
+                (g, n) => Dict("q" => q[(g, n), y, p, atval(t, typeof(q))])
                 for (g, n) in GRN
             ),
+            "load_shed" => Dict(
+                n => ls[n,y,p,atval(t, typeof(ls))]
+                for n in N
+            )
         )
     end
     @save eval(path) UC_results
