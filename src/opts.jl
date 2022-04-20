@@ -18,7 +18,8 @@ function options(pairs...)
         "downward_reserve_levels" => 10,
         "downward_reserve_levels_included_in_redispatch" => [],
         "include_downward_reserves" => true,
-        "reserve_shedding_limit" => 1.0
+        "reserve_shedding_limit" => 1.0,
+        "copperplate" => false,
     )
     for (k,v) in pairs
         opts[k] = v
