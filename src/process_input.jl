@@ -611,7 +611,7 @@ function scenarios_2_GEPPR(opts::Dict, scens)
         @unpack upward_reserve_levels, downward_reserve_levels = opts
 
         # Get net load forecast error per node
-        mult = Dict("Load" => -1, "Wind" => 1, "Solar" => 1)
+        mult = Dict("Load" => 1, "Wind" => -1, "Solar" => -1)
         net_load_forecast_error_dict = scenarios_2_net_load_forecast_error(
             opts, scens, mult
         )
@@ -624,7 +624,7 @@ function scenarios_2_GEPPR(opts::Dict, scens)
             transpose(total_NLFE);
             n_up=upward_reserve_levels,
             n_down=downward_reserve_levels,
-            coverage=10, # Number of scenarios ignored on tail ends
+            coverage=Int(round(size(total_NLFE, 2)*0.01)), # Number of scenarios ignored on tail ends
         )
 
         @save eval(file_name) D⁺ D⁻ P⁺ P⁻ Dmid⁺ Dmid⁻
