@@ -45,6 +45,9 @@ function param_and_config(opts::Dict)
             "Optimisation length too long for unit commitment model, consider setting `rolling_horizon = true`.",
         )
     end
+    if opts["copperplate"] == true
+        param["forceCopperPlateModel"] = true
+    end
     return configFiles, param
 end
 
