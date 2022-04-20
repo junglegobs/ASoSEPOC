@@ -226,11 +226,15 @@ function constrain_reserve_shedding!(gep::GEPM, opts::Dict)
     )
     L⁺ = GEPPR.get_set_of_upward_reserve_levels(gep)
 
+    norm_factor = Dict(
+        t => sum(D⁺[z, l, Y[1], P[1], t] for z in ORBZ, l in L⁺) for t in T
+    )
     gep[:M, :constraints, :reserveSheddingLimit] = @constraint(
         gep.model,
         [z = ORBZ, y in Y, p in P, t = T],
         sum(rsL⁺[n, l, y, p, t] for n in ORBZ2N[z], l in L⁺) /
-        sum(D⁺[z, l, y, p, t] for z in ORBZ, l in L⁺) <= reserve_shedding_limit
+        (iszero(norm_factor[t]) ? 1.0 : norm_factor[t]) <=
+            reserve_shedding_limit
     )
     return gep
 end
@@ -277,10 +281,8 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
                 (g, n) => Dict("q" => q[(g, n), y, p, atval(t, typeof(q))])
                 for (g, n) in GRN
             ),
-            "load_shed" => Dict(
-                n => ls[n,y,p,atval(t, typeof(ls))]
-                for n in N
-            )
+            "load_shed" =>
+                Dict(n => ls[n, y, p, atval(t, typeof(ls))] for n in N),
         )
     end
     @save eval(path) UC_results

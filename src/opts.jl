@@ -20,6 +20,8 @@ function options(pairs...)
         "include_downward_reserves" => true,
         "reserve_shedding_limit" => 1.0,
         "copperplate" => false,
+        "vars_2_save" => Symbol[],
+        "exprs_2_save" => Symbol[],
     )
     for (k,v) in pairs
         opts[k] = v
