@@ -2,7 +2,7 @@ include(joinpath(@__DIR__, "..", "intro.jl"))
 sn = script_name(@__FILE__)
 mkrootdirs(joinpath(datadir("sims"), sn))
 
-opts_vec = options_3_days(sn)
+opts_vec = options_diff_days(sn)
 
 # Only analyse particular source of uncertainty
 function plot_net_load_forecast_uncertainty(opts, scens, buses=String[])

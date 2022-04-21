@@ -29,7 +29,8 @@ function options(pairs...)
     return opts
 end
 
-function options_3_days(sn)
+function options_diff_days(sn)
+    error()
     df = CSV.read(datadir("pro", "days_for_analysis.csv"), DataFrame)
     opts = options(
     "include_storage" => false,
