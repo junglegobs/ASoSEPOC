@@ -3,7 +3,7 @@ sn = script_name(@__FILE__)
 mkrootdirs(simsdir(sn))
 
 # Linear, no reserves, no network - simplest case
-opts_vec = options_3_days(sn)
+opts_vec = options_diff_days(sn)
 map(opts -> rm(opts["save_path"]; force=true, recursive=true), opts_vec)
 opts_vec = [
     merge(
@@ -21,7 +21,7 @@ Plots.savefig(
 )
 
 # Linear, no reserves, with network
-opts_vec = options_3_days(sn)
+opts_vec = options_diff_days(sn)
 map(opts -> rm(opts["save_path"]; force=true, recursive=true), opts_vec)
 opts_vec = [
     merge(
@@ -38,7 +38,7 @@ Plots.savefig(
 )
 
 # Linear, no reserves, with network AND STORAGE
-opts_vec = options_3_days(sn)
+opts_vec = options_diff_days(sn)
 map(opts -> rm(opts["save_path"]; force=true, recursive=true), opts_vec)
 opts_vec = [
     merge(
@@ -57,7 +57,7 @@ Plots.savefig(
 # It seems I made a mistake when choosing days - even in this case I have load shedding...
 
 # No network, no UC, no network redispatch - simplest case with reserves
-opts_vec = options_3_days(sn)
+opts_vec = options_diff_days(sn)
 map(opts -> rm(opts["save_path"]; force=true, recursive=true), opts_vec)
 opts_vec = [
     merge(
@@ -79,7 +79,7 @@ Plots.savefig(
 # Day 41 is still broken!!! Hmmmm...
 
 # No UC
-opts_vec = options_3_days(sn)
+opts_vec = options_diff_days(sn)
 map(opts -> rm(opts["save_path"]; force=true, recursive=true), opts_vec)
 opts_vec = [
     merge(
@@ -96,7 +96,7 @@ Plots.savefig(
 )
 
 # Full model
-opts_vec = options_3_days(sn)
+opts_vec = options_diff_days(sn)
 map(opts -> rm(opts["save_path"]; force=true, recursive=true), opts_vec)
 opts_vec = [
     merge(
