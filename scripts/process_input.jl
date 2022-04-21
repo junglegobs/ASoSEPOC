@@ -40,6 +40,9 @@ ls = sum(
     dims=1,
 )[:]
 Plots.plot(ls, xlab="Day", ylab="Load shedding [MW]", lab="")
+Plots.savefig(simsdir(sn, "load_shedding_daily_timeseries.png"))
+Plots.plot(sort(ls; rev=true), xlab="Day", ylab="Load shedding [MW]", lab="")
+Plots.savefig(simsdir(sn, "load_shedding_daily_timeseries_sorted.png"))
 
 # Save storage dispatch as a node injection
 storage_dispatch_2_node_injection(gep, grid_path, grid_wo_store_path)
