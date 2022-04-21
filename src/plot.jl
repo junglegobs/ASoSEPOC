@@ -132,7 +132,7 @@ function plot_dispatch(
             xlab="Time [h]",
             legend=:outerright,
             xlims=(T[1], T[end] + 1),
-            ylims=(0, maximum(D) * 1.1),
+            # ylims=(0, maximum(D) * 1.1),
         )
 
         StatsPlots.groupedbar!(

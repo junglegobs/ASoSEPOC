@@ -20,7 +20,26 @@ opts = options(
 gep = run_GEPPR(opts)
 
 # Identify 3 days to investigate - no load shedding at all, almost load shedding and load shedding
-days_to_run_models_on(gep, "days_for_analysis.csv")
+days, TVec = days_to_run_models_on(gep, "days_for_analysis.csv")
+
+# Check the dispatch at the network level for each case
+for T in TVec
+    Plots.savefig(
+        plot_dispatch(gep, 1; T=T, plot_state_of_charge=false),
+        simsdir(sn, "dispatch_T=$T.png"),
+    )
+end
+
+# Plot daily load shedding for entire year
+ls = sum(
+    reshape(
+        dropdims(sum(gep[:loadShedding].data; dims=(1, 2, 3)); dims=(1, 2, 3)),
+        24,
+        :,
+    );
+    dims=1,
+)[:]
+Plots.plot(ls, xlab="Day", ylab="Load shedding [MW]", lab="")
 
 # Save storage dispatch as a node injection
 storage_dispatch_2_node_injection(gep, grid_path, grid_wo_store_path)
