@@ -8,7 +8,7 @@ process_belderbos_data(grid_path)
 # Process PowerModels into GEPPR format
 powermodels_2_GEPPR(grid_path, grid_red_path)
 
-# Run a linear operational model
+# Run a linear operational model for the entire year
 opts = options(
     "include_storage" => true,
     "unit_commitment_type" => "none",
