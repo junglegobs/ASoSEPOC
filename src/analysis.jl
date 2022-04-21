@@ -49,13 +49,19 @@ function days_to_run_models_on(gep::GEPM, filename::String)
     dem_net_sum = [sum(v[i] for (k, v) in dem_net) for i in 1:8_760]
     dem_net_day = reshape(dem_net_sum, 24, :)
     dem_net_max_day = maximum(dem_net_day; dims=1)
+
+    # The days
     day_no_scarce = findmin(dem_net_max_day)[2][2]
-    day_some_scarce = findfirst(dem_net_max_day .> -1000)[2]
+    day_even_less_scarce = findfirst(x -> (-10000 < x < -6000), dem_net_max_day)[2]
+    day_less_scarce = findfirst(x -> (-6000 < x < -2000), dem_net_max_day)[2]
+    day_some_scarce = findfirst(x -> (-2000 < x < -1000), dem_net_max_day)[2]
     day_scarce = findmax(dem_net_max_day)[2][2]
     df = DataFrame(;
-        type=["No scarcity", "Scarcity in redispatch", "Scarcity in day ahead"],
+        type=["Max RAM", "RAM>4000MW", "RAM>1000MW", "RAM>500MW", "Min RAM"],
         days=[
             day_no_scarce
+            day_even_less_scarce
+            day_less_scarce
             day_some_scarce
             day_scarce
         ]
@@ -64,5 +70,5 @@ function days_to_run_models_on(gep::GEPM, filename::String)
         (i - 1) * 24 + 1:i * 24 for i in df[:,"days"]
     ]
     CSV.write(datadir("pro", filename), df)
-    return day_no_scarce, day_some_scarce, day_scarce
+    return df[:,"days"], df[:,"timesteps"]
 end
