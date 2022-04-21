@@ -45,30 +45,36 @@ function demand_net_of_total_supply(gep::GEPM)
 end
 
 function days_to_run_models_on(gep::GEPM, filename::String)
-    dem_net = demand_net_of_total_supply(gep)
-    dem_net_sum = [sum(v[i] for (k, v) in dem_net) for i in 1:8_760]
-    dem_net_day = reshape(dem_net_sum, 24, :)
-    dem_net_max_day = maximum(dem_net_day; dims=1)
-
-    # The days
-    day_no_scarce = findmin(dem_net_max_day)[2][2]
-    day_even_less_scarce = findfirst(x -> (-10000 < x < -6000), dem_net_max_day)[2]
-    day_less_scarce = findfirst(x -> (-6000 < x < -2000), dem_net_max_day)[2]
-    day_some_scarce = findfirst(x -> (-2000 < x < -1000), dem_net_max_day)[2]
-    day_scarce = findmax(dem_net_max_day)[2][2]
+    ls = sum(
+        reshape(
+            dropdims(
+                sum(gep[:loadShedding].data; dims=(1, 2, 3)); dims=(1, 2, 3)
+            ),
+            24,
+            :,
+        );
+        dims=1,
+    )[:]
+    srt_idx = sortperm(ls)
+    day_no_scarce = srt_idx[1]
+    day_little_scarce = srt_idx[findfirst(ls[srt_idx] .> 1e-3)]
+    day_middle_scarce = srt_idx[findfirst(ls[srt_idx] .> 1_000)]
+    day_scarce = srt_idx[findfirst(ls[srt_idx] .> 10_000)]
     df = DataFrame(;
-        type=["Max RAM", "RAM>4000MW", "RAM>1000MW", "RAM>500MW", "Min RAM"],
+        DA_load_shedding=ls[[
+            day_no_scarce, day_little_scarce, day_middle_scarce, day_scarce
+        ]],
         days=[
             day_no_scarce
-            day_even_less_scarce
-            day_less_scarce
-            day_some_scarce
+            day_little_scarce
+            day_middle_scarce
             day_scarce
-        ]
+        ],
     )
-    df[:,"timesteps"] = [
-        (i - 1) * 24 + 1:i * 24 for i in df[:,"days"]
+    df[:, "month"] = [
+        month(DateTime(2018, 1, 1) + Day(row["days"])) for row in eachrow(df)
     ]
+    df[:, "timesteps"] = [((i - 1) * 24 + 1):(i * 24) for i in df[:, "days"]]
     CSV.write(datadir("pro", filename), df)
-    return df[:,"days"], df[:,"timesteps"]
+    return df[:, "days"], df[:, "timesteps"]
 end

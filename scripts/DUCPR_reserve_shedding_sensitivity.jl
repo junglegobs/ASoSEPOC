@@ -2,17 +2,16 @@ include(joinpath(@__DIR__, "..", "intro.jl"))
 sn = script_name(@__FILE__)
 
 opts_vec = options_3_days(sn)
-opts_vec = map(opts -> (opts["vars_2_save"] = [:z, :q, :ls, :rsL⁺];
-opts["exprs_2_save"] = [:loadShedding];
-opts), opts_vec)
 opts_vec = vcat(
     [
         merge(
             opts,
             Dict(
                 "reserve_shedding_limit" => v,
-                "save_path" => opts["save_path"] * "_RSL=$v",
+                "save_path" => joinapth(opts["save_path"], "RSL=$v"),
                 "time_out" => 600,
+                "vars_2_save" => [:z, :q, :ls, :rsL⁺],
+                "exprs_2_save" => [:loadShedding]
             ),
         ) for v in 1:-0.1:0, opts in opts_vec
     ]...,
