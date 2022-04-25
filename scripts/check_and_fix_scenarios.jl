@@ -134,7 +134,7 @@ check_scenarios()
 
 # NOTE: Sometimes you get Infs in the CSV files, watch out for this!    
 
-function fix_scenarios()
+function fix_scenarios(; verbose=false)
     gep = gepm(options())
     df = CSV.read(datadir("pro", "days_for_analysis.csv"), DataFrame)
     GN = GEPPR.get_set_of_nodal_intermittent_generators(gep)
@@ -158,9 +158,9 @@ function fix_scenarios()
             for (g, n) in GN if occursin("Wind", g)
         ),
     )
-    gen_cap = Dict(
-        "solar" => sum(K[(g, n), Y[1]] for (g, n) in GN if g == "Sun"),
-        "wind" => sum(K[(g, n), Y[1]] for (g, n) in GN if occursin("Wind", g)),
+    gen_cap = merge(
+        Dict(("solar", n) => K[(g, n), Y[1]] for (g, n) in GN if g == "Sun"),
+        Dict(("wind", n) => K[(g, n), Y[1]] for (g, n) in GN if occursin("Wind", g))
     )
     f_list = readdir(scendir())
 
@@ -177,7 +177,7 @@ function fix_scenarios()
             df_scen = CSV.read(file_scen, DataFrame; skipto=4, header=2)
             for name in N
                 if name ∉ names(df_scen)
-                    @info "Skipping $(name) for source $g"
+                    # @info "Skipping $(name) for source $g"
                     continue
                 end
                 for s in 1:1000 # Hardcoded!
@@ -186,15 +186,15 @@ function fix_scenarios()
                     for j in eachindex(scen_vals)
                         up_diff =
                         gen_res_forecast[g][name][T_day[j]] + scen_vals[j] -
-                        gen_cap[g]
+                        gen_cap[g,name]
                         if up_diff > 0
-                            # @info "Updiff error for source $g, node $name, scenario $s, timestep $j."
+                            verbose && @info "Updiff error for source $g, node $name, scenario $s, timestep $j."
                             scen_vals[j] = 
-                            gen_cap[g] - gen_res_forecast[g][name][T_day[j]]
+                            gen_cap[g,name] - gen_res_forecast[g][name][T_day[j]]
                         end
                         down_diff = gen_res_forecast[g][name][T_day[j]] + scen_vals[j]
                         if down_diff < 0
-                            # @info "Downdiff error for source $g, node $name, scenario $s, timestep $j."
+                            verbose && @info "Downdiff error for source $g, node $name, scenario $s, timestep $j."
                             scen_vals[j] = -gen_res_forecast[g][name][T_day[j]]
                         end
 
@@ -216,5 +216,7 @@ function fix_scenarios()
 end
 
 fix_scenarios()
+
+# Unsure why some scenarios still lead to impossible RES generation...
 
 check_scenarios()
