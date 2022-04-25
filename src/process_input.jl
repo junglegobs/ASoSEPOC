@@ -423,16 +423,19 @@ Iterate over paths in `files_dict` to return forecasts and error scenarios.
 * `err_file`: log output to a file of this name in `datadir("pro", "scenario_loading")`.
 """
 function load_scenarios(
-    opts::Dict, files_dict::Dict; err_file=string(round(now(), Dates.Minute))
+    opts::Dict, files_dict::Dict; err_file=string(round(now(), Dates.Minute)), root_dir = scendir()
 )
     myscens = Dict()
     mkrootdirs(datadir("pro", "scenario_loading"))
     myf = open(datadir("pro", "scenario_loading", err_file * ".dat"), "w")
+    f_list = readdir(root_dir)
     for (name, file_prefix) in files_dict
+
         print(myf, "-"^80 * "\nReading $name error scenarios\n")
 
-        f_err = string(file_prefix, ".csv")
-        forecast = string(file_prefix, "_forecast.csv")
+        idx = findfirst(f -> occursin("1000SC", f), f_list)
+        f_err = joinpath(root_dir, f_list[idx])
+        forecast = string(split(f_err, ".csv")[1], "_forecast.csv")
 
         err_data = CSV.read(f_err, DataFrame; header=false) #--> 1st row is treated as a data row
         (err_rw, err_cl) = size(err_data)
