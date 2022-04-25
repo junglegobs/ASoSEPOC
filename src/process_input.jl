@@ -433,7 +433,10 @@ function load_scenarios(
 
         print(myf, "-"^80 * "\nReading $name error scenarios\n")
 
-        idx = findfirst(f -> occursin("1000SC", f), f_list)
+        idx = findfirst(f -> occursin(file_prefix, f), f_list)
+        if idx === nothing
+            error("Cannot find any files with prefix $file_prefix.")
+        end
         f_err = joinpath(root_dir, f_list[idx])
         forecast = string(split(f_err, ".csv")[1], "_forecast.csv")
 
