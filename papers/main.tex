@@ -46,7 +46,7 @@
 
 \subsection{Variables}
 
-All variables are positive.
+All variables are positive apart from injetion variables which may also be negative.
 
 \begin{itemize}
     \item $q_{gt}$ - Generation
@@ -58,15 +58,20 @@ All variables are positive.
     \item $r^-_{gt}$ - Total downward reserve provision
     \item $r^{L^+}_{glt}$ - Upward reserve provision for reserve level $l$
     \item $r^{L^-}_{glt}$ - Downward reserve provision for reserve level $l$
-    \item $rs_{glt}$ - Upward reserve shedding for reserve level $l$
+    \item $rs_{nlt}$ - Upward reserve shedding for reserve level $l$
+    \item $rc_{nlt}$ - Downward reserve provided by day ahead load shedding for reserve level $l$
+    \item $rinj_{nlt}^{L^+}$ - Possible node injection due to activation of upward reserve level $l$
+    \item $rinj_{nlt}^{L^-}$ - Possible node injection due to activation of downward reserve level $l$
+    \item $rf_{nbt}^{L^+}$ - Possible branch flow due to activation of upward reserve level $l$
+    \item $rf_{nbt}^{L^-}$ - Possible branch flow due to activation of downward reserve level $l$
 \end{itemize}
 
 \subsection{Objective}
 
 \begin{align}
-    \min \quad & \sum_{t \in T} \sum_{g \in G} C^{var}_{g} \cdot \hat{q}_{gt} \nonumber                                          \\
-               & \sum_{t \in T} \sum_{l \in L^+} P^{L^+} \cdot \sum_{g \in G} C^{var}_{g} \cdot r^{L^+}_{glt} + C^{shed} \cdot rs_{lt} \\
-               & \sum_{t \in T} \sum_{l \in L^-} P^{L^-} \cdot C^{var}_{g} \cdot r^{L^-}_{glt} \nonumber
+    \min \quad & \sum_{t \in T} \sum_{g \in G} C^{var}_{g} \cdot \hat{q}_{gt} \nonumber                                                                  \\
+               & + \sum_{t \in T} \sum_{l \in L^+} \sum_{n \in N} P^{L^+} \cdot \sum_{g \in G} C^{var}_{g} \cdot r^{L^+}_{glt} + C^{shed} \cdot rs_{nlt} \\
+               & - \sum_{t \in T} \sum_{l \in L^-} \sum_{n \in N} P^{L^-} \cdot C^{var}_{g} \cdot r^{L^-}_{gnlt} + C^{shed} \cdot rc_{nlt} \nonumber
 \end{align}
 
 From the top line to the bottom, the costs are those of dispatching generators and activating upwards or downwards reserves.
@@ -81,7 +86,7 @@ The power balance:
     \sum_{g \in G_n} q_{gt} + ls_{nt} = D_{nt} + inj_{nt} \quad n \in N, \; t \in T
 \end{equation}
 
-Note the use of the set $G_n$ to only allow generators at node $n$ to contribute to the power balance.
+Note the use of the set $G_n$ to only allow generators at node $n$ to contribute to the power balance. Another way of describing this would have been through an incidence matrix.
 
 Network constraints:
 
@@ -100,15 +105,16 @@ Constraints on generator output:
     q_{gt} + r^{+}_{gt} \leq P^{max} \cdot z_{gt} & \quad g \in GD, \; t \in T
 \end{align}
 
-For brevity and clarity, constraints on ramping and minimum up and down times are omitted. In some sense, the commitment variable $z_{gt}$ can be thought of as given.
+For brevity and clarity, constraints on ramping and minimum up and down times are omitted.
 
 The constraints on reserve provision are as follows:
 
 \begin{align}
-    r^{+}_{gt} = \sum_{l \in L^+} r^{L^+}_{glt}           & \quad g \in G, \; t \in T   \\
-    r^{-}_{gt} = \sum_{l \in L^-} r^{L^-}_{glt}           & \quad g \in G, \; t \in T   \\
-    D^{L^+}_{gt} = \sum_{g \in G} r^{L^+}_{glt} + rs_{lt} & \quad l \in L^+, \; t \in T \\
-    D^{L^-}_{gt} = \sum_{g \in G} r^{L^-}_{glt}           & \quad l \in L^-, \; t \in T \\
+    D^{L^+}_{lt} = \sum_{g \in G} r^{L^+}_{glt} + \sum_{n \in N} rs_{nlt} & \quad l \in L^+, \; t \in T \\
+    D^{L^-}_{lt} = \sum_{g \in G} r^{L^-}_{glt} + \sum_{n \in N} rc_{nlt} & \quad l \in L^-, \; t \in T \\
+    \sum_{l \in L^-} rc_{nlt} \leq ls_{nt}                                 & \quad n \in N, \; t \in T \\
+    r^{+}_{gt} = \sum_{l \in L^+} r^{L^+}_{gnlt}                           & \quad g \in G, \; t \in T   \\
+    r^{-}_{gt} = \sum_{l \in L^-} r^{L^-}_{gnlt}                           & \quad g \in G, \; t \in T 
 \end{align}
 
 There are several matters to note here:
@@ -116,24 +122,23 @@ There are several matters to note here:
 \begin{itemize}
     \item The operating reserve balance is performed over the entire network, not per node.
     \item The operating reserve balance is split into reserve levels. Higher reserve levels (values of $l$) are less likely to occur.
-    \item It is possible to shed upward reserves, and this is more likely to occur for higher reserve levels.
+    \item It is possible to shed upward reserves, and this is more likely to occur for higher reserve levels. This model is therefore able to make a tradeoff between day ahead adequacy and real time operational security, albeit crudely.
+    \item Shedding load in day ahead allows additional downward reserves to be provided through the variable $rc_{nlt}$. Implicitly this assumes that load can be `activated' in real time to provide downward reserves.
 \end{itemize}
 
 The following constraints attempt to take network constraints into account (albeit very weakly):
 
 \begin{align}
-    \sum_{g \in G_n} r^{L^+}_{glt} = rinj^{L^+}_{nlt}                & \quad n \in N, l \in L^+, \; t \in T    \\
-    \sum_{g \in G_n} r^{L^-}_{glt} = rinj^{L^-}_{nlt}                & \quad n \in N, l \in L^-, \; t \in T    \\
+    \sum_{g \in G_n} r^{L^+}_{glt} + rs_{nlt} = rinj^{L^+}_{nlt}                & \quad n \in N, l \in L^+, \; t \in T    \\
+    \sum_{g \in G_n} r^{L^-}_{glt} + rc_{nlt} = rinj^{L^-}_{nlt}                & \quad n \in N, l \in L^-, \; t \in T    \\
     rf^{L^+}_{blt} = \sum_{n \in N} PTDF_{nb} \cdot rinj^{L^+}_{nlt} & \quad b \in B, l \in L^+, \; t \in T    \\
     rf^{L^-}_{blt} = \sum_{n \in N} PTDF_{nb} \cdot rinj^{L^-}_{nlt} & \quad b \in B, l \in L^-, \; t \in T    \\
     -F_{b} \leq rf^{L^+}_{blt} \leq F_b                              & \quad b \in B, \; l \in L^+, \; t \in T \\
     -F_{b} \leq rf^{L^-}_{blt} \leq F_b                              & \quad b \in B, \; l \in L^-, \; t \in T \\
     \sum_{n \in N} rinj^{L^+}_{nt} = 0                               & \quad l \in L^+, \; n \in N, \; t \in T \\
-    \sum_{n \in N} rinj^{L^-}_{nt} = 0                               & \quad l \in L^-, \; n \in N, \; t \in T \\
+    \sum_{n \in N} rinj^{L^-}_{nt} = 0                               & \quad l \in L^-, \; n \in N, \; t \in T
 \end{align}
 
 Since imbalances are aggregated across the network, a particular reserve level activation is not associated with an imbalance at the nodal level. The above constraints therefore enforce that for each reserve level $l$ and node $n$, there exists some combination of node injections and generator dispatches which would satisfy the network constraints AND the imbalance across the entire network. Given the formulation here, which uses reserve levels, i.e. quantiles, to represent forecast errors, it is difficult to come up with more stringent conditions.
-
-\todo[inline]{Update to reflect possibility of providing downward reserves by shedding load}
 
 \end{document}
