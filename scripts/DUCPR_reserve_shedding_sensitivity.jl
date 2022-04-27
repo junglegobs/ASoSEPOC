@@ -10,7 +10,7 @@ opts_vec = vcat(
                 "reserve_shedding_limit" => v,
                 "save_path" => joinpath(opts["save_path"], "RSL=$v"),
                 "time_out" => 600,
-                "vars_2_save" => [:z, :q, :ls, :rsL⁺],
+                "vars_2_save" => [:z, :q, :ls, :rsL⁺, :rsL⁻],
                 "exprs_2_save" => [:loadShedding]
             ),
         ) for v in 1:-0.1:0, opts in opts_vec
