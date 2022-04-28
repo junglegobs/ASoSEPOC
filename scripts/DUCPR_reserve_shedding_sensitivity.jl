@@ -33,7 +33,7 @@ for i in 1:length(opts_vec)
     gep_vec[i] == nothing && continue
     apply_operating_reserves!(gep_vec[i], opts_vec[i])
 end
-sid_vec = [scenario_id(opts_vec[i]) for i in 1:length(opts_vec)]
+sid_vec = [month_day(opts_vec[i]) for i in 1:length(opts_vec)]
 rsl_vec = [opts_vec[i]["reserve_shedding_limit"] for i in 1:length(opts_vec)]
 ls = Dict(
     (sid_vec[i], rsl_vec[i]) => try
@@ -69,8 +69,9 @@ rsL⁺ = Dict(
         NaN
     end for i in 1:length(opts_vec)
 )
-x = reshape([sum(ls[sid_vec[i], rsl_vec[i]]) for i in 1:length(opts_vec)], :, 3)
-y = reshape([rsL⁺[sid_vec[i], rsl_vec[i]] for i in 1:length(opts_vec)], :, 3)
+nd = length(options_diff_days(sn))
+x = reshape([sum(ls[sid_vec[i], rsl_vec[i]]) for i in 1:length(opts_vec)], :, nd)
+y = reshape([rsL⁺[sid_vec[i], rsl_vec[i]] for i in 1:length(opts_vec)], :, nd)
 Plots.plot(
     x,
     y;
@@ -78,5 +79,5 @@ Plots.plot(
     markershape=:star5,
     xlab="Day ahead load shedding [MWh]",
     ylab="Reserve shedding [MWh]",
-    lab=["208" "5" "41"],
+    lab=["214" "210" "136" "309"],
 )
