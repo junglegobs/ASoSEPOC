@@ -54,7 +54,11 @@ end
 function optimizer(opts::Dict)
     if GRB_EXISTS
         return optimizer_with_attributes(
-            Gurobi.Optimizer, "TimeLimit" => time_out(opts), "OutputFlag" => 1
+            Gurobi.Optimizer,
+            "TimeLimit" => time_out(opts),
+            "OutputFlag" => 1,
+            "Method" => 1,
+            # "PreSolve" => 0,
         )
     elseif CPLEX_EXISTS
         return optimizer_with_attributes(CPLEX.Optimizer)
@@ -285,7 +289,8 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
                 Dict(n => ls[n, y, p, atval(t, typeof(ls))] for n in N),
         )
     end
-    @save eval(path) UC_results
+    # @save eval(path) UC_results
+    JDL.save(path, "UC_results", UC_results)
     return UC_results
 end
 
@@ -299,6 +304,6 @@ end
 
 function save_gep_for_security_analysis(gep::GEPM, opts::Dict)
     return save_gep_for_security_analysis(
-        gep, joinpath(opts["save_path"], "security_analysis.jld2")
+        gep, joinpath(opts["save_path"], "security_analysis.jld")
     )
 end
