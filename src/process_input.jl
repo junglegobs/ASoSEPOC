@@ -579,7 +579,7 @@ function load_scenarios(
 end
 
 function load_scenarios(opts::Dict; for_GEPPR=false)
-    scen_id = scenario_id(opts)
+    scen_id = month_day(opts)
 
     # If scenarios are being loaded for GEPPR, this step may be superfluous
     GEPPR_file_name = datadir("scenarios", "GEPPR_frmt_month=$(scen_id).jld2")
@@ -608,7 +608,7 @@ function load_scenarios(opts::Dict; for_GEPPR=false)
 end
 
 function scenarios_2_GEPPR(opts::Dict, scens)
-    scen_id = scenario_id(opts)
+    scen_id = month_day(opts)
     file_name = datadir("scenarios", "GEPPR_frmt_month=$(scen_id).jld2")
     mkrootdirs(dirname(file_name))
     if isfile(file_name)
