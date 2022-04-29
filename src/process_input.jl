@@ -376,6 +376,7 @@ function storage_dispatch_2_node_injection(
     ST = GEPPR.get_set_of_storage_technologies(gep)
     sc = gep[:sc]
     sd = gep[:sd]
+    e = gep[:e]
     grid_store_flow = Dict(
         n1 => [
             reduce(
@@ -390,6 +391,13 @@ function storage_dispatch_2_node_injection(
     # Add a key in the bus dictionaries for the injection
     for (i, bus) in network["bus"]
         bus["store_inj"] = grid_store_flow[bus["string"]]
+    end
+
+    # Add a storage key and add relevant info to it
+    for (i, store) in network["storage"]
+        bus = network["bus"]["$(store["storage_bus"])"]["string"]
+        st = store["name"]
+        store["energy"] = e[(st,bus),1,1,0:end-1].data[:]
     end
 
     # Save the dictionary
@@ -583,7 +591,7 @@ function load_scenarios(opts::Dict; for_GEPPR=false)
 
     # If scenarios are being loaded for GEPPR, this step may be superfluous
     GEPPR_file_name = datadir("scenarios", "GEPPR_frmt_month=$(scen_id).jld2")
-    if for_GEPPR == true && isfile(GEPPR_file_name)
+    if for_GEPPR == true && false # isfile(GEPPR_file_name)
         return nothing
     end
 
@@ -611,7 +619,7 @@ function scenarios_2_GEPPR(opts::Dict, scens)
     scen_id = month_day(opts)
     file_name = datadir("scenarios", "GEPPR_frmt_month=$(scen_id).jld2")
     mkrootdirs(dirname(file_name))
-    if isfile(file_name)
+    if false # isfile(file_name)
         @load eval(file_name) D⁺ D⁻ P⁺ P⁻ Dmid⁺ Dmid⁻
     else
         @unpack upward_reserve_levels, downward_reserve_levels = opts
@@ -630,7 +638,8 @@ function scenarios_2_GEPPR(opts::Dict, scens)
             transpose(total_NLFE);
             n_up=upward_reserve_levels,
             n_down=downward_reserve_levels,
-            coverage=Int(round(size(total_NLFE, 2)*0.01)), # Number of scenarios ignored on tail ends
+            # coverage=Int(round(size(total_NLFE, 2)*0.01)), # Number of scenarios ignored on tail ends
+            coverage=300, # Number of scenarios ignored on tail ends
         )
 
         @save eval(file_name) D⁺ D⁻ P⁺ P⁻ Dmid⁺ Dmid⁻
