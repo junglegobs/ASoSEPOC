@@ -1,4 +1,4 @@
-using GEPPR, Suppressor, UnPack, Cbc, Infiltrator, JLD2, JuMP, AxisArrays
+using GEPPR, Suppressor, UnPack, Cbc, Infiltrator, JLD2, JuMP, AxisArrays, JSON
 include(srcdir("util.jl"))
 
 ### UTIL
@@ -275,22 +275,35 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
     y, p = first.([Y, P])
     for t in T
         UC_results[t] = Dict(
-            "gen" => Dict(
-                (g, n) => Dict(
+            "gen" => [
+                Dict(
+                    "bus" => n,
+                    "name" => g,
                     "q" => q[(g, n), y, p, atval(t, typeof(q))],
                     "z" => z[(g, n), y, p, atval(t, typeof(z))],
                 ) for (g, n) in GDN
-            ),
-            "res" => Dict(
-                (g, n) => Dict("q" => q[(g, n), y, p, atval(t, typeof(q))])
-                for (g, n) in GRN
-            ),
-            "load_shed" =>
-                Dict(n => ls[n, y, p, atval(t, typeof(ls))] for n in N),
+            ],
+            "res" => [
+                Dict(
+                    "bus" => n,
+                    "name" => g,
+                    "q" => q[(g, n), y, p, atval(t, typeof(q))],
+                ) for (g, n) in GRN
+            ],
+            "load_shed" => [
+                Dict(
+                    "value" => ls[n, y, p, atval(t, typeof(ls))],
+                    "bus" => n
+                )
+                for n in N
+            ]
         )
     end
     # @save eval(path) UC_results
-    JDL.save(path, "UC_results", UC_results)
+    # JDL.save(path, "UC_results", UC_results)
+    open(path, "w") do f
+        JSON.print(f, UC_results)
+    end
     return UC_results
 end
 
@@ -304,6 +317,6 @@ end
 
 function save_gep_for_security_analysis(gep::GEPM, opts::Dict)
     return save_gep_for_security_analysis(
-        gep, joinpath(opts["save_path"], "security_analysis.jld")
+        gep, joinpath(opts["save_path"], "security_analysis.json")
     )
 end
