@@ -19,8 +19,9 @@ opts = options(
 )
 gep = run_GEPPR(opts)
 
-# Identify 3 days to investigate - no load shedding at all, almost load shedding and load shedding
-days, TVec = days_to_run_models_on(gep, "days_for_analysis.csv")
+# Identify 4 days to investigate - no load shedding at all, almost load shedding and load shedding
+# Because I realised there were mistakes in the model later on, I save this to a "days_for_analysis_new.csv" instead of "days_for_analysis.csv", so that I don't have to recreate all the scenarios.
+days, TVec = days_to_run_models_on(gep, "days_for_analysis_new.csv")
 
 # Check the dispatch at the network level for each case
 for T in TVec
@@ -46,7 +47,7 @@ Plots.savefig(simsdir(sn, "load_shedding_daily_timeseries_sorted.png"))
 
 # Save storage dispatch as a node injection
 storage_dispatch_2_node_injection(
-    gep, grid_path, grid_wo_store_path, grid_w_store_ts_path
+    gep, grid_path, grid_w_store_ts_path, grid_wo_store_path
 )
 
 # Check that dispatches make sense

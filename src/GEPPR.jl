@@ -53,11 +53,12 @@ end
 
 function optimizer(opts::Dict)
     if GRB_EXISTS
+        UC = (opts["unit_commitment_type"] != "none")
         return optimizer_with_attributes(
             Gurobi.Optimizer,
             "TimeLimit" => time_out(opts),
             "OutputFlag" => 1,
-            "Method" => 1,
+            "Method" => UC ? 1 : -1,
             # "PreSolve" => 0,
         )
     elseif CPLEX_EXISTS
@@ -267,6 +268,7 @@ Saves data in the format: hour -> generator (with associated bus) -> value
 function save_gep_for_security_analysis(gep::GEPM, path::String)
     q = gep[:q]
     z = gep[:z]
+    e = gep[:e]
     ls = gep[:loadShedding]
     UC_results = Dict{Integer,Dict}()
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
@@ -284,6 +286,13 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
                 ) for (g, n) in GDN
             ],
             "res" => [
+                Dict(
+                    "bus" => n,
+                    "name" => g,
+                    "q" => q[(g, n), y, p, atval(t, typeof(q))],
+                ) for (g, n) in GRN
+            ],
+            "store" => [
                 Dict(
                     "bus" => n,
                     "name" => g,

@@ -28,6 +28,7 @@ simsdir(args...) = datadir("sims", args...)
 
 # PATHS
 grid_path = datadir("pro", "grid.json")
+grid_w_store_ts_path = datadir("pro", "grid_w_store_ts.json")
 grid_red_path = datadir("pro", "GEPPR", "grid_red.json")
 grid_wo_store_path = datadir("pro", "grid_wo_storage.json")
 grid_wo_store_red_path = datadir("pro", "GEPPR", "grid_red_wo_storage.json")
