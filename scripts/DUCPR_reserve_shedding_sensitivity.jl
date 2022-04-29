@@ -59,8 +59,10 @@ rsLt = Dict(
 rsL⁺ = Dict(
     (sid_vec[i], rsl_vec[i]) => try
         sum(
-            rsLt[(sid_vec[i], rsl_vec[i])][n, l, 1, 1, t] *
-            P⁺[(sid_vec[i], rsl_vec[i])][l, 1, 1, t] for
+            rsLt[(sid_vec[i], rsl_vec[i])][n, l, 1, 1, t]
+            # rsLt[(sid_vec[i], rsl_vec[i])][n, l, 1, 1, t] *
+            # P⁺[(sid_vec[i], rsl_vec[i])][l, 1, 1, t] 
+            for
             n in GEPPR.get_set_of_nodes(gep_vec[i]),
             l in GEPPR.get_set_of_upward_reserve_levels(gep_vec[i]),
             t in GEPPR.get_set_of_time_indices(gep_vec[i])[3]
