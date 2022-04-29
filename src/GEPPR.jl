@@ -101,6 +101,7 @@ function run_GEPPR(opts::Dict)
             make_JuMP_model!(gep)
             apply_initial_commitment!(gep, opts)
             constrain_reserve_shedding!(gep, opts)
+            prevent_simultaneous_charge_and_discharge!(gep, opts)
             optimize_GEP_model!(gep)
             save_optimisation_values!(gep)
         else
@@ -244,6 +245,37 @@ function constrain_reserve_shedding!(gep::GEPM, opts::Dict)
     return gep
 end
 
+function prevent_simultaneous_charge_and_discharge!(gep::GEPM, opts::Dict)
+    @unpack include_storage = opts
+    include_storage == false && return gep
+
+    N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
+    STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
+    SCK = GEPPR.get_storage_charging_capacity_expression(gep)
+    SDK = GEPPR.get_storage_discharging_capacity_expression(gep)
+    o = @variable(
+        gep.model,
+        [stn = STN, y = Y, p = P, t = T],
+        binary = true,
+        base_name = "o"
+    )
+    sc = GEPPR.get_storage_charge_var(gep)
+    sd = GEPPR.get_storage_charge_var(gep)
+
+    @constraint(
+        gep.model,
+        [stn = STN, y = Y, p = P, t = T],
+        sc[stn, y, p, t] <= o[stn, y, p, t] * SCK[stn, y]
+    )
+    @constraint(
+        gep.model,
+        [stn = STN, y = Y, p = P, t = T],
+        sd[stn, y, p, t] <= (1 - o[stn, y, p, t]) * SCK[stn, y]
+    )
+
+    return gep
+end
+
 function save(gep::GEPM, opts::Dict)
     @unpack save_path = opts
     vars_2_save = get(opts, "vars_2_save", nothing)
@@ -274,6 +306,7 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
     GDN = GEPPR.get_set_of_nodal_dispatchable_generators(gep)
     GRN = GEPPR.get_set_of_nodal_intermittent_generators(gep)
+    STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
     y, p = first.([Y, P])
     for t in T
         UC_results[t] = Dict(
@@ -295,17 +328,13 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
             "store" => [
                 Dict(
                     "bus" => n,
-                    "name" => g,
-                    "q" => q[(g, n), y, p, atval(t, typeof(q))],
-                ) for (g, n) in GRN
+                    "name" => st,
+                    "e" => e[(st, n), y, p, atval(t - 1, typeof(e))],
+                ) for (st, n) in STN
             ],
             "load_shed" => [
-                Dict(
-                    "value" => ls[n, y, p, atval(t, typeof(ls))],
-                    "bus" => n
-                )
-                for n in N
-            ]
+                Dict("value" => ls[n, y, p, atval(t, typeof(ls))], "bus" => n) for n in N
+            ],
         )
     end
     # @save eval(path) UC_results
