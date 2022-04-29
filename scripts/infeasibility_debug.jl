@@ -128,6 +128,7 @@ opts_vec = [
         opts,
         Dict(
             "reserve_shedding_limit" => 0.0,
+            "include_storage" => true,
             "upward_reserve_levels_included_in_redispatch" => 1:10,
             "downward_reserve_levels_included_in_redispatch" => 1:10,
         ),
