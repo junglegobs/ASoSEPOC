@@ -270,7 +270,7 @@ function prevent_simultaneous_charge_and_discharge!(gep::GEPM, opts::Dict)
     @constraint(
         gep.model,
         [stn = STN, y = Y, p = P, t = T],
-        sd[stn, y, p, t] <= (1 - o[stn, y, p, t]) * SCK[stn, y]
+        sd[stn, y, p, t] <= (1 - o[stn, y, p, t]) * SDK[stn, y]
     )
 
     return gep
