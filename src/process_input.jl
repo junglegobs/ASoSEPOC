@@ -114,9 +114,9 @@ function process_belderbos_data(grid_path)
         gen_id = row["A"]
         (ismissing(gen_id) || (gen_id isa Int) == false) && continue
         catg = row["C"]
-        catg_row = gen_catg_sh["A$catg:X$catg"]
+        catg_row = gen_catg_sh["A$(catg+2):X$(catg+2)"]
         fuel = catg_row[5]
-        fuel_cost = prices["fuel_prices"][4, fuel + 1]
+        fuel_cost = prices["fuel_prices"][4, fuel + 1]  
         cost = (fuel / catg_row[3]) * 1000 # Euros/MWh
         network["gen"]["$gen_id"] = Dict(
             "name" => row["B"],
@@ -267,6 +267,8 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
                 "averageGenerationCost" => v["cost"], # [€/MWh]
                 "nodes" => [ids2node[v["gen_bus"]]],
                 "fuelType" => "Dummy",
+                "minimumUpTime" => v["min_up"],
+                "minimumDownTime" => v["min_down"],
             ) for (k, v) in gen
         ),
     )
@@ -641,8 +643,8 @@ function scenarios_2_GEPPR(opts::Dict, scens)
             transpose(total_NLFE);
             n_up=upward_reserve_levels,
             n_down=downward_reserve_levels,
-            # coverage=Int(round(size(total_NLFE, 2)*0.01)), # Number of scenarios ignored on tail ends
-            coverage=300, # Number of scenarios ignored on tail ends
+            coverage=Int(round(size(total_NLFE, 2)*0.01)), # Number of scenarios ignored on tail ends
+            # coverage=100, # Number of scenarios ignored on tail ends
         )
 
         @save eval(file_name) D⁺ D⁻ P⁺ P⁻ Dmid⁺ Dmid⁻
