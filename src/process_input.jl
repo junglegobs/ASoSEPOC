@@ -363,12 +363,9 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
 end
 
 function storage_dispatch_2_node_injection(
-    gep::GEPM, grid_orig_path::AbstractString, grid_mod_path::AbstractString
+    gep::GEPM, grid_orig_path::AbstractString, grid_mod_path::AbstractString, grid_wo_store_path::AbstractString
 )
     network = parse_file(grid_orig_path)
-
-    # Remove storage
-    network["storage"] = Dict{String,Any}()
 
     # Get sum of storage charge and discharge on each node
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
@@ -397,12 +394,18 @@ function storage_dispatch_2_node_injection(
     for (i, store) in network["storage"]
         bus = network["bus"]["$(store["storage_bus"])"]["string"]
         st = store["name"]
-        store["energy"] = e[(st,bus),1,1,0:end-1].data[:]
+        store["soc_timeseries"] = e[(st,bus),1,1,0:end-1].data[:]
     end
 
     # Save the dictionary
     exp_pro = datadir("pro")
     open(joinpath(exp_pro, grid_mod_path), "w") do f
+        JSON.print(f, network, 4)
+    end
+
+    # Save the dictionary but without storage
+    network["storage"] = Dict{String,Any}()
+    open(joinpath(exp_pro, grid_wo_store_path), "w") do f
         JSON.print(f, network, 4)
     end
 
