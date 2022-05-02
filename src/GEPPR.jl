@@ -58,7 +58,7 @@ function optimizer(opts::Dict)
             Gurobi.Optimizer,
             "TimeLimit" => time_out(opts),
             "OutputFlag" => 1,
-            "Method" => UC ? 1 : -1,
+            # "Method" => UC ? 1 : -1,
             # "PreSolve" => 0,
         )
     elseif CPLEX_EXISTS
