@@ -39,6 +39,7 @@ function options_diff_days(sn)
         "operating_reserves_type" => "probabilistic",
         "operating_reserves_sizing_type" => "given",
         "vars_2_save" => [:z, :q],
+        "time_out" => 60*10
     )
     opts_vec = [
         merge(
@@ -46,7 +47,7 @@ function options_diff_days(sn)
             Dict(
                 "optimization_horizon" =>
                     parse(UnitRange{Int}, df[i, "timesteps"]),
-                "save_path" => datadir("sims", "$(sn)_$(df[i,"days"])"),
+                "save_path" => datadir("sims", "$(sn)", "$(df[i,"days"])"),
                 "load_scenario_data_paths" => "1000SC_BELDERBOS_load_$(df[i,"month"])_$(df[i,"day_of_month"])",
                 "solar_scenario_data_paths" => "1000SC_BELDERBOS_solar_$(df[i,"month"])_$(df[i,"day_of_month"])",
                 "wind_scenario_data_paths" => "1000SC_BELDERBOS_wind_$(df[i,"month"])_$(df[i,"day_of_month"])",
