@@ -15,9 +15,16 @@ function plot_dispatch(
 
     # Get sets
     GN = GEPPR.get_set_of_nodal_generators(gep)
+    GRN = GEPPR.get_set_of_nodal_intermittent_generators(gep)
+    GDN = GEPPR.get_set_of_nodal_dispatchable_generators(gep)
     G = GEPPR.get_set_of_generators(gep)
     GN = [(g, n) for (g, n) in GN if n in N]
+    GDN = [(g, n) for (g, n) in GDN if n in N]
+    GRN = [(g, n) for (g, n) in GRN if n in N]
     G = [g for g in G if g in first.(GN)]
+    GD = [g for g in G if g in first.(GDN)]
+    GR = [g for g in G if g in first.(GRN)]
+
     STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
     ST = GEPPR.get_set_of_storage_technologies(gep)
     STN = [(st, n) for (st, n) in STN if n in N]
@@ -64,8 +71,6 @@ function plot_dispatch(
 
     # Alter sets accordingly
     if aggregate_conventional || aggregate_renewable
-        GD = GEPPR.get_set_of_dispatchable_generators(gep)
-        GR = GEPPR.get_set_of_intermittent_generators(gep)
         if aggregate_conventional
             q_conv = [
                 reduce(+, q[t, i] for i in 1:length(G) if G[i] in GD; init=0.0)
@@ -85,7 +90,7 @@ function plot_dispatch(
                             q[t, i] for i in 1:length(G) if G[i] == g;
                             init=0.0,
                         ) for t in Tm
-                    ] for g in ["Sun", "Wind onshore", "Wind offshore"]
+                    ] for g in GR
                 ]...,
             )
         else
@@ -163,7 +168,19 @@ function plot_dispatch(
     end
 
     # Plot the load
-    Plots.plot!(plt, T, D; lab="", lc=:black, line=:steppost, lw=2)
+    Plots.plot!(plt, T, D; lab="Demand", lc=:black, line=:steppost, lw=2)
+
+    # Plot the load net of node injection if only one node
+    if length(N) == 1
+        inj = gep[:inj]
+        inj = [inj[N[1], Y[1], p, t] for t in T]
+        Plots.plot!(plt,
+            T,
+            D + reshape(inj, :, 1);
+            lab = "Demand - injection",
+            lc=:black, line=:steppost, ls=:dash, lw=2
+        )
+    end
 
     # Plot the state of charge
     if GEPPR.has_storage_technologies(gep) && plot_state_of_charge
@@ -221,11 +238,17 @@ function plot_reserves_simple(
         bar_width=1.0,
         bar_position=:stack,
         lw=0.0,
-        ylims=(0,ymax),
-        legend=:topleft
+        ylims=(0, ymax),
+        legend=:topleft,
     )
     Plots.plot!(
-        plt_up, T, D⁺; lc=:black, lw=2, line=:stepmid, lab="Upward reserve demand"
+        plt_up,
+        T,
+        D⁺;
+        lc=:black,
+        lw=2,
+        line=:stepmid,
+        lab="Upward reserve demand",
     )
 
     plt_down = StatsPlots.bar(
@@ -239,7 +262,7 @@ function plot_reserves_simple(
         bar_width=1.0,
         # bar_position=:stack,
         lw=0.0,
-        ylims=(-ymax,0),
+        ylims=(-ymax, 0),
     )
     Plots.plot!(
         plt_down,
@@ -249,9 +272,11 @@ function plot_reserves_simple(
         lw=2,
         line=:stepmid,
         lab="Downward reserve demand",
-        legend=:bottomright
+        legend=:bottomright,
     )
-    plt_all = Plots.plot(plt_up, plt_down, layout=(2,1), size=(800,500), xlims=extrema(T))
+    plt_all = Plots.plot(
+        plt_up, plt_down; layout=(2, 1), size=(800, 500), xlims=extrema(T)
+    )
     return plt_all
 end
 
