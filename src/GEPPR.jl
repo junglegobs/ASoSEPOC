@@ -107,11 +107,7 @@ function run_GEPPR(opts::Dict)
         else
             run_rolling_horizon(gep)
         end
-        if isempty(save_path) == false
-            save(gep, opts)
-        else
-            @warn "Not saving GEP model since $save_path already exists."
-        end
+        save(gep, opts)
         gep
     end
     return gep

@@ -12,12 +12,13 @@ opts_vec = vcat(
                 "time_out" => 600,
                 "upward_reserve_levels_included_in_redispatch" => [10],
                 "downward_reserve_levels_included_in_redispatch" => [10],
-                "vars_2_save" => [:z, :q, :ls, :rsL⁺, :rsL⁻],
+                "vars_2_save" => [:z, :q, :ls, :rsL⁺, :rsL⁻, :e],
                 "exprs_2_save" => [:loadShedding]
             ),
         ) for v in 1:-0.1:0, opts in opts_vec
     ]...,
 )
+gep = run_GEPPR(opts_vec[1])
 gep_vec = run_GEPPR(opts_vec)
 GC.gc() # Who knows, maybe this will help
 map(

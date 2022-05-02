@@ -1,0 +1,4 @@
+tmp
+results
+_research
+data/monte_carlo_years
