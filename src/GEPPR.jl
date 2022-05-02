@@ -253,14 +253,14 @@ function prevent_simultaneous_charge_and_discharge!(gep::GEPM, opts::Dict)
     STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
     SCK = GEPPR.get_storage_charging_capacity_expression(gep)
     SDK = GEPPR.get_storage_discharging_capacity_expression(gep)
-    o = @variable(
+    gep[:M, :variables, :o] = o = @variable(
         gep.model,
         [stn = STN, y = Y, p = P, t = T],
         binary = true,
         base_name = "o"
     )
     sc = GEPPR.get_storage_charge_var(gep)
-    sd = GEPPR.get_storage_charge_var(gep)
+    sd = GEPPR.get_storage_discharge_var(gep)
 
     @constraint(
         gep.model,

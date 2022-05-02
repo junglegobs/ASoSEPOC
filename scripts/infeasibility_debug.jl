@@ -15,7 +15,10 @@ opts_vec = [
         ),
     ) for opts in opts_vec
 ]
+gep = run_GEPPR(opts_vec[1])
+plot_dispatch(gep, 1)
 gep_vec = run_GEPPR(opts_vec)
+plot_dispatch(gep_vec[4], 1)
 Plots.savefig(
     plot_dispatch(gep_vec[4], 1),
     simsdir(sn, "day_309_lin_no_reserve_no_net.png"),
@@ -33,6 +36,8 @@ opts_vec = [
         ),
     ) for opts in opts_vec
 ]
+gep = run_GEPPR(opts_vec[1])
+plot_dispatch(gep, 1)
 gep_vec = run_GEPPR(opts_vec)
 Plots.savefig(
     plot_dispatch(gep_vec[4], 1), simsdir(sn, "day_309_lin_no_reserve.png")
@@ -101,17 +106,17 @@ Plots.savefig(
 )
 
 # Full model without network redispatch
-opts_vec = options_diff_days(sn)
+opts_vec = options_diff_days(  sn)
 map(opts -> rm(opts["save_path"]; force=true, recursive=true), opts_vec)
 opts_vec = [
     merge(
         opts,
         Dict(
             "reserve_shedding_limit" => 0.0,
-            "include_storage" => true
         ),
     ) for opts in opts_vec
 ]
+gep = run_GEPPR(opts_vec[1])
 gep_vec = run_GEPPR(opts_vec)
 plot_dispatch(gep_vec[4], 1)
 Plots.savefig(plot_dispatch(gep_vec[4], 1), simsdir(sn, "day_309_uc_all.png"))
@@ -128,12 +133,14 @@ opts_vec = [
         opts,
         Dict(
             "reserve_shedding_limit" => 0.0,
-            "include_storage" => true,
-            "upward_reserve_levels_included_in_redispatch" => 1:10,
-            "downward_reserve_levels_included_in_redispatch" => 1:10,
+            # "upward_reserve_levels_included_in_redispatch" => [10],
+            # "upward_reserve_levels_included_in_redispatch" => 1:10,
+            # "downward_reserve_levels_included_in_redispatch" => [10],
+            # "downward_reserve_levels_included_in_redispatch" => 1:10,
         ),
     ) for opts in opts_vec
 ]
+gep = run_GEPPR(opts_vec[1])
 gep_vec = run_GEPPR(opts_vec)
 plot_dispatch(gep_vec[4], 1)
 Plots.savefig(plot_dispatch(gep_vec[4], 1), simsdir(sn, "day_309_uc_all.png"))
