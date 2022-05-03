@@ -64,6 +64,8 @@ All variables are positive apart from injetion variables which may also be negat
     \item $rinj_{nlt}^{L^-}$ - Possible node injection due to activation of downward reserve level $l$
     \item $rf_{nbt}^{L^+}$ - Possible branch flow due to activation of upward reserve level $l$
     \item $rf_{nbt}^{L^-}$ - Possible branch flow due to activation of downward reserve level $l$
+    \item $d_{nlt}^{L^+}$ - Possible imbalance on node $n$ for upward reserve level $l$
+    \item $d_{nlt}^{L^-}$ - Possible imbalance on node $n$ for downward reserve level $l$
 \end{itemize}
 
 \subsection{Objective}
@@ -112,9 +114,9 @@ The constraints on reserve provision are as follows:
 \begin{align}
     D^{L^+}_{lt} = \sum_{g \in G} r^{L^+}_{glt} + \sum_{n \in N} rs_{nlt} & \quad l \in L^+, \; t \in T \\
     D^{L^-}_{lt} = \sum_{g \in G} r^{L^-}_{glt} + \sum_{n \in N} rc_{nlt} & \quad l \in L^-, \; t \in T \\
-    \sum_{l \in L^-} rc_{nlt} \leq ls_{nt}                                 & \quad n \in N, \; t \in T \\
-    r^{+}_{gt} = \sum_{l \in L^+} r^{L^+}_{gnlt}                           & \quad g \in G, \; t \in T   \\
-    r^{-}_{gt} = \sum_{l \in L^-} r^{L^-}_{gnlt}                           & \quad g \in G, \; t \in T 
+    \sum_{l \in L^-} rc_{nlt} \leq ls_{nt}                                & \quad n \in N, \; t \in T   \\
+    r^{+}_{gt} = \sum_{l \in L^+} r^{L^+}_{gnlt}                          & \quad g \in G, \; t \in T   \\
+    r^{-}_{gt} = \sum_{l \in L^-} r^{L^-}_{gnlt}                          & \quad g \in G, \; t \in T
 \end{align}
 
 There are several matters to note here:
@@ -129,16 +131,16 @@ There are several matters to note here:
 The following constraints attempt to take network constraints into account (albeit very weakly):
 
 \begin{align}
-    \sum_{g \in G_n} r^{L^+}_{glt} + rs_{nlt} = rinj^{L^+}_{nlt}                & \quad n \in N, l \in L^+, \; t \in T    \\
-    \sum_{g \in G_n} r^{L^-}_{glt} + rc_{nlt} = rinj^{L^-}_{nlt}                & \quad n \in N, l \in L^-, \; t \in T    \\
-    rf^{L^+}_{blt} = \sum_{n \in N} PTDF_{nb} \cdot rinj^{L^+}_{nlt} & \quad b \in B, l \in L^+, \; t \in T    \\
-    rf^{L^-}_{blt} = \sum_{n \in N} PTDF_{nb} \cdot rinj^{L^-}_{nlt} & \quad b \in B, l \in L^-, \; t \in T    \\
-    -F_{b} \leq rf^{L^+}_{blt} \leq F_b                              & \quad b \in B, \; l \in L^+, \; t \in T \\
-    -F_{b} \leq rf^{L^-}_{blt} \leq F_b                              & \quad b \in B, \; l \in L^-, \; t \in T \\
-    \sum_{n \in N} rinj^{L^+}_{nt} = 0                               & \quad l \in L^+, \; n \in N, \; t \in T \\
-    \sum_{n \in N} rinj^{L^-}_{nt} = 0                               & \quad l \in L^-, \; n \in N, \; t \in T
+    \sum_{g \in G_n} r^{L^+}_{glt} + rs_{nlt} = d^{L^+}_{nlt} + rinj^{L^+}_{nlt} & \quad n \in N, \; l \in L^+, \; t \in T \\
+    \sum_{g \in G_n} r^{L^-}_{glt} + rc_{nlt} = d^{L^-}_{nlt} + rinj^{L^-}_{nlt} & \quad n \in N, \; l \in L^-, \; t \in T \\
+    rf^{L^+}_{blt} = \sum_{n \in N} PTDF_{nb} \cdot rinj^{L^+}_{nlt}             & \quad b \in B, \; l \in L^+, \; t \in T \\
+    rf^{L^-}_{blt} = \sum_{n \in N} PTDF_{nb} \cdot rinj^{L^-}_{nlt}             & \quad b \in B, \; l \in L^-, \; t \in T \\
+    -F_{b} \leq f_{bt} + rf^{L^+}_{blt} \leq F_b                                 & \quad b \in B, \; l \in L^+, \; t \in T \\
+    -F_{b} \leq f_{bt} + rf^{L^-}_{blt} \leq F_b                                 & \quad b \in B, \; l \in L^-, \; t \in T \\
+    \sum_{n \in N} rinj^{L^+}_{nt} = 0                                           & \quad l \in L^+, \; n \in N, \; t \in T \\
+    \sum_{n \in N} rinj^{L^-}_{nt} = 0                                           & \quad l \in L^-, \; n \in N, \; t \in T
 \end{align}
 
-Since imbalances are aggregated across the network, a particular reserve level activation is not associated with an imbalance at the nodal level. The above constraints therefore enforce that for each reserve level $l$ and node $n$, there exists some combination of node injections and generator dispatches which would satisfy the network constraints AND the imbalance across the entire network. Given the formulation here, which uses reserve levels, i.e. quantiles, to represent forecast errors, it is difficult to come up with more stringent conditions.
+Since imbalances are aggregated across the network, a particular reserve level activation is not associated with an imbalance at the nodal level. The above constraints therefore enforce that for each reserve level $l$ and node $n$, there exists some combination of nodal imbalance, node injections, generator dispatches and line flows which would satisfy the network constraints AND the imbalance across the entire network. Given the formulation here, which uses reserve levels, i.e. quantiles, over the entire network to represent forecast errors, it is difficult to come up with more stringent conditions.
 
 \end{document}
