@@ -289,9 +289,9 @@ function save(gep::GEPM, opts::Dict)
 end
 
 """
-    save_gep_for_security_analysis(gep::GEPM)
+    save_gep_for_security_analysis(gep::GEPM, path::String)
 
-Saves data in the format: hour -> generator (with associated bus) -> value
+Saves data in the format: hour -> generator (with associated bus) -> values / name / bus etc.
 """
 function save_gep_for_security_analysis(gep::GEPM, path::String)
     q = gep[:q]
@@ -303,34 +303,38 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
     GDN = GEPPR.get_set_of_nodal_dispatchable_generators(gep)
     GRN = GEPPR.get_set_of_nodal_intermittent_generators(gep)
     STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
+    TN2idx = tech_node_to_idx(gep)
     y, p = first.([Y, P])
     for t in T
         UC_results[t] = Dict(
-            "gen" => [
-                Dict(
-                    "bus" => n,
-                    "name" => g,
-                    "q" => q[(g, n), y, p, atval(t, typeof(q))],
-                    "z" => z[(g, n), y, p, atval(t, typeof(z))],
-                ) for (g, n) in GDN
-            ],
-            "res" => [
-                Dict(
-                    "bus" => n,
-                    "name" => g,
-                    "q" => q[(g, n), y, p, atval(t, typeof(q))],
-                ) for (g, n) in GRN
-            ],
-            "store" => [
-                Dict(
+            "gen" => Dict(
+                TN2idx[(g,n)] => 
+                    Dict(
+                        "bus" => n,
+                        "name" => g,
+                        "q" => q[(g, n), y, p, atval(t, typeof(q))],
+                        "z" => z[(g, n), y, p, atval(t, typeof(z))],
+                    )
+                for (g, n) in GDN
+            ),
+            "res" => Dict(
+                TN2idx[(g,n)] => Dict(
+                        "bus" => n,
+                        "name" => g,
+                        "q" => q[(g, n), y, p, atval(t, typeof(q))],
+                    )
+                for (g, n) in GRN
+            ),
+            "store" => Dict(
+                TN2idx[(st,n)] => Dict(
                     "bus" => n,
                     "name" => st,
                     "e" => e[(st, n), y, p, atval(t - 1, typeof(e))],
                 ) for (st, n) in STN
-            ],
-            "load_shed" => [
-                Dict("value" => ls[n, y, p, atval(t, typeof(ls))], "bus" => n) for n in N
-            ],
+            ),
+            "load_shed" => Dict(
+                n => Dict("value" => ls[n, y, p, atval(t, typeof(ls))], "bus" => n) for n in N
+            ),
         )
     end
     # @save eval(path) UC_results
@@ -339,6 +343,29 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
         JSON.print(f, UC_results)
     end
     return UC_results
+end
+
+function tech_node_to_idx(gep::GEPM)
+    n = gep.networkData
+    GDN = GEPPR.get_set_of_nodal_dispatchable_generators(gep)
+    GRN = GEPPR.get_set_of_nodal_intermittent_generators(gep)
+    STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
+    bus_idx_2_name = Dict(v["bus_i"] => v["string"] for (k,v) in n["bus"])
+    d = merge(
+        Dict(
+            gn => string(findfirst(pair -> (bus_idx_2_name[string(pair[2]["bus"])] == string(gn[2]) && pair[2]["name"] == gn[1]), collect(n["res"]))[1])
+            for gn in GRN
+        ),
+        Dict(
+            gn => string(findfirst(pair -> (bus_idx_2_name[string(pair[2]["gen_bus"])] == string(gn[2]) && pair[2]["name"] == gn[1]), collect(n["gen"]))[1])
+            for gn in GDN
+        ),
+        Dict(
+            stn => string(findfirst(v -> (bus_idx_2_name[string(v["storage_bus"])] == string(stn[2]) && v["name"] == stn[1]), collect(values(n["storage"])))[1])
+            for stn in STN
+        ),
+    )
+    return d
 end
 
 function atval(idx, T::Type)
