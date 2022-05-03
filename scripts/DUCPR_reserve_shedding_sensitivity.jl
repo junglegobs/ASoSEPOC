@@ -10,12 +10,13 @@ opts_vec = vcat(
                 "reserve_shedding_limit" => v,
                 "save_path" => joinpath(opts["save_path"], "RSL=$v"),
                 "time_out" => 600,
-                "upward_reserve_levels_included_in_redispatch" => [10],
-                "downward_reserve_levels_included_in_redispatch" => [10],
+                "upward_reserve_levels_included_in_redispatch" => [],
+                "downward_reserve_levels_included_in_redispatch" => [],
                 "vars_2_save" => [:z, :q, :ls, :rsL⁺, :rsL⁻, :e],
                 "exprs_2_save" => [:loadShedding]
             ),
-        ) for v in 1:-0.1:0, opts in opts_vec
+        ) for v in 0.1:-0.02:0, opts in opts_vec
+        # ) for v in [0.02], opts in opts_vec
     ]...,
 )
 gep = run_GEPPR(opts_vec[1])
@@ -33,7 +34,7 @@ map(
 
 # Plot
 for i in 1:length(opts_vec)
-    gep_vec[i] == nothing && continue
+    gep_vec[i] === nothing && continue
     apply_operating_reserves!(gep_vec[i], opts_vec[i])
 end
 sid_vec = [month_day(opts_vec[i]) for i in 1:length(opts_vec)]
