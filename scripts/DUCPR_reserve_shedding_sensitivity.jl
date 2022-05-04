@@ -8,14 +8,14 @@ opts_vec = vcat(
             opts,
             Dict(
                 "reserve_shedding_limit" => v,
-                "save_path" => joinpath(opts["save_path"], "RSL=$v"),
+                "save_path" => joinpath(opts["save_path"], "RSL=$(v)_L=$L"),
                 "time_out" => 600,
-                "upward_reserve_levels_included_in_redispatch" => [],
-                "downward_reserve_levels_included_in_redispatch" => [],
-                "vars_2_save" => [:z, :q, :ls, :rsL⁺, :rsL⁻, :e],
+                "upward_reserve_levels_included_in_redispatch" => L,
+                "downward_reserve_levels_included_in_redispatch" => L,
+                "vars_2_save" => [:z, :q, :ls, :rsL⁺, :rsL⁻, :e, :sc, :sd],
                 "exprs_2_save" => [:loadShedding]
             ),
-        ) for v in 0.1:-0.02:0, opts in opts_vec
+        ) for v in 0.1:-0.02:0, L in [Int[],1:10], opts in opts_vec
         # ) for v in [0.02], opts in opts_vec
     ]...,
 )
