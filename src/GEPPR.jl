@@ -133,9 +133,6 @@ function GEPPR.load_GEP(opts::Dict, path::String)
     return load_GEP(path)
 end
 
-# TODO: alternative run_GEPPR which keeps GEPPR the same in between runs
-# TODO: so as to save model load time
-
 function apply_initial_commitment!(gep::GEPM, opts::Dict)
     @unpack save_path, optimization_horizon, initial_commitment_data_path = opts
     isempty(initial_commitment_data_path) && return nothing
