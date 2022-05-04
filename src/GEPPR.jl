@@ -1,4 +1,4 @@
-using GEPPR, Suppressor, UnPack, Cbc, Infiltrator, JLD2, JuMP, AxisArrays
+using GEPPR, Suppressor, UnPack, Cbc, Infiltrator, JLD2, JuMP, AxisArrays, JSON
 include(srcdir("util.jl"))
 
 ### UTIL
@@ -53,8 +53,13 @@ end
 
 function optimizer(opts::Dict)
     if GRB_EXISTS
+        UC = (opts["unit_commitment_type"] != "none")
         return optimizer_with_attributes(
-            Gurobi.Optimizer, "TimeLimit" => time_out(opts), "OutputFlag" => 1
+            Gurobi.Optimizer,
+            "TimeLimit" => time_out(opts),
+            "OutputFlag" => 1,
+            # "Method" => UC ? 1 : -1,
+            # "PreSolve" => 0,
         )
     elseif CPLEX_EXISTS
         return optimizer_with_attributes(CPLEX.Optimizer)
@@ -96,16 +101,13 @@ function run_GEPPR(opts::Dict)
             make_JuMP_model!(gep)
             apply_initial_commitment!(gep, opts)
             constrain_reserve_shedding!(gep, opts)
+            prevent_simultaneous_charge_and_discharge!(gep, opts)
             optimize_GEP_model!(gep)
             save_optimisation_values!(gep)
         else
             run_rolling_horizon(gep)
         end
-        if isempty(save_path) == false
-            save(gep, opts)
-        else
-            @warn "Not saving GEP model since $save_path already exists."
-        end
+        save(gep, opts)
         gep
     end
     return gep
@@ -130,9 +132,6 @@ function GEPPR.load_GEP(opts::Dict, path::String)
     @save eval(joinpath(path, "config.jld2")) dictConfig
     return load_GEP(path)
 end
-
-# TODO: alternative run_GEPPR which keeps GEPPR the same in between runs
-# TODO: so as to save model load time
 
 function apply_initial_commitment!(gep::GEPM, opts::Dict)
     @unpack save_path, optimization_horizon, initial_commitment_data_path = opts
@@ -239,6 +238,37 @@ function constrain_reserve_shedding!(gep::GEPM, opts::Dict)
     return gep
 end
 
+function prevent_simultaneous_charge_and_discharge!(gep::GEPM, opts::Dict)
+    @unpack include_storage = opts
+    include_storage == false && return gep
+
+    N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
+    STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
+    SCK = GEPPR.get_storage_charging_capacity_expression(gep)
+    SDK = GEPPR.get_storage_discharging_capacity_expression(gep)
+    gep[:M, :variables, :o] = o = @variable(
+        gep.model,
+        [stn = STN, y = Y, p = P, t = T],
+        binary = true,
+        base_name = "o"
+    )
+    sc = GEPPR.get_storage_charge_var(gep)
+    sd = GEPPR.get_storage_discharge_var(gep)
+
+    @constraint(
+        gep.model,
+        [stn = STN, y = Y, p = P, t = T],
+        sc[stn, y, p, t] <= o[stn, y, p, t] * SCK[stn, y]
+    )
+    @constraint(
+        gep.model,
+        [stn = STN, y = Y, p = P, t = T],
+        sd[stn, y, p, t] <= (1 - o[stn, y, p, t]) * SDK[stn, y]
+    )
+
+    return gep
+end
+
 function save(gep::GEPM, opts::Dict)
     @unpack save_path = opts
     vars_2_save = get(opts, "vars_2_save", nothing)
@@ -256,37 +286,83 @@ function save(gep::GEPM, opts::Dict)
 end
 
 """
-    save_gep_for_security_analysis(gep::GEPM)
+    save_gep_for_security_analysis(gep::GEPM, path::String)
 
-Saves data in the format: hour -> generator (with associated bus) -> value
+Saves data in the format: hour -> generator (with associated bus) -> values / name / bus etc.
 """
 function save_gep_for_security_analysis(gep::GEPM, path::String)
     q = gep[:q]
     z = gep[:z]
+    e = gep[:e]
     ls = gep[:loadShedding]
     UC_results = Dict{Integer,Dict}()
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
     GDN = GEPPR.get_set_of_nodal_dispatchable_generators(gep)
     GRN = GEPPR.get_set_of_nodal_intermittent_generators(gep)
+    STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
+    TN2idx = tech_node_to_idx(gep)
     y, p = first.([Y, P])
     for t in T
         UC_results[t] = Dict(
             "gen" => Dict(
-                (g, n) => Dict(
-                    "q" => q[(g, n), y, p, atval(t, typeof(q))],
-                    "z" => z[(g, n), y, p, atval(t, typeof(z))],
-                ) for (g, n) in GDN
+                TN2idx[(g,n)] => 
+                    Dict(
+                        "bus" => n,
+                        "name" => g,
+                        "q" => q[(g, n), y, p, atval(t, typeof(q))],
+                        "z" => z[(g, n), y, p, atval(t, typeof(z))],
+                    )
+                for (g, n) in GDN
             ),
             "res" => Dict(
-                (g, n) => Dict("q" => q[(g, n), y, p, atval(t, typeof(q))])
+                TN2idx[(g,n)] => Dict(
+                        "bus" => n,
+                        "name" => g,
+                        "q" => q[(g, n), y, p, atval(t, typeof(q))],
+                    )
                 for (g, n) in GRN
             ),
-            "load_shed" =>
-                Dict(n => ls[n, y, p, atval(t, typeof(ls))] for n in N),
+            "store" => Dict(
+                TN2idx[(st,n)] => Dict(
+                    "bus" => n,
+                    "name" => st,
+                    "e" => e[(st, n), y, p, atval(t - 1, typeof(e))],
+                ) for (st, n) in STN
+            ),
+            "load_shed" => Dict(
+                n => Dict("value" => ls[n, y, p, atval(t, typeof(ls))], "bus" => n) for n in N
+            ),
         )
     end
-    @save eval(path) UC_results
+    # @save eval(path) UC_results
+    # JDL.save(path, "UC_results", UC_results)
+    open(path, "w") do f
+        JSON.print(f, UC_results)
+    end
     return UC_results
+end
+
+function tech_node_to_idx(gep::GEPM)
+    n = gep.networkData
+    GDN = GEPPR.get_set_of_nodal_dispatchable_generators(gep)
+    GRN = GEPPR.get_set_of_nodal_intermittent_generators(gep)
+    STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
+    bus_idx_2_name = Dict(v["bus_i"] => v["string"] for (k,v) in n["bus"])
+    d = merge(
+        Dict(
+            gn => string(findfirst(pair -> (bus_idx_2_name[string(pair[2]["bus"])] == string(gn[2]) && pair[2]["name"] == gn[1]), collect(n["res"]))[1])
+            for gn in GRN
+        ),
+        Dict(
+            gn => string(findfirst(pair -> (bus_idx_2_name[string(pair[2]["gen_bus"])] == string(gn[2]) && pair[2]["name"] == gn[1]), collect(n["gen"]))[1])
+            for gn in GDN
+        ),
+        Dict(
+            stn => string(findfirst(v -> (bus_idx_2_name[string(v["storage_bus"])] == string(stn[2]) && v["name"] == stn[1]), collect(values(n["storage"])))[1])
+            for stn in STN
+        ),
+    )
+    return d
 end
 
 function atval(idx, T::Type)
@@ -299,6 +375,6 @@ end
 
 function save_gep_for_security_analysis(gep::GEPM, opts::Dict)
     return save_gep_for_security_analysis(
-        gep, joinpath(opts["save_path"], "security_analysis.jld2")
+        gep, joinpath(opts["save_path"], "security_analysis.json")
     )
 end

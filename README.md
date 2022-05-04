@@ -21,6 +21,17 @@ julia> include("path/to/this/project/instantiate.jl")
 This will install all necessary packages for you to be able to run the scripts and
 everything should work out of the box, including correctly finding local paths.
 
+## General description
+
+### Model
+
+The Deterministic Unit Commitment with Probabilistic (Operating) Reserves (DUC-PR) model is described in `papers/main.pdf`. In brief:
+
+* Network, unit commitment and storage are included in the model.
+* Operating reserves are modeled using "reserve levels", which have an associated activation probability.
+  * These reserve levels can essentially be thought of as different reserve types, e.g. FCR, RR, etc.
+  * No ramping / flexibility requirements are associated with reserve level activation (though these are taken into account in the day ahead scheduling).
+
 ## Data
 
 ### Download
@@ -29,16 +40,7 @@ Input data can be found [here](https://www.dropbox.com/sh/mdvmc082gwng0tr/AABRyc
 
 ### Description
 
-Grid, load, renewables and capacity mix data come from [this paper](https://www.mech.kuleuven.be/en/tme/research/energy-systems-integration-modeling/pdf-publications/wp-en2019-02). It is a Belgium-like system with a very high share of renewables (~80%).
+Grid, load, renewables and capacity mix data come from [this paper](https://www.mech.kuleuven.be/en/tme/research/energy-systems-integration-modeling/pdf-publications/wp-en2019-02). Brief description:
 
-The following approximations were taken and additional processing performed:
-
-* Storage was included by modifying the load. This was done by including 2 storage devices (characteristics shown below, loosely inspired by data in paper) and running a full year, linear operational model to obtain a storage charging and discharging profile. This was then added to to the load.
-
-| Parameter            | Battery | P2G |
-|----------------------|---------|-----|
-| Roundtrip Efficiency | 0.9     | 0.3 |
-| Power Capacity [GW]  | 12      | 2   |
-| Energy Capacity [GWh]  | 80         | 6165    |
-
-**For the energy capacity of P2G, in Belderbos' paper he mentions a hydrogen buffer capacity of 6165 MWH2. This strikes me as very low (lower than that of batteries!), so I presumed that he made a unit mistake?**
+* It is a Belgium-like system with a very high share of renewables (~80%).
+* The nuclear reactors in Doel and Tihange have been replaced by gas fired power plants.

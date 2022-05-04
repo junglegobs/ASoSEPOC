@@ -1,8 +1,7 @@
 include(joinpath(@__DIR__, "..", "intro.jl"))
 sn = script_name(@__FILE__)
 
-df = CSV.read(datadir("pro", "days_for_analysis.csv"), DataFrame)
-opts_vec = options_3_days(sn)
+opts_vec = options_diff_days(sn)
 map(x -> rm(x["save_path"]; force=true, recursive=true), opts_vec)
 gep_vec = run_GEPPR(opts_vec)
 

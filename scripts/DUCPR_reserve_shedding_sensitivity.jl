@@ -1,22 +1,25 @@
 include(joinpath(@__DIR__, "..", "intro.jl"))
 sn = script_name(@__FILE__)
 
-opts_vec = options_3_days(sn)
-opts_vec = map(opts -> (opts["vars_2_save"] = [:z, :q, :ls, :rsL⁺];
-opts["exprs_2_save"] = [:loadShedding];
-opts), opts_vec)
+opts_vec = options_diff_days(sn)
 opts_vec = vcat(
     [
         merge(
             opts,
             Dict(
                 "reserve_shedding_limit" => v,
-                "save_path" => opts["save_path"] * "_RSL=$v",
+                "save_path" => joinpath(opts["save_path"], "RSL=$(v)_L=$L"),
                 "time_out" => 600,
+                "upward_reserve_levels_included_in_redispatch" => L,
+                "downward_reserve_levels_included_in_redispatch" => L,
+                "vars_2_save" => [:z, :q, :ls, :rsL⁺, :rsL⁻, :e, :sc, :sd],
+                "exprs_2_save" => [:loadShedding]
             ),
-        ) for v in 1:-0.1:0, opts in opts_vec
+        ) for v in 0.1:-0.02:0, L in [Int[],1:10], opts in opts_vec
+        # ) for v in [0.02], opts in opts_vec
     ]...,
 )
+gep = run_GEPPR(opts_vec[1])
 gep_vec = run_GEPPR(opts_vec)
 GC.gc() # Who knows, maybe this will help
 map(
@@ -31,10 +34,10 @@ map(
 
 # Plot
 for i in 1:length(opts_vec)
-    gep_vec[i] == nothing && continue
+    gep_vec[i] === nothing && continue
     apply_operating_reserves!(gep_vec[i], opts_vec[i])
 end
-sid_vec = [scenario_id(opts_vec[i]) for i in 1:length(opts_vec)]
+sid_vec = [month_day(opts_vec[i]) for i in 1:length(opts_vec)]
 rsl_vec = [opts_vec[i]["reserve_shedding_limit"] for i in 1:length(opts_vec)]
 ls = Dict(
     (sid_vec[i], rsl_vec[i]) => try
@@ -60,8 +63,10 @@ rsLt = Dict(
 rsL⁺ = Dict(
     (sid_vec[i], rsl_vec[i]) => try
         sum(
-            rsLt[(sid_vec[i], rsl_vec[i])][n, l, 1, 1, t] *
-            P⁺[(sid_vec[i], rsl_vec[i])][l, 1, 1, t] for
+            rsLt[(sid_vec[i], rsl_vec[i])][n, l, 1, 1, t]
+            # rsLt[(sid_vec[i], rsl_vec[i])][n, l, 1, 1, t] *
+            # P⁺[(sid_vec[i], rsl_vec[i])][l, 1, 1, t] 
+            for
             n in GEPPR.get_set_of_nodes(gep_vec[i]),
             l in GEPPR.get_set_of_upward_reserve_levels(gep_vec[i]),
             t in GEPPR.get_set_of_time_indices(gep_vec[i])[3]
@@ -70,8 +75,9 @@ rsL⁺ = Dict(
         NaN
     end for i in 1:length(opts_vec)
 )
-x = reshape([sum(ls[sid_vec[i], rsl_vec[i]]) for i in 1:length(opts_vec)], :, 3)
-y = reshape([rsL⁺[sid_vec[i], rsl_vec[i]] for i in 1:length(opts_vec)], :, 3)
+nd = length(options_diff_days(sn))
+x = reshape([sum(ls[sid_vec[i], rsl_vec[i]]) for i in 1:length(opts_vec)], :, nd)
+y = reshape([rsL⁺[sid_vec[i], rsl_vec[i]] for i in 1:length(opts_vec)], :, nd)
 Plots.plot(
     x,
     y;
@@ -79,5 +85,5 @@ Plots.plot(
     markershape=:star5,
     xlab="Day ahead load shedding [MWh]",
     ylab="Reserve shedding [MWh]",
-    lab=["208" "5" "41"],
+    lab=["214" "210" "136" "309"],
 )
