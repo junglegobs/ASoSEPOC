@@ -294,6 +294,8 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
     q = gep[:q]
     z = gep[:z]
     e = gep[:e]
+    sc = gep[:sc]
+    sd = gep[:sd]
     ls = gep[:loadShedding]
     UC_results = Dict{Integer,Dict}()
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
@@ -327,6 +329,8 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
                     "bus" => n,
                     "name" => st,
                     "e" => e[(st, n), y, p, atval(t - 1, typeof(e))],
+                    "discharge" => sd[(st, n), y, p, atval(t, typeof(sd))],
+                    "charge" => sc[(st, n), y, p, atval(t, typeof(sc))],
                 ) for (st, n) in STN
             ),
             "load_shed" => Dict(
