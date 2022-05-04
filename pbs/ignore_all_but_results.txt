@@ -1,0 +1,16 @@
+tmp
+_research
+data
+scripts
+src
+pbs_scripts
+notebooks
+dev
+papers
+plots
+test
+.git
+other
+*.toml
+*.md
+*.jl

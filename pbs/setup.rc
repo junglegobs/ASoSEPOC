@@ -1,0 +1,10 @@
+export PATH="${PATH}:/$VSC_DATA/julia-1.6.1/bin"
+export GUROBI_HOME="$VSC_DATA/gurobi900/linux64"
+export GRB_LICENSE_FILE=$VSC_DATA/gurobi.lic
+export JULIA_DEPOT_PATH=$VSC_DATA/.julia # Where packages are kept
+
+# export JULIA_LOAD_PATH="${JULIA_LOAD_PATH}:$VSC_DATA/"
+export JULIA_PROJECT="$VSC_DATA/ASoSEPOC"
+echo "Julia set up."
+
+module load libxcb/1.13-GCCcore-6.4.0

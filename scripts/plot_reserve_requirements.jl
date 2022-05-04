@@ -2,7 +2,7 @@ include(joinpath(@__DIR__, "..", "intro.jl"))
 sn = script_name(@__FILE__)
 mkrootdirs(plotsdir(sn))
 
-opts_vec = options_3_days()
+opts_vec = options_diff_days(sn)
 df = CSV.read(datadir("pro", "days_for_analysis.csv"), DataFrame)
 
 for i in eachindex(opts_vec)

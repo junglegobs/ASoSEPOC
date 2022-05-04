@@ -114,9 +114,9 @@ function process_belderbos_data(grid_path)
         gen_id = row["A"]
         (ismissing(gen_id) || (gen_id isa Int) == false) && continue
         catg = row["C"]
-        catg_row = gen_catg_sh["A$catg:X$catg"]
+        catg_row = gen_catg_sh["A$(catg+2):X$(catg+2)"]
         fuel = catg_row[5]
-        fuel_cost = prices["fuel_prices"][4, fuel + 1]
+        fuel_cost = prices["fuel_prices"][4, fuel + 1]  
         cost = (fuel / catg_row[3]) * 1000 # Euros/MWh
         network["gen"]["$gen_id"] = Dict(
             "name" => row["B"],
@@ -267,6 +267,8 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
                 "averageGenerationCost" => v["cost"], # [€/MWh]
                 "nodes" => [ids2node[v["gen_bus"]]],
                 "fuelType" => "Dummy",
+                "minimumUpTime" => v["min_up"],
+                "minimumDownTime" => v["min_down"],
             ) for (k, v) in gen
         ),
     )
@@ -363,12 +365,9 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
 end
 
 function storage_dispatch_2_node_injection(
-    gep::GEPM, grid_orig_path::AbstractString, grid_mod_path::AbstractString
+    gep::GEPM, grid_orig_path::AbstractString, grid_mod_path::AbstractString, grid_wo_store_path::AbstractString
 )
     network = parse_file(grid_orig_path)
-
-    # Remove storage
-    network["storage"] = Dict{String,Any}()
 
     # Get sum of storage charge and discharge on each node
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
@@ -376,6 +375,7 @@ function storage_dispatch_2_node_injection(
     ST = GEPPR.get_set_of_storage_technologies(gep)
     sc = gep[:sc]
     sd = gep[:sd]
+    e = gep[:e]
     grid_store_flow = Dict(
         n1 => [
             reduce(
@@ -392,9 +392,22 @@ function storage_dispatch_2_node_injection(
         bus["store_inj"] = grid_store_flow[bus["string"]]
     end
 
+    # Add a storage key and add relevant info to it
+    for (i, store) in network["storage"]
+        bus = network["bus"]["$(store["storage_bus"])"]["string"]
+        st = store["name"]
+        store["soc_timeseries"] = e[(st,bus),1,1,0:end-1].data[:]
+    end
+
     # Save the dictionary
     exp_pro = datadir("pro")
     open(joinpath(exp_pro, grid_mod_path), "w") do f
+        JSON.print(f, network, 4)
+    end
+
+    # Save the dictionary but without storage
+    network["storage"] = Dict{String,Any}()
+    open(joinpath(exp_pro, grid_wo_store_path), "w") do f
         JSON.print(f, network, 4)
     end
 
@@ -423,16 +436,22 @@ Iterate over paths in `files_dict` to return forecasts and error scenarios.
 * `err_file`: log output to a file of this name in `datadir("pro", "scenario_loading")`.
 """
 function load_scenarios(
-    opts::Dict, files_dict::Dict; err_file=string(round(now(), Dates.Minute))
+    opts::Dict, files_dict::Dict; err_file=string(round(now(), Dates.Minute)), root_dir = scendir()
 )
     myscens = Dict()
     mkrootdirs(datadir("pro", "scenario_loading"))
     myf = open(datadir("pro", "scenario_loading", err_file * ".dat"), "w")
+    f_list = readdir(root_dir)
     for (name, file_prefix) in files_dict
+
         print(myf, "-"^80 * "\nReading $name error scenarios\n")
 
-        f_err = string(file_prefix, ".csv")
-        forecast = string(file_prefix, "_forecast.csv")
+        idx = findfirst(f -> occursin(file_prefix, f), f_list)
+        if idx === nothing
+            error("Cannot find any files with prefix $file_prefix.")
+        end
+        f_err = joinpath(root_dir, f_list[idx])
+        forecast = string(split(f_err, ".csv")[1], "_forecast.csv")
 
         err_data = CSV.read(f_err, DataFrame; header=false) #--> 1st row is treated as a data row
         (err_rw, err_cl) = size(err_data)
@@ -573,11 +592,11 @@ function load_scenarios(
 end
 
 function load_scenarios(opts::Dict; for_GEPPR=false)
-    scen_id = scenario_id(opts)
+    scen_id = month_day(opts)
 
     # If scenarios are being loaded for GEPPR, this step may be superfluous
     GEPPR_file_name = datadir("scenarios", "GEPPR_frmt_month=$(scen_id).jld2")
-    if for_GEPPR == true && isfile(GEPPR_file_name)
+    if for_GEPPR == true && false # isfile(GEPPR_file_name)
         return nothing
     end
 
@@ -602,10 +621,10 @@ function load_scenarios(opts::Dict; for_GEPPR=false)
 end
 
 function scenarios_2_GEPPR(opts::Dict, scens)
-    scen_id = scenario_id(opts)
+    scen_id = month_day(opts)
     file_name = datadir("scenarios", "GEPPR_frmt_month=$(scen_id).jld2")
     mkrootdirs(dirname(file_name))
-    if isfile(file_name)
+    if false # isfile(file_name)
         @load eval(file_name) D⁺ D⁻ P⁺ P⁻ Dmid⁺ Dmid⁻
     else
         @unpack upward_reserve_levels, downward_reserve_levels = opts
@@ -625,6 +644,7 @@ function scenarios_2_GEPPR(opts::Dict, scens)
             n_up=upward_reserve_levels,
             n_down=downward_reserve_levels,
             coverage=Int(round(size(total_NLFE, 2)*0.01)), # Number of scenarios ignored on tail ends
+            # coverage=100, # Number of scenarios ignored on tail ends
         )
 
         @save eval(file_name) D⁺ D⁻ P⁺ P⁻ Dmid⁺ Dmid⁻
