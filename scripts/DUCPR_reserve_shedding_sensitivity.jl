@@ -15,12 +15,13 @@ opts_vec = vcat(
                 "vars_2_save" => [:z, :q, :ls, :rsL⁺, :rsL⁻, :e, :sc, :sd],
                 "exprs_2_save" => [:loadShedding]
             ),
-        ) for v in 0.1:-0.02:0, L in [Int[],1:10], opts in opts_vec
+        ) for opts in opts_vec, L in [Int[],1:10], v in 0.1:-0.02:0 
         # ) for v in [0.02], opts in opts_vec
     ]...,
 )
 gep = run_GEPPR(opts_vec[1])
-gep_vec = run_GEPPR(opts_vec)
+# gep_vec = run_GEPPR(opts_vec)
+gep_vec = run_GEPPR(opts_vec; load_only=true)
 GC.gc() # Who knows, maybe this will help
 map(
     i ->
@@ -32,12 +33,31 @@ map(
     eachindex(opts_vec),
 )
 
+sid_vec = [month_day(opts_vec[i]) for i in 1:length(opts_vec)]
+rsl_vec = [opts_vec[i]["reserve_shedding_limit"] for i in 1:length(opts_vec)]
+L_vec = [length(opts["upward_reserve_levels_included_in_redispatch"]) for opts in opts_vec]
+
+# Plot the minimum number of units committed each day
+u_min = DataFrame(
+    "u_min" => [
+        try
+            minimum(sum(gep_vec[i][:z].data, dims=1)[:])
+        catch
+            NaN
+        end 
+        for i in 1:length(opts_vec)
+    ],
+    "L" => L_vec,
+    "Month_Day" => sid_vec,
+    "RSL" => rsl_vec,
+)
+Plots.histogram(u_min[:,"u_min"], bins=[0,1,2,3,4,5,10,15,20,25])
+
 # Plot
 for i in 1:length(opts_vec)
     gep_vec[i] === nothing && continue
     apply_operating_reserves!(gep_vec[i], opts_vec[i])
 end
-sid_vec = [month_day(opts_vec[i]) for i in 1:length(opts_vec)]
 rsl_vec = [opts_vec[i]["reserve_shedding_limit"] for i in 1:length(opts_vec)]
 ls = Dict(
     (sid_vec[i], rsl_vec[i]) => try

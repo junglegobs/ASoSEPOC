@@ -87,12 +87,12 @@ function gepm(opts::Dict)
     return gep
 end
 
-function run_GEPPR(opts::Dict)
+function run_GEPPR(opts::Dict; load_only=false)
     @unpack save_path, rolling_horizon = opts
     gep = if isdir(save_path) && isfile(joinpath(save_path, "data.csv"))
         @info "GEPM found at $(save_path), loading..."
         load_GEP(opts, save_path)
-    else
+    elseif load_only == false
         @info "Running GEPM (save path is $(save_path))..."
         gep = gepm(opts)
         if rolling_horizon == false
@@ -109,13 +109,16 @@ function run_GEPPR(opts::Dict)
         end
         save(gep, opts)
         gep
+    else
+        @warn "GEPPR model not found"
+        return nothing
     end
     return gep
 end
 
-run_GEPPR(opts_vec) = [
+run_GEPPR(opts_vec; kwargs...) = [
     try
-        run_GEPPR(opts)
+        run_GEPPR(opts; kwargs...)
     catch
         @warn "Optimisation failed"
     end for opts in opts_vec
