@@ -37,6 +37,7 @@ function param_and_config(opts::Dict)
         ),
         "imposePeriodicityConstraintOnStorage" =>
             rolling_horizon ? false : true,
+        "storageTechnologies" => Dict()
     )
     if length(optimization_horizon[1]:optimization_horizon[end]) > 100 &&
         is_linear == false &&
@@ -47,6 +48,17 @@ function param_and_config(opts::Dict)
     end
     if opts["copperplate"] == true
         param["forceCopperPlateModel"] = true
+    end
+    if ismissing(opts["initial_state_of_charge"]) == false
+        init_soc = opts["initial_state_of_charge"]
+        @assert 0 <= init_soc <= 1
+        storage_data = YAML.load(open(datadir("pro", "GEPPR", "storage.yaml")))["storageTechnologies"]
+        param["storageTechnologies"] = Dict(
+            st => Dict(
+                "initialStateOfCharge" =>
+                    v["installedEnergyCapacity"] * init_soc,
+            ) for (st,v) in storage_data
+        )
     end
     return configFiles, param
 end
@@ -116,13 +128,15 @@ function run_GEPPR(opts::Dict; load_only=false)
     return gep
 end
 
-run_GEPPR(opts_vec; kwargs...) = [
-    try
-        run_GEPPR(opts; kwargs...)
-    catch
-        @warn "Optimisation failed"
-    end for opts in opts_vec
-]
+function run_GEPPR(opts_vec; kwargs...)
+    return [
+        try
+            run_GEPPR(opts; kwargs...)
+        catch
+            @warn "Optimisation failed"
+        end for opts in opts_vec
+    ]
+end
 
 function GEPPR.load_GEP(opts::Dict, path::String)
     @load eval(joinpath(path, "config.jld2")) dictConfig
@@ -249,12 +263,13 @@ function prevent_simultaneous_charge_and_discharge!(gep::GEPM, opts::Dict)
     STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
     SCK = GEPPR.get_storage_charging_capacity_expression(gep)
     SDK = GEPPR.get_storage_discharging_capacity_expression(gep)
-    gep[:M, :variables, :o] = o = @variable(
-        gep.model,
-        [stn = STN, y = Y, p = P, t = T],
-        binary = true,
-        base_name = "o"
-    )
+    gep[:M, :variables, :o] =
+        o = @variable(
+            gep.model,
+            [stn = STN, y = Y, p = P, t = T],
+            binary = true,
+            base_name = "o"
+        )
     sc = GEPPR.get_storage_charge_var(gep)
     sd = GEPPR.get_storage_discharge_var(gep)
 
@@ -310,25 +325,22 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
     for t in T
         UC_results[t] = Dict(
             "gen" => Dict(
-                TN2idx[(g,n)] => 
-                    Dict(
-                        "bus" => n,
-                        "name" => g,
-                        "q" => q[(g, n), y, p, atval(t, typeof(q))],
-                        "z" => z[(g, n), y, p, atval(t, typeof(z))],
-                    )
-                for (g, n) in GDN
+                TN2idx[(g, n)] => Dict(
+                    "bus" => n,
+                    "name" => g,
+                    "q" => q[(g, n), y, p, atval(t, typeof(q))],
+                    "z" => z[(g, n), y, p, atval(t, typeof(z))],
+                ) for (g, n) in GDN
             ),
             "res" => Dict(
-                TN2idx[(g,n)] => Dict(
-                        "bus" => n,
-                        "name" => g,
-                        "q" => q[(g, n), y, p, atval(t, typeof(q))],
-                    )
-                for (g, n) in GRN
+                TN2idx[(g, n)] => Dict(
+                    "bus" => n,
+                    "name" => g,
+                    "q" => q[(g, n), y, p, atval(t, typeof(q))],
+                ) for (g, n) in GRN
             ),
             "store" => Dict(
-                TN2idx[(st,n)] => Dict(
+                TN2idx[(st, n)] => Dict(
                     "bus" => n,
                     "name" => st,
                     "e" => e[(st, n), y, p, atval(t - 1, typeof(e))],
@@ -337,7 +349,10 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
                 ) for (st, n) in STN
             ),
             "load_shed" => Dict(
-                n => Dict("value" => ls[n, y, p, atval(t, typeof(ls))], "bus" => n) for n in N
+                n => Dict(
+                    "value" => ls[n, y, p, atval(t, typeof(ls))],
+                    "bus" => n,
+                ) for n in N
             ),
         )
     end
@@ -354,19 +369,40 @@ function tech_node_to_idx(gep::GEPM)
     GDN = GEPPR.get_set_of_nodal_dispatchable_generators(gep)
     GRN = GEPPR.get_set_of_nodal_intermittent_generators(gep)
     STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
-    bus_idx_2_name = Dict(v["bus_i"] => v["string"] for (k,v) in n["bus"])
+    bus_idx_2_name = Dict(v["bus_i"] => v["string"] for (k, v) in n["bus"])
     d = merge(
         Dict(
-            gn => string(findfirst(pair -> (bus_idx_2_name[string(pair[2]["bus"])] == string(gn[2]) && pair[2]["name"] == gn[1]), collect(n["res"]))[1])
-            for gn in GRN
+            gn => string(
+                findfirst(
+                    pair -> (
+                        bus_idx_2_name[string(pair[2]["bus"])] ==
+                        string(gn[2]) && pair[2]["name"] == gn[1]
+                    ),
+                    collect(n["res"]),
+                )[1],
+            ) for gn in GRN
         ),
         Dict(
-            gn => string(findfirst(pair -> (bus_idx_2_name[string(pair[2]["gen_bus"])] == string(gn[2]) && pair[2]["name"] == gn[1]), collect(n["gen"]))[1])
-            for gn in GDN
+            gn => string(
+                findfirst(
+                    pair -> (
+                        bus_idx_2_name[string(pair[2]["gen_bus"])] ==
+                        string(gn[2]) && pair[2]["name"] == gn[1]
+                    ),
+                    collect(n["gen"]),
+                )[1],
+            ) for gn in GDN
         ),
         Dict(
-            stn => string(findfirst(v -> (bus_idx_2_name[string(v["storage_bus"])] == string(stn[2]) && v["name"] == stn[1]), collect(values(n["storage"])))[1])
-            for stn in STN
+            stn => string(
+                findfirst(
+                    v -> (
+                        bus_idx_2_name[string(v["storage_bus"])] ==
+                        string(stn[2]) && v["name"] == stn[1]
+                    ),
+                    collect(values(n["storage"])),
+                )[1],
+            ) for stn in STN
         ),
     )
     return d
