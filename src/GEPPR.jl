@@ -287,6 +287,17 @@ function prevent_simultaneous_charge_and_discharge!(gep::GEPM, opts::Dict)
     return gep
 end
 
+function apply_initial_state_of_charge!(gep::GEPM, opts::Dict)
+    E_init = GEPPR.get_storage_initial_state_of_charge(gep, default=missing)
+    e = GEPPR.get_storage_state_of_charge_var(gep)
+    STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
+    N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
+    for stn in STN
+        fix(e[stn,Y[1],P[1],T[1]-1], E_init[stn], force=true)
+    end
+    return gep
+end
+
 function save(gep::GEPM, opts::Dict)
     @unpack save_path = opts
     vars_2_save = get(opts, "vars_2_save", nothing)
