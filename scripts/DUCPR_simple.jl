@@ -76,5 +76,7 @@ Plots.plot(
     xlab="Reserve shedding limit [0 - 1]",
     ylab="Day ahead load shedding [MWh]",
 )
+Plots.savefig(plotsdir(sn, "load_shedding_vs_RSL.png"))
 
 plot_dispatch(gep_vec[1], 1)
+Plots.savefig(plotsdir(sn, "dispatch_$(sid_vec[1]).png"))

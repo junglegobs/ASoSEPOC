@@ -114,6 +114,7 @@ function run_GEPPR(opts::Dict; load_only=false)
             apply_initial_commitment!(gep, opts)
             constrain_reserve_shedding!(gep, opts)
             prevent_simultaneous_charge_and_discharge!(gep, opts)
+            apply_initial_state_of_charge!(gep, opts)
             optimize_GEP_model!(gep)
             save_optimisation_values!(gep)
         else
