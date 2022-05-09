@@ -23,7 +23,8 @@ function options(pairs...)
         "vars_2_save" => Symbol[],
         "exprs_2_save" => Symbol[],
         "initial_state_of_charge" => missing,
-        "replace_storage_dispatch_with_node_injection" => false
+        "replace_storage_dispatch_with_node_injection" => false,
+        "reserve_provision_cost" => 0.0
     )
     for (k, v) in pairs
         opts[k] = v

@@ -3,9 +3,17 @@ include(srcdir("util.jl"))
 
 ### UTIL
 function param_and_config(opts::Dict)
-    @unpack optimization_horizon, rolling_horizon, include_downward_reserves =
-        opts
+    @unpack optimization_horizon,
+    rolling_horizon,
+    include_downward_reserves,
+    include_storage,
+    copperplate,
+    initial_state_of_charge,
+    reserve_provision_cost = opts
+
     is_linear = (opts["unit_commitment_type"] == "none")
+    init_soc = opts["initial_state_of_charge"]
+
     GEPPR_dir = datadir("pro", "GEPPR")
     configFiles =
         joinpath.(
@@ -18,9 +26,8 @@ function param_and_config(opts::Dict)
                 "RES.yaml",
             ],
         )
-    if opts["include_storage"]
-        push!(configFiles, joinpath(GEPPR_dir, "storage.yaml"))
-    end
+
+    # Param
     param = @suppress Dict{String,Any}(
         "optimizer" => optimizer(opts),
         "unitCommitmentConstraintType" => opts["unit_commitment_type"],
@@ -38,8 +45,34 @@ function param_and_config(opts::Dict)
         ),
         "imposePeriodicityConstraintOnStorage" =>
             rolling_horizon ? false : true,
-        "storageTechnologies" => Dict(),
+        "dispatchableGeneration" => Dict(),
+        "intermittentGeneration" => Dict(),
     )
+
+    # In case including storage
+    if include_storage
+        push!(configFiles, joinpath(GEPPR_dir, "storage.yaml"))
+        opts["storageTechnologies"] = Dict()
+    end
+
+    # Reserve provision costs
+    if reserve_provision_cost > 0.0
+        rpc = reserve_provision_cost
+        disp_data = YAML.load(open(datadir("pro", "GEPPR", "units.yaml")))["dispatchableGeneration"]
+        res_data = YAML.load(open(datadir("pro", "GEPPR", "RES.yaml")))["intermittentGeneration"]
+        for (k, v) in disp_data
+            param["dispatchableGeneration"][k] = Dict(
+                "reserveProvisionCost" => rpc
+            )
+        end
+        for (k, v) in res_data
+            param["intermittentGeneration"][k] = Dict(
+                "reserveProvisionCost" => rpc
+            )
+        end
+    end
+
+    # Error if this optimization horizon too long
     if length(optimization_horizon[1]:optimization_horizon[end]) > 100 &&
         is_linear == false &&
         rolling_horizon == false
@@ -47,10 +80,14 @@ function param_and_config(opts::Dict)
             "Optimisation length too long for unit commitment model, consider setting `rolling_horizon = true`.",
         )
     end
+
+    # Copper plate model or not
     if opts["copperplate"] == true
         param["forceCopperPlateModel"] = true
     end
-    if ismissing(opts["initial_state_of_charge"]) == false
+
+    # Storage initial state of charge
+    if include_storage && ismissing(init_soc) == false
         init_soc = opts["initial_state_of_charge"]
         @assert 0 <= init_soc <= 1
         storage_data = YAML.load(open(datadir("pro", "GEPPR", "storage.yaml")))["storageTechnologies"]
@@ -61,6 +98,7 @@ function param_and_config(opts::Dict)
             ) for (st, v) in storage_data
         )
     end
+
     return configFiles, param
 end
 
