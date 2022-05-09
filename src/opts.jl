@@ -22,7 +22,8 @@ function options(pairs...)
         "copperplate" => false,
         "vars_2_save" => Symbol[],
         "exprs_2_save" => Symbol[],
-        "initial_state_of_charge" => missing
+        "initial_state_of_charge" => missing,
+        "replace_storage_dispatch_with_node_injection" => false
     )
     for (k, v) in pairs
         opts[k] = v
