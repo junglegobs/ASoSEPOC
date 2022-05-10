@@ -198,33 +198,33 @@ function process_belderbos_data(grid_path)
         )
     end
 
-    # # Power to Gas
-    # h2_sh = gen["hydrogen_storage"]
-    # duration = 1000
-    # for row in XLSX.eachrow(h2_sh)
-    #     row["A"] in ("ID", "(integer)") && continue
-    #     id += 1
-    #     network["storage"][string(id)] = Dict(
-    #         "index" => id,
-    #         "storage_bus" => row["C"],
-    #         "ps" => 0.0,
-    #         "qs" => 0.0,
-    #         "energy" => 0.0,
-    #         "energy_rating" => row["D"],
-    #         "charge_rating" => row["D"] / duration,
-    #         "discharge_rating" => row["D"] / duration,
-    #         "charge_efficiency" => 0.7,
-    #         "discharge_efficiency" => 0.7,
-    #         "qmin" => 0.0,
-    #         "qmax" => 0.0,
-    #         "r" => 0.0,
-    #         "x" => 0.0,
-    #         "p_loss" => 0.0,
-    #         "q_loss" => 0.0,
-    #         "status" => 1,
-    #         "name" => "P2G_$(id)",
-    #     )
-    # end
+    # Power to Gas
+    h2_sh = gen["hydrogen_storage"]
+    duration = 1000
+    for row in XLSX.eachrow(h2_sh)
+        row["A"] in ("ID", "(integer)") && continue
+        id += 1
+        network["storage"][string(id)] = Dict(
+            "index" => id,
+            "storage_bus" => row["C"],
+            "ps" => 0.0,
+            "qs" => 0.0,
+            "energy" => 0.0,
+            "energy_rating" => row["D"],
+            "charge_rating" => row["D"] / duration,
+            "discharge_rating" => row["D"] / duration,
+            "charge_efficiency" => 0.7,
+            "discharge_efficiency" => 0.7,
+            "qmin" => 0.0,
+            "qmax" => 0.0,
+            "r" => 0.0,
+            "x" => 0.0,
+            "p_loss" => 0.0,
+            "q_loss" => 0.0,
+            "status" => 1,
+            "name" => "P2G_$(id)",
+        )
+    end
 
     # Save the dictionary
     exp_pro = datadir("pro")
@@ -315,7 +315,7 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
                             v["charge_rating"], v["discharge_rating"]
                         ]),
                     "nodes" => [ids2node[v["storage_bus"]]],
-                ) for (k, v) in network["storage"]
+                ) for (k, v) in network["storage"] if occursin("P2G_", v["name"]) == false
             ),
         )
         YAML.write_file(joinpath(GEPPR_dir, "storage.yaml"), d)
