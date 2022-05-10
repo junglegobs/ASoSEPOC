@@ -339,6 +339,7 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
                 ]...,
             ) for t in res_names
         ]...,
+        "Weight" => [1.0 for i in 1:nT]
     )
     name = if isempty(network["storage"])
         "timeseries_wo_storage.csv"
