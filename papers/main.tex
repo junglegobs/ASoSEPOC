@@ -134,7 +134,7 @@ The following constraints attempt to take network constraints into account (albe
     \sum_{g \in G_n, l'=1:l} (r^{L^+}_{glt} + rs_{nlt}) = d^{L^+}_{nlt} + rinj^{L^+}_{nlt} & \quad n \in N, \; l \in L^+, \; t \in T \\
     - \sum_{g \in G_n, l'=1:l} (r^{L^-}_{glt} + rc_{nlt}) = d^{L^-}_{nlt} + rinj^{L^-}_{nlt} & \quad n \in N, \; l \in L^-, \; t \in T \\
     \sum_{n \in N} d^{L^+}_{nlt} = \sum_{l'=1:l} D^{L^+}_{l't}                             & \quad l \in L^+, \; t \in T             \\
-    \sum_{n \in N} d^{L^-}_{nlt} = -\sum_{l'=1:l} D^{L^-}_{l't}                            & \quad l \in L^-, \; t \in T             \\
+    \sum_{n \in N} d^{L^-}_{nlt} = - \sum_{l'=1:l} D^{L^-}_{l't}                            & \quad l \in L^-, \; t \in T             \\
     rf^{L^+}_{blt} = \sum_{n \in N} PTDF_{nb} \cdot rinj^{L^+}_{nlt}                       & \quad b \in B, \; l \in L^+, \; t \in T \\
     rf^{L^-}_{blt} = \sum_{n \in N} PTDF_{nb} \cdot rinj^{L^-}_{nlt}                       & \quad b \in B, \; l \in L^-, \; t \in T \\
     -F_{b} \leq f_{bt} + rf^{L^+}_{blt} \leq F_b                                           & \quad b \in B, \; l \in L^+, \; t \in T \\
