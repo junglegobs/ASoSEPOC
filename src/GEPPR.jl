@@ -154,6 +154,8 @@ function run_GEPPR(opts::Dict; load_only=false)
             constrain_reserve_shedding!(gep, opts)
             prevent_simultaneous_charge_and_discharge!(gep, opts)
             apply_initial_state_of_charge!(gep, opts)
+            # fix_model_variable!(gep, :sc, GEPPR.SVC(0.0))
+            # fix_model_variable!(gep, :sd, GEPPR.SVC(0.0))
             optimize_GEP_model!(gep)
             save_optimisation_values!(gep)
         else
