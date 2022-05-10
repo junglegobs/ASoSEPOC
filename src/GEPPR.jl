@@ -33,9 +33,9 @@ function param_and_config(opts::Dict)
         "unitCommitmentConstraintType" => opts["unit_commitment_type"],
         "relativePathTimeSeriesCSV" =>
             if opts["replace_storage_dispatch_with_node_injection"]
-                "timeseries.csv"
-            else
                 "timeseries_wo_storage.csv"
+            else
+                "timeseries.csv"
             end,
         "includeDownwardReserves" => include_downward_reserves,
         "relativePathMatpowerData" => basename(grid_red_path),
