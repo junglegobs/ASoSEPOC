@@ -22,6 +22,9 @@ function options(pairs...)
         "copperplate" => false,
         "vars_2_save" => Symbol[],
         "exprs_2_save" => Symbol[],
+        "initial_state_of_charge" => missing,
+        "replace_storage_dispatch_with_node_injection" => false,
+        "reserve_provision_cost" => 0.0
     )
     for (k, v) in pairs
         opts[k] = v
@@ -38,7 +41,8 @@ function options_diff_days(sn)
         # "initial_commitment_data_path" => datadir("sims", "rolling_UC_full_year"),
         "operating_reserves_type" => "probabilistic",
         "operating_reserves_sizing_type" => "given",
-        "vars_2_save" => [:z, :q],
+        "vars_2_save" => [:z, :q, :ls, :rL⁺, :rL⁻, :rsL⁺, :rsL⁻, :e, :sc, :sd],
+        "exprs_2_save" => [:loadShedding],
         "time_out" => 60*10
     )
     opts_vec = [
