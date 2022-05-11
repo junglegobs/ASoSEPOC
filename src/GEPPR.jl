@@ -3,9 +3,17 @@ include(srcdir("util.jl"))
 
 ### UTIL
 function param_and_config(opts::Dict)
-    @unpack optimization_horizon, rolling_horizon, include_downward_reserves =
-        opts
+    @unpack optimization_horizon,
+    rolling_horizon,
+    include_downward_reserves,
+    include_storage,
+    copperplate,
+    initial_state_of_charge,
+    reserve_provision_cost = opts
+
     is_linear = (opts["unit_commitment_type"] == "none")
+    init_soc = opts["initial_state_of_charge"]
+
     GEPPR_dir = datadir("pro", "GEPPR")
     configFiles =
         joinpath.(
@@ -18,17 +26,17 @@ function param_and_config(opts::Dict)
                 "RES.yaml",
             ],
         )
-    if opts["include_storage"]
-        push!(configFiles, joinpath(GEPPR_dir, "storage.yaml"))
-    end
+
+    # Param
     param = @suppress Dict{String,Any}(
         "optimizer" => optimizer(opts),
         "unitCommitmentConstraintType" => opts["unit_commitment_type"],
-        "relativePathTimeSeriesCSV" => if opts["include_storage"]
-            "timeseries.csv"
-        else
-            "timeseries_wo_storage.csv"
-        end,
+        "relativePathTimeSeriesCSV" =>
+            if opts["replace_storage_dispatch_with_node_injection"]
+                "timeseries_wo_storage.csv"
+            else
+                "timeseries.csv"
+            end,
         "includeDownwardReserves" => include_downward_reserves,
         "relativePathMatpowerData" => basename(grid_red_path),
         "optimizationHorizon" => Dict(
@@ -37,7 +45,34 @@ function param_and_config(opts::Dict)
         ),
         "imposePeriodicityConstraintOnStorage" =>
             rolling_horizon ? false : true,
+        "dispatchableGeneration" => Dict(),
+        "intermittentGeneration" => Dict(),
     )
+
+    # In case including storage
+    if include_storage
+        push!(configFiles, joinpath(GEPPR_dir, "storage.yaml"))
+        opts["storageTechnologies"] = Dict()
+    end
+
+    # Reserve provision costs
+    if reserve_provision_cost > 0.0
+        rpc = reserve_provision_cost
+        disp_data = YAML.load(open(datadir("pro", "GEPPR", "units.yaml")))["dispatchableGeneration"]
+        res_data = YAML.load(open(datadir("pro", "GEPPR", "RES.yaml")))["intermittentGeneration"]
+        for (k, v) in disp_data
+            param["dispatchableGeneration"][k] = Dict(
+                "reserveProvisionCost" => rpc
+            )
+        end
+        for (k, v) in res_data
+            param["intermittentGeneration"][k] = Dict(
+                "reserveProvisionCost" => rpc
+            )
+        end
+    end
+
+    # Error if this optimization horizon too long
     if length(optimization_horizon[1]:optimization_horizon[end]) > 100 &&
         is_linear == false &&
         rolling_horizon == false
@@ -45,9 +80,25 @@ function param_and_config(opts::Dict)
             "Optimisation length too long for unit commitment model, consider setting `rolling_horizon = true`.",
         )
     end
+
+    # Copper plate model or not
     if opts["copperplate"] == true
         param["forceCopperPlateModel"] = true
     end
+
+    # Storage initial state of charge
+    if include_storage && ismissing(init_soc) == false
+        init_soc = opts["initial_state_of_charge"]
+        @assert 0 <= init_soc <= 1
+        storage_data = YAML.load(open(datadir("pro", "GEPPR", "storage.yaml")))["storageTechnologies"]
+        param["storageTechnologies"] = Dict(
+            st => Dict(
+                "initialStateOfCharge" =>
+                    v["installedEnergyCapacity"] * init_soc,
+            ) for (st, v) in storage_data
+        )
+    end
+
     return configFiles, param
 end
 
@@ -87,12 +138,12 @@ function gepm(opts::Dict)
     return gep
 end
 
-function run_GEPPR(opts::Dict)
+function run_GEPPR(opts::Dict; load_only=false)
     @unpack save_path, rolling_horizon = opts
     gep = if isdir(save_path) && isfile(joinpath(save_path, "data.csv"))
         @info "GEPM found at $(save_path), loading..."
         load_GEP(opts, save_path)
-    else
+    elseif load_only == false
         @info "Running GEPM (save path is $(save_path))..."
         gep = gepm(opts)
         if rolling_horizon == false
@@ -102,6 +153,9 @@ function run_GEPPR(opts::Dict)
             apply_initial_commitment!(gep, opts)
             constrain_reserve_shedding!(gep, opts)
             prevent_simultaneous_charge_and_discharge!(gep, opts)
+            apply_initial_state_of_charge!(gep, opts)
+            # fix_model_variable!(gep, :sc, GEPPR.SVC(0.0))
+            # fix_model_variable!(gep, :sd, GEPPR.SVC(0.0))
             optimize_GEP_model!(gep)
             save_optimisation_values!(gep)
         else
@@ -109,17 +163,22 @@ function run_GEPPR(opts::Dict)
         end
         save(gep, opts)
         gep
+    else
+        @warn "GEPPR model not found"
+        return nothing
     end
     return gep
 end
 
-run_GEPPR(opts_vec) = [
-    try
-        run_GEPPR(opts)
-    catch
-        @warn "Optimisation failed"
-    end for opts in opts_vec
-]
+function run_GEPPR(opts_vec; kwargs...)
+    return [
+        try
+            run_GEPPR(opts; kwargs...)
+        catch
+            @warn "Optimisation failed"
+        end for opts in opts_vec
+    ]
+end
 
 function GEPPR.load_GEP(opts::Dict, path::String)
     @load eval(joinpath(path, "config.jld2")) dictConfig
@@ -246,12 +305,13 @@ function prevent_simultaneous_charge_and_discharge!(gep::GEPM, opts::Dict)
     STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
     SCK = GEPPR.get_storage_charging_capacity_expression(gep)
     SDK = GEPPR.get_storage_discharging_capacity_expression(gep)
-    gep[:M, :variables, :o] = o = @variable(
-        gep.model,
-        [stn = STN, y = Y, p = P, t = T],
-        binary = true,
-        base_name = "o"
-    )
+    gep[:M, :variables, :o] =
+        o = @variable(
+            gep.model,
+            [stn = STN, y = Y, p = P, t = T],
+            binary = true,
+            base_name = "o"
+        )
     sc = GEPPR.get_storage_charge_var(gep)
     sd = GEPPR.get_storage_discharge_var(gep)
 
@@ -266,6 +326,17 @@ function prevent_simultaneous_charge_and_discharge!(gep::GEPM, opts::Dict)
         sd[stn, y, p, t] <= (1 - o[stn, y, p, t]) * SDK[stn, y]
     )
 
+    return gep
+end
+
+function apply_initial_state_of_charge!(gep::GEPM, opts::Dict)
+    E_init = GEPPR.get_storage_initial_state_of_charge(gep; default=missing)
+    e = GEPPR.get_storage_state_of_charge_var(gep)
+    STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
+    N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
+    for stn in STN
+        fix(e[stn, Y[1], P[1], T[1] - 1], E_init[stn]; force=true)
+    end
     return gep
 end
 
@@ -294,6 +365,8 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
     q = gep[:q]
     z = gep[:z]
     e = gep[:e]
+    sc = gep[:sc]
+    sd = gep[:sd]
     ls = gep[:loadShedding]
     UC_results = Dict{Integer,Dict}()
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
@@ -305,32 +378,34 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
     for t in T
         UC_results[t] = Dict(
             "gen" => Dict(
-                TN2idx[(g,n)] => 
-                    Dict(
-                        "bus" => n,
-                        "name" => g,
-                        "q" => q[(g, n), y, p, atval(t, typeof(q))],
-                        "z" => z[(g, n), y, p, atval(t, typeof(z))],
-                    )
-                for (g, n) in GDN
+                TN2idx[(g, n)] => Dict(
+                    "bus" => n,
+                    "name" => g,
+                    "q" => q[(g, n), y, p, atval(t, typeof(q))],
+                    "z" => z[(g, n), y, p, atval(t, typeof(z))],
+                ) for (g, n) in GDN
             ),
             "res" => Dict(
-                TN2idx[(g,n)] => Dict(
-                        "bus" => n,
-                        "name" => g,
-                        "q" => q[(g, n), y, p, atval(t, typeof(q))],
-                    )
-                for (g, n) in GRN
+                TN2idx[(g, n)] => Dict(
+                    "bus" => n,
+                    "name" => g,
+                    "q" => q[(g, n), y, p, atval(t, typeof(q))],
+                ) for (g, n) in GRN
             ),
             "store" => Dict(
-                TN2idx[(st,n)] => Dict(
+                TN2idx[(st, n)] => Dict(
                     "bus" => n,
                     "name" => st,
                     "e" => e[(st, n), y, p, atval(t - 1, typeof(e))],
+                    "discharge" => sd[(st, n), y, p, atval(t, typeof(sd))],
+                    "charge" => sc[(st, n), y, p, atval(t, typeof(sc))],
                 ) for (st, n) in STN
             ),
             "load_shed" => Dict(
-                n => Dict("value" => ls[n, y, p, atval(t, typeof(ls))], "bus" => n) for n in N
+                n => Dict(
+                    "value" => ls[n, y, p, atval(t, typeof(ls))],
+                    "bus" => n,
+                ) for n in N
             ),
         )
     end
@@ -343,23 +418,44 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
 end
 
 function tech_node_to_idx(gep::GEPM)
-    n = gep.networkData
+    d = gep.networkData
     GDN = GEPPR.get_set_of_nodal_dispatchable_generators(gep)
     GRN = GEPPR.get_set_of_nodal_intermittent_generators(gep)
     STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
-    bus_idx_2_name = Dict(v["bus_i"] => v["string"] for (k,v) in n["bus"])
+    bus_idx_2_name = Dict(v["bus_i"] => v["string"] for (k, v) in nd["bus"])
     d = merge(
         Dict(
-            gn => string(findfirst(pair -> (bus_idx_2_name[string(pair[2]["bus"])] == string(gn[2]) && pair[2]["name"] == gn[1]), collect(n["res"]))[1])
-            for gn in GRN
+            gn => string(
+                collect(nd["res"])[findfirst(
+                    pair -> (
+                        bus_idx_2_name[string(pair[2]["bus"])] ==
+                        string(gn[2]) && pair[2]["name"] == gn[1]
+                    ),
+                    collect(n["res"]),
+                )][1],
+            ) for gn in GRN
         ),
         Dict(
-            gn => string(findfirst(pair -> (bus_idx_2_name[string(pair[2]["gen_bus"])] == string(gn[2]) && pair[2]["name"] == gn[1]), collect(n["gen"]))[1])
-            for gn in GDN
+            gn => string(
+                collect(nd["gen"])[findfirst(
+                    pair -> (
+                        bus_idx_2_name[string(pair[2]["gen_bus"])] ==
+                        string(gn[2]) && pair[2]["name"] == gn[1]
+                    ),
+                    collect(nd["gen"]),
+                )][1],
+            ) for gn in GDN
         ),
         Dict(
-            stn => string(findfirst(v -> (bus_idx_2_name[string(v["storage_bus"])] == string(stn[2]) && v["name"] == stn[1]), collect(values(n["storage"])))[1])
-            for stn in STN
+            stn => string(
+                collect(nd["storage"])[findfirst(
+                    v -> (
+                        bus_idx_2_name[string(v["storage_bus"])] ==
+                        string(stn[2]) && v["name"] == stn[1]
+                    ),
+                    collect(values(nd["storage"])),
+                )][1],
+            ) for stn in STN
         ),
     )
     return d

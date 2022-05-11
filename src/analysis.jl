@@ -81,3 +81,38 @@ function days_to_run_models_on(gep::GEPM, filename::String)
     CSV.write(datadir("pro", filename), df)
     return df[:, "days"], df[:, "timesteps"]
 end
+
+function overall_network_results(gep::GEPM)
+    sc = gep[:sc]
+    sd = gep[:sd]
+    q = gep[:q]
+    z = gep[:z]
+    ls = gep[:loadShedding]
+    D = GEPPR.get_demand(gep)
+    N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
+    STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
+    GDN = GEPPR.get_set_of_nodal_dispatchable_generators(gep)
+    GRN = GEPPR.get_set_of_nodal_intermittent_generators(gep)
+    K = GEPPR.get_generator_installed_capacity(gep)
+    AF = GEPPR.get_generator_availability_factors(gep)
+    NPC = GEPPR.get_dispatchable_generator_nameplate_capacity(gep)
+    MSOP = GEPPR.get_dispatchable_generator_minimum_stable_operating_point(gep)
+
+    df = DataFrame(
+        "Time" => 1:length(T),
+        "Load" => [sum(D[n,y,p,t] for n in N, y in Y, p in P) for t in T] / 100,
+        "RES max dispatch" => [sum(AF[gn,y,p,t] * K[gn,y] for gn in GRN, y in Y, p in P) for t in T] / 100,
+        "RES curtailment" => [sum(q[gn,y,p,t] - AF[gn,y,p,t] * K[gn,y] for gn in GRN, y in Y, p in P) for t in T] / 100,
+        "RES dispatch" => [sum(q[gn,y,p,t] for gn in GRN, y in Y, p in P) for t in T] / 100,
+        "Thermal dispatch" => [sum(q[gn,y,p,t] for gn in GDN, y in Y, p in P) for t in T] / 100,
+        "Storage dispatch (+ve = net discharge)" => [sum(sd[stn,y,p,t] - sc[stn,y,p,t] for stn in STN, y in Y, p in P) for t in T] / 100,
+        "Load shedding" => [sum(ls[n,y,p,t] for n in N, y in Y, p in P) for t in T] / 100,
+        "Pmin" => [sum(z[(g,n),y,p,t] * NPC[g] * MSOP[g] for (g,n) in GDN, y in Y, p in P) for t in T] / 100,
+        "Pmax" => [sum(z[(g,n),y,p,t] * NPC[g] for (g,n) in GDN, y in Y, p in P) for t in T] / 100,
+    )
+
+    df[:, "Net generation (includes storage)"] = df[:, "Thermal dispatch"] .+ df[:, "Storage dispatch (+ve = net discharge)"] .+ df[:, "RES dispatch"]
+    df[:, "Load - net generation - load shed"] = df[:, "Load"] .- df[:, "Net generation (includes storage)"] .- df[:, "Load shedding"]
+
+    return df
+end

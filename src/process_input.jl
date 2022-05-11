@@ -315,7 +315,7 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
                             v["charge_rating"], v["discharge_rating"]
                         ]),
                     "nodes" => [ids2node[v["storage_bus"]]],
-                ) for (k, v) in network["storage"]
+                ) for (k, v) in network["storage"] if occursin("P2G_", v["name"]) == false
             ),
         )
         YAML.write_file(joinpath(GEPPR_dir, "storage.yaml"), d)
@@ -339,6 +339,7 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
                 ]...,
             ) for t in res_names
         ]...,
+        "Weight" => [1.0 for i in 1:nT]
     )
     name = if isempty(network["storage"])
         "timeseries_wo_storage.csv"
