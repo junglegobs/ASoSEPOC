@@ -28,6 +28,7 @@ function options(pairs...)
         "absolute_limit_on_nodal_imbalance" => false,
         "convex_hull_limit__on_nodal_imbalance" => false,
         "prevent_simultaneous_charge_and_discharge" => true,
+        "rate_a_multiplier" => missing
     )
     for (k, v) in pairs
         opts[k] = v

@@ -148,6 +148,7 @@ function run_GEPPR(opts::Dict; load_only=false)
         gep = gepm(opts)
         if rolling_horizon == false
             apply_operating_reserves!(gep, opts)
+            modify_network!(gep, opts)
             @info "Building JuMP model..."
             make_JuMP_model!(gep)
             apply_initial_commitment!(gep, opts)
@@ -260,6 +261,16 @@ function apply_operating_reserves!(gep::GEPM, opts::Dict)
         (z, l, y, p, T[t]) => D⁻[l, t] for z in ORBZ, l in L⁻, y in Y, p in P,
         t in 1:length(T)
     )
+    return gep
+end
+
+function modify_network!(gep::GEPM, opts::Dict)
+    @unpack rate_a_multiplier = opts
+    if ismissing(rate_a_multiplier) == false
+        for (idx, br) in gep.networkData["branch"]
+            br["rate_a"] *= rate_a_multiplier
+        end
+    end
     return gep
 end
 
