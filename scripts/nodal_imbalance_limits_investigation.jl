@@ -3,7 +3,7 @@ sn = script_name(@__FILE__)
 mkrootdirs(plotsdir(sn))
 rm(simsdir(sn); force=true, recursive=true)
 
-opts = options_diff_days(sn)[1]
+opts = options_diff_days(sn)[3]
 opts["initial_state_of_charge"] = 0.0
 # opts["reserve_shedding_limit"] => 0.05
 opts["unit_commitment_type"] = "none"

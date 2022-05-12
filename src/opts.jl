@@ -25,8 +25,9 @@ function options(pairs...)
         "initial_state_of_charge" => missing,
         "replace_storage_dispatch_with_node_injection" => false,
         "reserve_provision_cost" => 0.0,
-        "absolute_limit_on_nodal_imbalance_" => false,
+        "absolute_limit_on_nodal_imbalance" => false,
         "convex_hull_limit__on_nodal_imbalance" => false,
+        "prevent_simultaneous_charge_and_discharge" => true,
     )
     for (k, v) in pairs
         opts[k] = v

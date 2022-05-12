@@ -139,8 +139,7 @@ function gepm(opts::Dict)
 end
 
 function run_GEPPR(opts::Dict; load_only=false)
-    @unpack save_path,
-    rolling_horizon = opts
+    @unpack save_path, rolling_horizon = opts
     gep = if isdir(save_path) && isfile(joinpath(save_path, "data.csv"))
         @info "GEPM found at $(save_path), loading..."
         load_GEP(opts, save_path)
@@ -298,8 +297,11 @@ function constrain_reserve_shedding!(gep::GEPM, opts::Dict)
 end
 
 function prevent_simultaneous_charge_and_discharge!(gep::GEPM, opts::Dict)
-    @unpack include_storage = opts
-    include_storage == false && return gep
+    @unpack include_storage, prevent_simultaneous_charge_and_discharge = opts
+    if include_storage == false ||
+        prevent_simultaneous_charge_and_discharge == false
+        return gep
+    end
 
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
     STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
@@ -343,7 +345,7 @@ end
 function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
     @unpack absolute_limit_on_nodal_imbalance = opts
     absolute_limit_on_nodal_imbalance == false && return gep
-    
+
     scen_id = month_day(opts)
     data, file = produce_or_load(
         datadir("pro", "nodal_imbalance_abs_limits"),
