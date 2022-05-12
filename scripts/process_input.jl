@@ -14,6 +14,7 @@ opts = options(
     "unit_commitment_type" => "none",
     "operating_reserves_sizing_type" => "given",
     "operating_reserves_type" => "none",
+    "prevent_simultaneous_charge_and_discharge" => false,
     "optimization_horizon" => [1, 8_760],
     "save_path" => datadir("sims", "linear_w_storage"),
 )
@@ -21,7 +22,18 @@ gep = run_GEPPR(opts)
 
 # Identify 4 days to investigate - no load shedding at all, almost load shedding and load shedding
 # Because I realised there were mistakes in the model later on, I save this to a "days_for_analysis_new.csv" instead of "days_for_analysis.csv", so that I don't have to recreate all the scenarios.
-days, TVec = days_to_run_models_on(gep, "days_for_analysis_new.csv")
+days, TVec = days_to_run_models_on(gep, "days_for_analysis_new.csv")# Run a linear operational model for the entire year
+opts = options(
+    "include_storage" => true,
+    "unit_commitment_type" => "none",
+    "operating_reserves_sizing_type" => "given",
+    "operating_reserves_type" => "none",
+    "prevent_simultaneous_charge_and_discharge" => false,
+    "optimization_horizon" => [1, 8_760],
+    "save_path" => datadir("sims", "linear_w_storage"),
+)
+gep = run_GEPPR(opts)
+
 
 # Check the dispatch at the network level for each case
 for T in TVec

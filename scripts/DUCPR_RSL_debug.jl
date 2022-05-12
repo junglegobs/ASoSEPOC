@@ -5,10 +5,10 @@ rm(simsdir(sn); force=true, recursive=true)
 
 opts = options_diff_days(sn)[4]
 rm(opts["save_path"]; force=true, recursive=true)
-opts["unit_commitment_type"] = "none"
+# opts["unit_commitment_type"] = "none"
 opts["initial_state_of_charge"] = 0.0
 opts["absolute_limits_on_nodal_imbalance"] = true
-opts["prevent_simultaneous_charge_and_discharge"] = false
+# opts["prevent_simultaneous_charge_and_discharge"] = false
 opts["upward_reserve_levels_included_in_redispatch"] = 1:10
 opts["downward_reserve_levels_included_in_redispatch"] = 1:10
 

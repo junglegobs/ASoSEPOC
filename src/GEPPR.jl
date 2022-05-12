@@ -332,6 +332,8 @@ function prevent_simultaneous_charge_and_discharge!(gep::GEPM, opts::Dict)
 end
 
 function apply_initial_state_of_charge!(gep::GEPM, opts::Dict)
+    @unpack initial_state_of_charge = opts
+    ismissing(initial_state_of_charge) && return gep
     E_init = GEPPR.get_storage_initial_state_of_charge(gep; default=missing)
     e = GEPPR.get_storage_state_of_charge_var(gep)
     STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
