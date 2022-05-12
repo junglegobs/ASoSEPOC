@@ -4,40 +4,25 @@ mkrootdirs(plotsdir(sn))
 
 opts = options_diff_days(sn)[4]
 rm(opts["save_path"]; force=true, recursive=true)
-opts["unit_commitment_type"] = "none"
 opts["initial_state_of_charge"] = 0.0
-opts["upward_reserve_levels_included_in_redispatch"] = 1:10
-opts["downward_reserve_levels_included_in_redispatch"] = 1:10
-gep = run_GEPPR(opts)
+opts["absolute_limits_on_nodal_imbalance"] = true
+# opts["upward_reserve_levels_included_in_redispatch"] = 1:10
+# opts["downward_reserve_levels_included_in_redispatch"] = 1:10
 
-@show opts["reserve_provision_coupwardst"]
-@show sum(gep[:rsL⁺])
-@show sum(gep[:loadShedding])
-nothing
+opts_vec = [
+    merge(
+        opts,
+        Dict(
+            "reserve_shedding_limit" => v,
+            "save_path" => opts["save_path"] * "_RSL=_$v",
+        ),
+    ) for v in [1.0, 0.5, 0.0]
+]
 
+gep = run_GEPPR(opts_vec)
 
-# opts_vec = [
-#     merge(
-#         opts,
-#         Dict(
-#             "unit_commitment_type" => "none",
-#             "include_storage" => false,
-#             "save_path" => joinpath(opts["save_path"], "simplest"),
-#         ),
-#     )
-#     merge(
-#         opts,
-#         Dict(
-#             "unit_commitment_type" => "none",
-#             "save_path" => joinpath(opts["save_path"], "simpler"),
-#         ),
-#     )
-#     merge(
-#         opts,
-#         Dict(
-#             "unit_commitment_type" => "none",
-#             "save_path" => joinpath(opts["save_path"], "full"),
-#         ),
-#     )
-# ]
-# gep_vec = run_GEPPR(opts_vec[1:2])
+df = DataFrame(
+    "Limits" => ["Absolute", "None"],
+    "Reserve Shedding" => sum.([gep[:rsL⁺] for gep in gep_vec]),
+    "Load shedding" => sum.([gep[:loadShedding] for gep in gep_vec]),
+)

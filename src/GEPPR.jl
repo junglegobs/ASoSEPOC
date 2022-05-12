@@ -139,7 +139,8 @@ function gepm(opts::Dict)
 end
 
 function run_GEPPR(opts::Dict; load_only=false)
-    @unpack save_path, rolling_horizon = opts
+    @unpack save_path,
+    rolling_horizon = opts
     gep = if isdir(save_path) && isfile(joinpath(save_path, "data.csv"))
         @info "GEPM found at $(save_path), loading..."
         load_GEP(opts, save_path)
@@ -154,8 +155,7 @@ function run_GEPPR(opts::Dict; load_only=false)
             constrain_reserve_shedding!(gep, opts)
             prevent_simultaneous_charge_and_discharge!(gep, opts)
             apply_initial_state_of_charge!(gep, opts)
-            # fix_model_variable!(gep, :sc, GEPPR.SVC(0.0))
-            # fix_model_variable!(gep, :sd, GEPPR.SVC(0.0))
+            absolute_limit_on_nodal_imbalance!(gep, opts)
             optimize_GEP_model!(gep)
             save_optimisation_values!(gep)
         else
@@ -337,6 +337,46 @@ function apply_initial_state_of_charge!(gep::GEPM, opts::Dict)
     for stn in STN
         fix(e[stn, Y[1], P[1], T[1] - 1], E_init[stn]; force=true)
     end
+    return gep
+end
+
+function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
+    @unpack absolute_limit_on_nodal_imbalance = opts
+    absolute_limit_on_nodal_imbalance == false && return gep
+    
+    scen_id = month_day(opts)
+    data, file = produce_or_load(
+        datadir("pro", "nodal_imbalance_abs_limits"),
+        opts,
+        absolute_limits_on_nodal_imbalance;
+        filename="$(scen_id).jld2",
+    )
+    @unpack d_min, d_max = data
+    dL⁺ = GEPPR.get_possible_nodal_imbalance_due_to_upward_reserve_level_activation(
+        gep
+    )
+    dL⁻ = GEPPR.get_possible_nodal_imbalance_due_to_downward_reserve_level_activation(
+        gep
+    )
+    N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
+    L⁺ = GEPPR.get_set_of_upward_reserve_levels_included_in_network_redispatch(
+        gep
+    )
+    L⁻ = GEPPR.get_set_of_downward_reserve_levels_included_in_network_redispatch(
+        gep
+    )
+
+    gep[:M, :constraints, :MaxAbsNodalImbalance] = @constraint(
+        gep.model,
+        [n = N, l = L⁺, y = Y, p = P, i = 1:length(T)],
+        dL⁺[n, l, y, p, T[i]] <= d_max[n][i]
+    )
+    gep[:M, :constraints, :MinAbsNodalImbalance] = @constraint(
+        gep.model,
+        [n = N, l = L⁻, y = Y, p = P, i = 1:length(T)],
+        dL⁻[n, l, y, p, T[i]] >= d_min[n][i]
+    )
+
     return gep
 end
 
