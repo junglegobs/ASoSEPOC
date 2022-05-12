@@ -698,6 +698,22 @@ function scenarios_2_forecast(opts, scens; src_name=first(collect(keys(k))))
     return forecast
 end
 
+function absolute_limits_on_nodal_imbalance(opts::Dict, dNLFE)
+    d_min = Dict(k => minimum(v, dims=2)[:] for (k,v) in dNLFE)
+    d_max = Dict(k => maximum(v, dims=2)[:] for (k,v) in dNLFE)
+    d = Dict("d_min" => d_min, "d_max" => d_max)
+    return d
+end
+
+function absolute_limits_on_nodal_imbalance(opts::Dict)
+    scens = load_scenarios(opts::Dict)
+    mult = Dict("Load" => 1, "Wind" => -1, "Solar" => -1)
+    net_load_forecast_error_dict = scenarios_2_net_load_forecast_error(
+        opts, scens, mult
+    )
+    return absolute_limits_on_nodal_imbalance(opts, net_load_forecast_error_dict)
+end
+
 """
     get_probabilistic_reserve_parameters_from_scenarios(scenarios; kwargs...)
 

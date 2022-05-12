@@ -24,7 +24,9 @@ function options(pairs...)
         "exprs_2_save" => Symbol[],
         "initial_state_of_charge" => missing,
         "replace_storage_dispatch_with_node_injection" => false,
-        "reserve_provision_cost" => 0.0
+        "reserve_provision_cost" => 0.0,
+        "absolute_limit_on_nodal_imbalance_" => false,
+        "convex_hull_limit__on_nodal_imbalance" => false,
     )
     for (k, v) in pairs
         opts[k] = v
