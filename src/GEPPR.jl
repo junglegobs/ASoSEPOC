@@ -267,6 +267,7 @@ end
 function modify_network!(gep::GEPM, opts::Dict)
     @unpack rate_a_multiplier = opts
     if ismissing(rate_a_multiplier) == false
+        @info "Multiplying network branch limits by a factor $rate_a_multiplier..."
         for (idx, br) in gep.networkData["branch"]
             br["rate_a"] *= rate_a_multiplier
         end
@@ -313,6 +314,7 @@ function prevent_simultaneous_charge_and_discharge!(gep::GEPM, opts::Dict)
         prevent_simultaneous_charge_and_discharge == false
         return gep
     end
+    @info "Preventing simultaneous charging and discharging"
 
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
     STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
@@ -391,6 +393,16 @@ function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
         [n = N, l = L⁻, y = Y, p = P, i = 1:length(T)],
         dL⁻[n, l, y, p, T[i]] >= d_min[n][i]
     )
+
+    return gep
+end
+
+function modify_timeseries!(gep::GEPM, opts::Dict)
+    @unpack load_multiplier = opts
+    if ismissing(load_multiplier) == false
+        @info "Multiplying load by a factor $load_multiplier..."
+        gep.timeSeriesData[:, "Load"] *= load_multiplier
+    end
 
     return gep
 end
