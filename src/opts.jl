@@ -6,7 +6,7 @@ Create a dictionary which specifies simulation parameters.
 """
 function options(pairs...)
     opts = Dict(
-        "include_storage" => false,
+        "include_storage" => true,
         "unit_commitment_type" => "binary",
         "operating_reserves_sizing_type" => "given",
         "operating_reserves_type" => "none",
@@ -28,7 +28,8 @@ function options(pairs...)
         "absolute_limit_on_nodal_imbalance" => false,
         "convex_hull_limit__on_nodal_imbalance" => false,
         "prevent_simultaneous_charge_and_discharge" => true,
-        "rate_a_multiplier" => missing
+        "rate_a_multiplier" => missing,
+        "load_multiplier" => missing,
     )
     for (k, v) in pairs
         opts[k] = v
