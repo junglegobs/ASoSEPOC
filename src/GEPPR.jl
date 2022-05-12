@@ -149,6 +149,7 @@ function run_GEPPR(opts::Dict; load_only=false)
         if rolling_horizon == false
             apply_operating_reserves!(gep, opts)
             modify_network!(gep, opts)
+            modify_timeseries!(gep, opts)
             @info "Building JuMP model..."
             make_JuMP_model!(gep)
             apply_initial_commitment!(gep, opts)
