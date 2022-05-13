@@ -110,7 +110,7 @@ function optimizer(opts::Dict)
             "TimeLimit" => time_out(opts),
             "OutputFlag" => 1,
             # "Method" => UC ? 1 : -1,
-            # "PreSolve" => 0,
+            "PreSolve" => 0,
         )
     elseif CPLEX_EXISTS
         return optimizer_with_attributes(CPLEX.Optimizer)
@@ -411,7 +411,7 @@ end
 function save(gep::GEPM, opts::Dict)
     @unpack save_path = opts
     file_name = joinpath(save_path, "opts.jld2")
-    @save eval(file_name) opts
+    wsave(file_name, opts)
 
     vars_2_save = get(opts, "vars_2_save", nothing)
     exprs_2_save = get(opts, "exprs_2_save", nothing)
