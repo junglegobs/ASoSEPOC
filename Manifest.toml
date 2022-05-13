@@ -1311,6 +1311,12 @@ git-tree-sha1 = "14c1b795b9d764e1784713941e787e1384268103"
 uuid = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 version = "2.10.0"
 
+[[QHull]]
+deps = ["Polyhedra", "PyCall", "StaticArrays"]
+git-tree-sha1 = "da8422c9eac9baed4d2209492ae6375b049b1a1e"
+uuid = "a8468747-bd6f-53ef-9e5c-744dbc5c59e7"
+version = "0.2.3"
+
 [[QOI]]
 deps = ["ColorTypes", "FileIO", "FixedPointNumbers"]
 git-tree-sha1 = "18e8f4d1426e965c7b532ddd260599e1510d26ce"

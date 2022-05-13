@@ -11,6 +11,8 @@ rm(opts["save_path"]; force=true, recursive=true)
 opts["load_multiplier"] = 1.5
 opts["initial_state_of_charge"] = 0.0
 opts["absolute_limits_on_nodal_imbalance"] = true
+opts["convex_hull_limit_on_nodal_imbalance"] = true
+opts["n_scenarios_for_convex_hull_calc"] => 1_000
 # opts["prevent_simultaneous_charge_and_discharge"] = false
 opts["upward_reserve_levels_included_in_redispatch"] = [9,10]
 opts["downward_reserve_levels_included_in_redispatch"] = [9,10]
