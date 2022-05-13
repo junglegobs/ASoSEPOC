@@ -410,6 +410,9 @@ end
 
 function save(gep::GEPM, opts::Dict)
     @unpack save_path = opts
+    file_name = joinpath(save_path, "opts.jld2")
+    @save eval(file_name) opts
+
     vars_2_save = get(opts, "vars_2_save", nothing)
     exprs_2_save = get(opts, "exprs_2_save", nothing)
     if vars_2_save !== nothing
