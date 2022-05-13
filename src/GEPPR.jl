@@ -398,6 +398,48 @@ function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
     return gep
 end
 
+function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
+    @unpack convex_hull_limit_on_nodal_imbalance, n_scenarios_for_convex_hull_calc = opts
+    convex_hull_limit_on_nodal_imbalance == false && return gep
+    n_scens = n_scenarios_for_convex_hull_calc
+
+    scen_id = month_day(opts)
+    poly_dict, file = produce_or_load(
+        datadir("pro", "nodal_imbalance_convex_hull_limits"),
+        opts,
+        convex_hull_limits_on_nodal_imbalance;
+        filename="$(scen_id)_n_scens=$(n_scens).jld2",
+    )
+    dL⁺ = GEPPR.get_possible_nodal_imbalance_due_to_upward_reserve_level_activation(
+        gep
+    )
+    dL⁻ = GEPPR.get_possible_nodal_imbalance_due_to_downward_reserve_level_activation(
+        gep
+    )
+    N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
+    L⁺ = GEPPR.get_set_of_upward_reserve_levels_included_in_network_redispatch(
+        gep
+    )
+    L⁻ = GEPPR.get_set_of_downward_reserve_levels_included_in_network_redispatch(
+        gep
+    )
+
+    gep[:M, :constraints, :convexHullNodalImbalance] = con = Dict()
+    for ti in 1:length(T)
+        t = T[ti]
+        for l in L⁺
+            dl = [dL⁺[n, l, Y[1], P[1], t] for n in sort(N)]
+            con[t,l] = @constraint(gep.model, dl in poly_dict[string(ti)])
+        end
+        for l in L⁻
+            dl = [dL⁻[n, l, Y[1], P[1], t] for n in sort(N)]
+            con[t,-l] = @constraint(gep.model, dl in poly_dict[string(ti)])
+        end
+    end
+
+    return gep
+end
+
 function modify_timeseries!(gep::GEPM, opts::Dict)
     @unpack load_multiplier = opts
     if ismissing(load_multiplier) == false

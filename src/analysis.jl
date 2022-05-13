@@ -50,7 +50,7 @@ function days_to_run_models_on(gep::GEPM, filename::String)
             dropdims(
                 sum(gep[:loadShedding].data; dims=(1, 2, 3)); dims=(1, 2, 3)
             ),
-            24,
+            N_HR_PER_DAY,
             :,
         );
         dims=1,
@@ -77,7 +77,7 @@ function days_to_run_models_on(gep::GEPM, filename::String)
     df[:, "day_of_month"] = [
         day(DateTime(2018, 1, 1) + Day(row["days"] - 1)) for row in eachrow(df)
     ]
-    df[:, "timesteps"] = [((i - 1) * 24 + 1):(i * 24) for i in df[:, "days"]]
+    df[:, "timesteps"] = [((i - 1) * N_HR_PER_DAY + 1):(i * N_HR_PER_DAY) for i in df[:, "days"]]
     CSV.write(datadir("pro", filename), df)
     return df[:, "days"], df[:, "timesteps"]
 end

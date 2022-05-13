@@ -1,4 +1,5 @@
 using XLSX, PowerModels, JSON, YAML, StatsBase, DataFrames, CSV, GEPPR, Dates
+using LazySets, Polyhedra, CDDLib, QHull
 include(srcdir("util.jl"))
 nT = 8_760 # Number of timesteps
 
@@ -458,7 +459,7 @@ function load_scenarios(
         (err_rw, err_cl) = size(err_data)
 
         num_err = err_cl - 3 #-->first 3 columns are identifiers
-        num_err_scens = (err_rw - 3) / 24 #--> first 3 rows are also identifiers
+        num_err_scens = (err_rw - 3) / N_HR_PER_DAY #--> first 3 rows are also identifiers
         print(myf, "Found $num_err_scens scenarios for $name error\n")
 
         if isinteger(num_err_scens) != true
@@ -537,7 +538,7 @@ function load_scenarios(
         for_rw, for_cl = size(for_data)
 
         num_for = for_cl - 3 #-->first 3 columns are identifiers
-        num_for_scens = (for_rw - 3) / 24 #--> first 3 rows are also identifiers
+        num_for_scens = (for_rw - 3) / N_HR_PER_DAY #--> first 3 rows are also identifiers
         print(myf, "Found $num_for_scens $name forecast\n")
 
         if isinteger(num_for_scens) != true
@@ -654,7 +655,7 @@ function scenarios_2_GEPPR(opts::Dict, scens)
 end
 
 function scenarios_2_net_load_forecast_error(
-    opts::Dict, scens, mult; init_val=zeros(24, 1000)
+    opts::Dict, scens, mult; init_val=zeros(N_HR_PER_DAY, 1000)
 )
     pm = PowerModels.parse_file(grid_red_path)
 
@@ -712,6 +713,35 @@ function absolute_limits_on_nodal_imbalance(opts::Dict)
         opts, scens, mult
     )
     return absolute_limits_on_nodal_imbalance(opts, net_load_forecast_error_dict)
+end
+
+function convex_hull_limits_on_nodal_imbalance(opts::Dict, dNLFE)
+    @unpack n_scenarios_for_convex_hull_calc = opts
+    n_scens = n_scenarios_for_convex_hull_calc
+    poly_dict = Dict{String,Polyhedra.Polyhedron}()
+    for t in 1:N_HR_PER_DAY
+        @info "Calculating convex hull for t = $t..."
+        scen_vec = StatsBase.sample(1:1_000, n_scens)
+        NLFE_vec = Dict(k => v[t,scen_vec] for (k, v) in dNLFE)
+        df = DataFrame(NLFE_vec)
+        v = [[df[i, j] for j in 1:size(df, 2)] for i in 1:size(df, 1)]
+        @suppress hull = convex_hull(v; backend=QHull.Library())
+        @info "Converting to vertex representation..."
+        p = vrep(hull)
+        @info "Creating polyhedron..."
+        p = polyhedron(p)
+        poly_dict[string(t)] = p
+    end
+    return poly_dict
+end
+
+function convex_hull_limits_on_nodal_imbalance(opts::Dict)
+    scens = load_scenarios(opts::Dict)
+    mult = Dict("Load" => 1, "Wind" => -1, "Solar" => -1)
+    dNLFE = scenarios_2_net_load_forecast_error(
+        opts, scens, mult
+    )
+    return convex_hull_limits_on_nodal_imbalance(opts, dNLFE)
 end
 
 """

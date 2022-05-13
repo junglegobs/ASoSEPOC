@@ -1,3 +1,5 @@
+N_HR_PER_DAY = 24
+
 """
 	mkrootdirs(dir::String)
 
