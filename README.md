@@ -82,3 +82,5 @@ L1.5 = Load times 1.5
 | x  | x       | x    | x  | x     | x      |         |      |
 | x  | x       | x    | x  | x     | x      | x       |      |
 | x  | x       | x    | x  | x     | x      | x       | x    |
+
+All this just for one day, the 4th day in the list of days chosen.
