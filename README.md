@@ -44,3 +44,41 @@ Grid, load, renewables and capacity mix data come from [this paper](https://www.
 
 * It is a Belgium-like system with a very high share of renewables (~80%).
 * The nuclear reactors in Doel and Tihange have been replaced by gas fired power plants.
+
+### Model runs
+
+#### Questions to be answered
+
+* Is there load shedding with an entirely linear model with no network constraints?
+* Above, but with unit commitment constraints?
+* Above, but with the network?
+* Above, but with simultaneous charging/discharging not allowed?
+* Same 3 questions as above, but with operating reserves and for different reserve level shedding limits, i.e. attempting to trace a adequacy / security pareto curve? + additional run with reserve activation network constraints?
+* Starting from the most "inflexible" system, does adding absolute limits on the nodal imbalance change anything?
+* Same, but with convex hull constraints?
+* Same, but with load multiplier
+
+#### Model runs table
+
+UC = Unit commitment constraints
+DANet = Day ahead network constraints
+PSCD = Prevent simultaneous charge and discharge
+OR = Include operating reserves and reserve shedding limits
+RANet = Reserve activation network constraints
+AbsImb = absolute limits on nodal imbalance
+ConvImb = convex hull limits on nodal imbalance
+L1.5 = Load times 1.5
+
+| UC | DA Net. | PSCD | OR | RANet | AbsImb | ConvImb | L1.5 |
+|----|---------|------|----|-------|--------|---------|------|
+|    |         |      |    |       |        |         |      |
+| x  |         |      |    |       |        |         |      |
+| x  | x       |      |    |       |        |         |      |
+| x  | x       | x    |    |       |        |         |      |
+| x  |         |      | x  |       |        |         |      |
+| x  | x       |      | x  |       |        |         |      |
+| x  | x       | x    | x  |       |        |         |      |
+| x  | x       | x    | x  | x     |        |         |      |
+| x  | x       | x    | x  | x     | x      |         |      |
+| x  | x       | x    | x  | x     | x      | x       |      |
+| x  | x       | x    | x  | x     | x      | x       | x    |
