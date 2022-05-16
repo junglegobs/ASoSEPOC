@@ -14,8 +14,10 @@ opts["absolute_limits_on_nodal_imbalance"] = true
 opts["convex_hull_limit_on_nodal_imbalance"] = true
 opts["n_scenarios_for_convex_hull_calc"] => 1_000
 # opts["prevent_simultaneous_charge_and_discharge"] = false
-opts["upward_reserve_levels_included_in_redispatch"] = [9,10]
-opts["downward_reserve_levels_included_in_redispatch"] = [9,10]
+# opts["upward_reserve_levels_included_in_redispatch"] = [9,10]
+opts["upward_reserve_levels_included_in_redispatch"] = 1:10
+# opts["downward_reserve_levels_included_in_redispatch"] = [9,10]
+opts["downward_reserve_levels_included_in_redispatch"] = 1:10
 
 RSL_vec = [1.0, 0.5, 0.0]
 opts_vec = [
