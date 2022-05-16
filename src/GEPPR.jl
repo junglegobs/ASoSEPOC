@@ -9,7 +9,7 @@ function param_and_config(opts::Dict)
     include_storage,
     copperplate,
     initial_state_of_charge,
-    reserve_provision_cost = opts
+    reserve_provision_cost, operating_reserves_type = opts
 
     is_linear = (opts["unit_commitment_type"] == "none")
     init_soc = opts["initial_state_of_charge"]
@@ -47,6 +47,7 @@ function param_and_config(opts::Dict)
             rolling_horizon ? false : true,
         "dispatchableGeneration" => Dict(),
         "intermittentGeneration" => Dict(),
+        "reserveType" => operating_reserves_type
     )
 
     # In case including storage
