@@ -457,7 +457,7 @@ function save(gep::GEPM, opts::Dict)
     wsave(file_name, opts)
 
     file_name = joinpath(save_path, "opts.json")
-    open(file_name, "w") f do
+    open(file_name, "w") do f
         JSON.print(f, opts, 4)
     end
 
