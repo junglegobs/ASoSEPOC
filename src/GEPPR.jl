@@ -537,7 +537,7 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
 end
 
 function tech_node_to_idx(gep::GEPM)
-    d = gep.networkData
+    nd = gep.networkData
     GDN = GEPPR.get_set_of_nodal_dispatchable_generators(gep)
     GRN = GEPPR.get_set_of_nodal_intermittent_generators(gep)
     STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
@@ -550,7 +550,7 @@ function tech_node_to_idx(gep::GEPM)
                         bus_idx_2_name[string(pair[2]["bus"])] ==
                         string(gn[2]) && pair[2]["name"] == gn[1]
                     ),
-                    collect(n["res"]),
+                    collect(nd["res"]),
                 )][1],
             ) for gn in GRN
         ),
