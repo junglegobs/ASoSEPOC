@@ -1,7 +1,6 @@
 include(joinpath(@__DIR__, "..", "intro.jl"))
 sn = script_name(@__FILE__)
 mkrootdirs(plotsdir(sn))
-rm(simsdir(sn); force=true, recursive=true)
 
 opts = options_diff_days(sn)[4]
 opts["initial_state_of_charge"] = 0.0
@@ -38,11 +37,55 @@ opts_vec = [
         opts,
         Dict(
             "operating_reserves_type" => "none",
-            "save_path" =>
-                joinpath(opts["save_path"], "base_UC=true_DANet=true_PSCD=true"),
+            "save_path" => joinpath(
+                opts["save_path"], "base_UC=true_DANet=true_PSCD=true"
+            ),
         ),
     ),
 ]
+opts_vec = vcat(
+    opts_vec...,
+    [
+        merge(
+            opts,
+            Dict(
+                "operating_reserves_type" => "probabilistic",
+                "reserve_shedding_limit" => v,
+                "save_path" => "$(opts["save_path"])_RSV=$(v)",
+            ),
+        ) for opts in opts_vec, v in [0.0, 0.5, 1.0]
+    ]...,
+)
+opts_vec = vcat(
+    opts_vec...,
+    [
+        merge(
+            opts,
+            Dict(
+                "upward_reserve_levels_included_in_redispatch" => 1:10,
+                "downward_reserve_levels_included_in_redispatch" => 1:10,
+                "save_path" => "$(opts["save_path"])_L⁺=1:10_L⁻=1:10",
+            ),
+        ) for opts in opts_vec if opts["reserve_shedding_limit"] < 1.0
+    ]...,
+)
+opts_vec = vcat(
+    opts_vec...,
+    [
+        merge(
+            opts,
+            Dict(
+                "absolute_limit_on_nodal_imbalance" => true,
+                "save_path" => "$(opts["save_path"])_AbsIm=true",
+            ),
+        ) for opts in opts_vec if opts["reserve_shedding_limit"] < 1.0 && (
+            isempty(opts["upward_reserve_levels_included_in_redispatch"]) ==
+            false ||
+            isempty(opts["downward_reserve_levels_included_in_redispatch"]) ==
+            false
+        )
+    ],
+)
 
 function main_model_run(opts; make_plots=true)
     gep = run_GEPPR(opts)
@@ -54,6 +97,7 @@ function main_model_run(opts; make_plots=true)
 
         # If has reserves, plot these
         if opts["operating_reserves_type"] != "none"
+            apply_operating_reserves!(gep, opts)
             plt = plot_reserves_simple(gep, 1)
             Plots.savefig(plt, joinpath(opts["save_path"], "reserves.png"))
         end
@@ -83,15 +127,22 @@ end
 gep_vec = GEPM[]
 for opts in opts_vec
     try
-        push!(gep_vec, main_model_run(opts))
-    catch
+        push!(gep_vec, main_model_run(opts; make_plots=false))
+    catch e
         @warn "$(opts["save_path"]) failed."
+        println(string(e))
     end
-end
+end 
 
-function analyse_main_model_runs(gep_vec)
+function analyse_main_model_runs(gep_vec, opts_vec)
     df = DataFrame(
         "Name" => [basename(opts["save_path"]) for opts in opts_vec],
+        "UC" => [opts["unit_commitment_type"] == "binary" for opts in opts_vec],
+        "DANet" => [opts["copperplate"] == false for opts in opts_vec],
+        "PSCD" => [
+            opts["prevent_simultaneous_charge_and_discharge"] == true for
+            opts in opts_vec
+        ],
         "Reserve Shedding" =>
             sum.([
                 ismissing(gep[:rsL⁺]) ? SVC(0.0) : gep[:rsL⁺] for gep in gep_vec
@@ -103,4 +154,4 @@ function analyse_main_model_runs(gep_vec)
     return df
 end
 
-df = analyse_main_model_runs(gep_vec)
+df = analyse_main_model_runs(gep_vec, opts_vec)
