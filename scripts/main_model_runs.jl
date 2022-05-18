@@ -2,6 +2,15 @@ include(joinpath(@__DIR__, "..", "intro.jl"))
 sn = script_name(@__FILE__)
 mkrootdirs(plotsdir(sn))
 
+function res_act_net(opts)
+    return opts["reserve_shedding_limit"] < 1.0 && (
+        isempty(opts["upward_reserve_levels_included_in_redispatch"]) ==
+        false ||
+        isempty(opts["downward_reserve_levels_included_in_redispatch"]) ==
+        false
+    )
+end
+
 opts = options_diff_days(sn)[4]
 opts["initial_state_of_charge"] = 0.0
 opts_vec = [
@@ -78,12 +87,7 @@ opts_vec = vcat(
                 "absolute_limit_on_nodal_imbalance" => true,
                 "save_path" => "$(opts["save_path"])_AbsIm=true",
             ),
-        ) for opts in opts_vec if opts["reserve_shedding_limit"] < 1.0 && (
-            isempty(opts["upward_reserve_levels_included_in_redispatch"]) ==
-            false ||
-            isempty(opts["downward_reserve_levels_included_in_redispatch"]) ==
-            false
-        )
+        ) for opts in opts_vec if res_act_net(opts)
     ],
 )
 
@@ -132,7 +136,7 @@ for opts in opts_vec
         @warn "$(opts["save_path"]) failed."
         println(string(e))
     end
-end 
+end
 
 function analyse_main_model_runs(gep_vec, opts_vec)
     df = DataFrame(
@@ -141,6 +145,14 @@ function analyse_main_model_runs(gep_vec, opts_vec)
         "DANet" => [opts["copperplate"] == false for opts in opts_vec],
         "PSCD" => [
             opts["prevent_simultaneous_charge_and_discharge"] == true for
+            opts in opts_vec
+        ],
+        "OR" =>
+            [opts["operating_reserves_type"] != "none" for opts in opts_vec],
+        "RSV" => [opts["reserve_shedding_limit"] for opts in opts_vec],
+        "RANet" => [res_act_net(opts) for opts in opts_vec],
+        "AbsImb" => [
+            opts["absolute_limit_on_nodal_imbalance"] == true for
             opts in opts_vec
         ],
         "Reserve Shedding" =>
