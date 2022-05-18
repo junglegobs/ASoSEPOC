@@ -461,6 +461,8 @@ function save(gep::GEPM, opts::Dict)
         JSON.print(f, opts, 4)
     end
 
+    save_gep_for_security_analysis(gep, opts)
+
     vars_2_save = get(opts, "vars_2_save", nothing)
     exprs_2_save = get(opts, "exprs_2_save", nothing)
     if vars_2_save !== nothing
@@ -482,10 +484,10 @@ Saves data in the format: hour -> generator (with associated bus) -> values / na
 """
 function save_gep_for_security_analysis(gep::GEPM, path::String)
     q = gep[:q]
-    z = gep[:z]
-    e = gep[:e]
-    sc = gep[:sc]
-    sd = gep[:sd]
+    z = gep[:z, SVC(missing)]
+    e = gep[:e, SVC(missing)]
+    sc = gep[:sc, SVC(missing)]
+    sd = gep[:sd, SVC(missing)]
     ls = gep[:loadShedding]
     UC_results = Dict{Integer,Dict}()
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
