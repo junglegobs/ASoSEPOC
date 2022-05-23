@@ -3,7 +3,7 @@ sn = script_name(@__FILE__)
 mkrootdirs(plotsdir(sn))
 
 function res_act_net(opts)
-    return opts["reserve_shedding_limit"] < 1.0 && (
+    return opts["reserve_shedding_limit"] <= 1.0 && (
         isempty(opts["upward_reserve_levels_included_in_redispatch"]) ==
         false ||
         isempty(opts["downward_reserve_levels_included_in_redispatch"]) ==
@@ -90,6 +90,18 @@ opts_vec = vcat(
         ) for opts in opts_vec if res_act_net(opts)
     ],
 )
+opts_vec = vcat(
+    opts_vec...,
+    [
+        merge(
+            opts,
+            Dict(
+                "load_multiplier" => 1.5,
+                "save_path" => "$(opts["save_path"])_LoadMult=1.5",
+            ),
+        ) for opts in opts_vec if res_act_net(opts)
+    ],
+)
 
 function main_model_run(opts; make_plots=true)
     gep = run_GEPPR(opts)
@@ -155,6 +167,7 @@ function analyse_main_model_runs(gep_vec, opts_vec)
             opts["absolute_limit_on_nodal_imbalance"] == true for
             opts in opts_vec
         ],
+        "LM" => [opts["load_multiplier"] for opts in opts_vec],
         "Reserve Shedding" =>
             sum.([
                 ismissing(gep[:rsL⁺]) ? SVC(0.0) : gep[:rsL⁺] for gep in gep_vec
@@ -163,6 +176,31 @@ function analyse_main_model_runs(gep_vec, opts_vec)
         "Objective" => [gep[:objective] for gep in gep_vec],
     )
     CSV.write(joinpath(opts["save_path"], "summary.csv"), df)
+
+    function analyse_effect_of_constraints(df, path)
+        mkrootdirs(path)
+
+        df_no_OR = filter(row -> row["OR"] == false, df)
+        CSV.write(joinpath(path, "no_OR.csv"), df_no_OR)
+
+        df_no_RANet = filter(row -> row["OR"] == true && row["RANet"] == false && row["AbsImb"] == false, df)
+        DataFrames.sort!(df_no_RANet, ["UC", "DANet", "PSCD"])
+        CSV.write(joinpath(path, "no_RANet.csv"), df_no_RANet)
+
+        df_no_AbsImb = filter(row -> row["OR"] == true && row["RANet"] == true && row["AbsImb"] == false, df)
+        DataFrames.sort!(df_no_AbsImb, ["UC", "DANet", "PSCD"])
+        CSV.write(joinpath(path, "no_AbsImb.csv"), df_no_AbsImb)
+
+        df_no_ConvImb = filter(row -> row["OR"] == true && row["RANet"] == true && row["AbsImb"] == true, df)
+        DataFrames.sort!(df_no_AbsImb, ["UC", "DANet", "PSCD"])
+        CSV.write(joinpath(path, "no_ConvImb.csv"), df_no_ConvImb)
+
+        return nothing
+    end
+
+    analyse_effect_of_constraints(filter(row -> ismissing(row["LM"]), df), joinpath(opts["save_path"], "LM=1.0"))
+    analyse_effect_of_constraints(filter(row -> ismissing(row["LM"]) == 1.5, df), joinpath(opts["save_path"], "LM=1.5"))
+
     return df
 end
 
