@@ -119,12 +119,18 @@ The constraints on reserve provision are as follows:
     r^{-}_{gt} = \sum_{l \in L^-} r^{L^-}_{gnlt}                          & \quad g \in G, \; t \in T
 \end{align}
 
+The amount of reserve shedding can be limited to a fraction of the total upward reserve requirements $RSL$:
+
+\begin{equation}
+    \sum_{n \in N, l \in L^+} rs_{nlt} \leq RSL \cdot \sum_{l \in L^+} D^{L^+}_{l't} \quad t \in T
+\end{equation}
+
 There are several matters to note here:
 
 \begin{itemize}
     \item The operating reserve balance is performed over the entire network, not per node.
     \item The operating reserve balance is split into reserve levels. Higher reserve levels (values of $l$) are less likely to occur.
-    \item It is possible to shed upward reserves, and this is more likely to occur for higher reserve levels. This model is therefore able to make a tradeoff between day ahead adequacy and real time operational security, albeit crudely.
+    \item It is possible to shed upward reserves, and this is more likely to occur for higher reserve levels. This model is therefore able to make a trade-off between day ahead adequacy and real time operational security, albeit crudely.
     \item Shedding load in day ahead allows additional downward reserves to be provided through the variable $rc_{nlt}$. Implicitly this assumes that load can be `activated' in real time to provide downward reserves.
 \end{itemize}
 
@@ -143,7 +149,16 @@ The following constraints attempt to take network constraints into account (albe
     \sum_{n \in N} rinj^{L^-}_{nt} = 0                                                       & \quad l \in L^-, \; n \in N, \; t \in T
 \end{align}
 
-Since imbalances are aggregated across the network, a particular reserve level activation is not associated with an imbalance at the nodal level. The above constraints therefore enforce that for each reserve level $l$ and node $n$, there exists some combination of nodal imbalance, node injections, generator dispatches and line flows which would satisfy the network constraints AND the imbalance across the entire network. Given the formulation here, which uses reserve levels, i.e. quantiles, over the entire network to represent forecast errors, it is difficult to come up with more stringent conditions.
+Since imbalances are aggregated across the network, a particular reserve level activation is not associated with an imbalance at the nodal level. The above constraints therefore enforce that for each reserve level $l$ and node $n$, there exists some combination of nodal imbalance, node injections, generator dispatches and line flows which would satisfy the network constraints AND the imbalance across the entire network. 
+
+Given the formulation here, which uses reserve levels, i.e. quantiles, over the entire network to represent forecast errors, it is difficult to come up with more stringent conditions. However, we devised two ways of doing so. The first is to apply box constraints to the possible nodal imbalances:
+
+\begin{align}
+    d_{nt}^{min} \leq $d_{nlt}^{L^+}$ \leq d_{nt}^{max} & \quad n \in N, \; l \in L^+, \; t \in T
+    d_{nt}^{min} \leq $d_{nlt}^{L^-}$ \leq d_{nt}^{max} & \quad n \in N, \; l \in L^-, \; t \in T
+\end{align}
+
+It is possible to calculate $d_{nt}^{min}$ and $d_{nt}^{max}$ since the quantiles for $D^{L^+}$ and $D^{L^-}$ are calculated based on forecast error scenarios which \emph{are} defined at the nodal level. These limits are shown in  
 
 \section{Input data - stylised Belgian grid with a large amount of variable renewable energy sources}
 
@@ -155,14 +170,17 @@ This analysis relates only to the 309th day of the year (November 5th).
 
 \tabref{tab:results_no_OR} lists results for an increasing level of technical constraints or increasingly inflexible system. While the objective more than doubles going from the simple linear economic dispatch model with no network constraints to the unit commitment model with network constraints, no load shedding occurs. Preventing simultaneous charging and discharging constraints does not affect results at all, implying that additional energy consumption from storage does not aid congestion.
 
-\begin{table}
+\begin{table}[ht]
+    \centering
     \begin{tabular}{ccccc}
         \toprule
         UC  & DANet & PSCD & Load shedding [MWh] & Objective \\
+        \midrule
             &       &      & 0.0                 & 101,916   \\
         \xm &       &      & 0.0                 & 212,558   \\
         \xm & \xm   &      & 0.0                 & 252,327   \\
         \xm & \xm   & \xm  & 0.0                 & 252,327   \\
+        \bottomrule
     \end{tabular}
     \caption{Analysis of model results when operating reserves are not included. UC = Unit Commitment constraints, DANet = Day Ahead Network constraints, PSCD = Prevent Simultaneous Charging and Discharging constraints.}\label{tab:results_no_OR}
 \end{table}
@@ -171,15 +189,18 @@ This analysis relates only to the 309th day of the year (November 5th).
 
 \begin{itemize}
     \item Unit commitment constraints lead to unavoidable load shedding. 
-    \item Results should be interpreted with caution however, since reserve provision is quite strict (storage can't provide reserves, non spinning reserves not modelled).
+    \item This result should be interpreted with caution however, since reserve provision is quite strict (storage can't provide reserves, non spinning reserves not modelled). If more flexibility would be available in terms of reserve provision then this might not occur.
     \item Network constraints are less problematic than unit commitment (cost increase of ~20,000 euros instead of 500,000) (perhaps thanks to storage, who knows).
     \item Preventing simultaneous charge and discharge has a small but noticeable effect.
 \end{itemize}
 
-\begin{table}
+\begin{table}[ht]
+    \centering
+    \footnotesize
     \begin{tabular}{ccccccc}
         \toprule
         UC  & DANet & PSCD & RSL & Load shedding [MWh] & Reserve Shedding [MWh] & Objective \\
+        \midrule
             &       &      & 0.0 & 0.0                 & 0.0                    & 117,290   \\
             &       &      & 0.5 & 0.0                 & 0.0                    & 117,290   \\
             &       &      & 1.0 & 0.0                 & 0.0                    & 117,290   \\
@@ -195,40 +216,23 @@ This analysis relates only to the 309th day of the year (November 5th).
         \xm & \xm   & \xm  & 0.0 & 1,669               & 0.0                    & 665,705   \\
         \xm & \xm   & \xm  & 0.5 & 1,669               & 136                    & 665,696   \\
         \xm & \xm   & \xm  & 1.0 & 1,669               & 136                    & 665,696   \\
+        \bottomrule
     \end{tabular}
     \caption{Analysis of model results with operating reserves but no reserve activation network constraints. UC = Unit Commitment constraints, DANet = Day Ahead Network constraints, PSCD = Prevent Simultaneous Charging and Discharging constraints, RSL = Reserve Shedding Limit.}\label{tab:results_no_RANet}
 \end{table}
 
 \subsection{Probabilistic operating reserves with reserve activation network constraints}
 
-\begin{itemize}
-    \item Unit commitment constraints lead to unavoidable load shedding. 
-    \item Results should be interpreted with caution however, since reserve provision is quite strict (storage can't provide reserves, non spinning reserves not modelled).
-    \item Network constraints are less problematic than unit commitment (cost increase of ~20,000 euros instead of 500,000) (perhaps thanks to storage, who knows).
-    \item Preventing simultaneous charge and discharge has a small but noticeable effect.
-\end{itemize}
-
-\begin{table}
+\begin{table}[ht]
+    \centering
+    \footnotesize
     \begin{tabular}{ccccccc}
         \toprule
-        UC  & DANet & PSCD & RSL & Load shedding [MWh] & Reserve Shedding [MWh] & Objective \\
-            &       &      & 0.0 & 0.0                 & 0.0                    & 117,290   \\
-            &       &      & 0.5 & 0.0                 & 0.0                    & 117,290   \\
-            &       &      & 1.0 & 0.0                 & 0.0                    & 117,290   \\
+        UC  & DANet & PSCD & RSL & AbsImb & Load shedding [MWh] & Reserve Shedding [MWh] & Objective \\
         \midrule
-        \xm &       &      & 0.0 & 1,669               & 0.0                    & 645,679   \\
-        \xm &       &      & 0.5 & 1,669               & 0.0                    & 645,679   \\
-        \xm &       &      & 1.0 & 1,669               & 0.0                    & 645,679   \\
-        \midrule
-        \xm & \xm   &      & 0.0 & 1,669               & 0.0                    & 665,010   \\
-        \xm & \xm   &      & 0.5 & 1,669               & 136                    & 657,010   \\
-        \xm & \xm   &      & 1.0 & 1,669               & 136                    & 657,010   \\
-        \midrule
-        \xm & \xm   & \xm  & 0.0 & 1,669               & 0.0                    & 665,705   \\
-        \xm & \xm   & \xm  & 0.5 & 1,669               & 136                    & 665,696   \\
-        \xm & \xm   & \xm  & 1.0 & 1,669               & 136                    & 665,696   \\
+        \bottomrule
     \end{tabular}
-    \caption{Analysis of model results with operating reserves but no reserve activation network constraints. UC = Unit Commitment constraints, DANet = Day Ahead Network constraints, PSCD = Prevent Simultaneous Charging and Discharging constraints, RSL = Reserve Shedding Limit.}\label{tab:results_no_RANet}
+    \caption{Analysis of model results with operating reserves but no reserve activation network constraints. UC = Unit Commitment constraints, DANet = Day Ahead Network constraints, PSCD = Prevent Simultaneous Charging and Discharging constraints, RSL = Reserve Shedding Limit, AbsImb = limit on absolute value of nodal imbalances}\label{tab:results_no_RANet}
 \end{table}
 
 \end{document}
