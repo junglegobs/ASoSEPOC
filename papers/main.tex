@@ -352,10 +352,26 @@ With reference to \tabref{tab:results_LM_1_5}:
     \item Day ahead network constraints increase load shedding considerably i.e. congestion also plays a role in increasing load shedding.
 \end{itemize}
 
-Closer investigation at load shedding patterns for the model with UC and DANet (but no PSCD and AbsImb) reveals that all load shedding occurs at the start of the day (when the battery has not charged yet). 
+% Closer investigation at load shedding patterns for the model with UC and DANet (but no PSCD and AbsImb) reveals that all load shedding occurs at the start of the day (when the battery has not charged yet).
 
-\todo[inline]{Load is shed at nodes where no load exists, which is clearly unphysical.}
-
-
+% \begin{figure}[H]
+%     \centering
+%     \begin{subfigure}[t]{0.7\textwidth}
+%         \centering
+%         \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_RSV=0.0/dispatch}
+%         \caption{No UC, no DANet, no PSCD, RSL is 0.0}
+%     \end{subfigure}
+%     \begin{subfigure}[t]{0.7\textwidth}
+%         \centering
+%         \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_UC=true_RSV=0.0/dispatch}
+%         \caption{UC, no DANet, no PSCD, RSL is 0.0}
+%     \end{subfigure}
+%     \begin{subfigure}[t]{0.7\textwidth}
+%         \centering
+%         \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_UC=true_DANet=true_RSV=0.0/dispatch}
+%         \caption{UC, DANet, no PSCD, RSL is 0.0}
+%     \end{subfigure}
+%     \caption{Dispatch schedules with and without operating reserves.\label{fig:dispatch_simple_reserves}}
+% \end{figure}
 
 \end{document}

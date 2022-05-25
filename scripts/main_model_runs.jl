@@ -13,11 +13,11 @@ function res_act_net(opts)
 end
 
 function has_OR(gep::GEPM)
-    return isnothing(gep_1[:I, :uncertainty]) == false
+    return isnothing(gep[:I, :uncertainty]) == false
 end
 
 opts = options_diff_days(sn)[4]
-opts["initial_state_of_charge"] = 0.0
+opts["initial_state_of_charge"] = 0.5
 opts_vec = [
     merge(
         opts,
