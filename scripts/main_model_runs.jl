@@ -148,8 +148,6 @@ function main_model_run(opts; make_plots=false)
     return gep
 end
 
-main_model_run(opts_vec[63])
-
 gep_vec = GEPM[]
 for opts in opts_vec
     try
@@ -293,8 +291,8 @@ end
 # how_is_reserve_shed_without_increasing_load_shedding(gep_vec, opts_vec)
 
 function load_shedding_distribution(gep_vec, opts_vec, idx)
-    plotly()
-    gep = gep_vec[63]
+    pyplot()
+    gep = gep_vec[idx]
 
     ls = dropdims(gep[:loadShedding].data; dims=(2, 3))
     plt = Plots.plot(
@@ -318,7 +316,6 @@ function load_shedding_distribution(gep_vec, opts_vec, idx)
     Plots.savefig(plt, plotsdir(sn, "ls_per_node_idx=$(idx).png"))
 
     D = dropdims(GEPPR.get_demand(gep); dims=(2, 3))
-
     norm_ls = (sum(ls; dims=2) ./ sum(D; dims=2))'
     plt = Plots.bar(
         hcat(x...),
@@ -339,6 +336,11 @@ function load_shedding_distribution(gep_vec, opts_vec, idx)
         markershape=:diamond,
         markercolor=:red,
         markersize=4,
+        lab="Unphysical load shedding"
     )
-    return Plots.savefig(plt, plotsdir(sn, "ls_per_node_idx=$(idx).png"))
+    Plots.savefig(plt, plotsdir(sn, "ls_per_node_idx=$(idx).png"))
+
+    return nothing
 end
+
+load_shedding_distribution(gep_vec, opts_vec, 63)
