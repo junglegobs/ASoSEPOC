@@ -13,15 +13,25 @@
 
 \tableofcontents
 
+\input{acronyms}
+
 \newpage
 
 \section{Interaction description}
 
-\todo[inline]{Fill in}
+Adequacy assessments and operational security analyses are two fundamental exercises in determining and ensuring the reliable operation of the electric power system. The former assesses the ability of the power system to satisfy demand for electricity in the day ahead stage, while the latter assesses (or ensures, depending on the context) that an unexpected event, such as an outage of a transmission line or generator or lower or greater than expected realisation of demand or renewable generation, does not lead to cascading failures and a possible blackout.
+
+Typically, these exercises are performed independently. This interaction combines the two by feeding the results of an adequacy assessment to an operational security analysis.
+
+In doing so, we deviate from typical practices in a number of ways. First, the adequacy assessment is done for a limited number of days instead of many Monte Carlo years for the sake of clarity and brevity. Indeed, doing this exercise for many Monte Carlo years would drastically increase the computational complexity while the aim of this exercise is to illustrate how such an interaction could be performed.
+
+Secondly, the adequacy assessment is done using an unconventional \ac{UC} model, a modified version of the \ac{DUCPR} model described in \cite{Bruninx2017}. This model can be seen as a compromise between a computationally expensive stochastic \ac{UC} model and a more tractable though less accurate deterministic \ac{UC} model with operating reserve requirements. The treatment of operating reserves in this model allows a trade-off between shedding load in the day ahead stage, which would reduce day ahead adequacy, and shedding operating reserves, which should reduce operational security. By making this trade-off explicit and verifying the results in an operational security analysis we aim to elaborate on the results of \cite{Hermans2018}, which did not consider the possibility that shedding operating reserves would lead to insecure operation of the electric power system.
 
 All code can be found at \href{https://github.com/junglegobs/ASoSEPOC}{https://github.com/junglegobs/ASoSEPOC}.
 
 \section{Description of a Deterministic Unit Commitment Model with Probabilistic Reserve (DUC-PR) constraints}
+
+Sets, variables and costs related to unit commitment and storage operation have been omitted for brevity though they are included in the model. The interested reader is referred to \href{https://github.com/junglegobs/ASoSEPOC}{https://github.com/junglegobs/ASoSEPOC} for the relevant code.
 
 \subsection{Sets}
 
@@ -52,7 +62,7 @@ All code can be found at \href{https://github.com/junglegobs/ASoSEPOC}{https://g
 
 \subsection{Variables}
 
-All variables are positive apart from injetion variables which may also be negative.
+All variables are positive apart from node injection variables which may also be negative.
 
 \begin{itemize}
     \item $q_{gt}$ - Generation
@@ -83,8 +93,6 @@ All variables are positive apart from injetion variables which may also be negat
 \end{align}
 
 From the top line to the bottom, the costs are those of dispatching generators and activating upwards or downwards reserves.
-
-Costs related to unit commitment, $z_{gt}$, have been omitted for brevity though they are included in the model.
 
 \subsection{Constraints}
 
@@ -354,21 +362,27 @@ With reference to \tabref{tab:results_LM_1_5}:
     \item Day ahead network constraints increase load shedding considerably i.e. congestion also plays a role in increasing load shedding.
 \end{itemize}
 
-% Closer investigation at load shedding patterns for the model with UC and DANet (but no PSCD and AbsImb) reveals that all load shedding occurs at the start of the day (when the battery has not charged yet).
+Closer investigation at load shedding patterns for the model with UC and DANet (but no PSCD and AbsImb) and $RSL = 0.0$ reveals that load shedding is at it's highest in the mornings (8 - 10 AM) and in the evenings (17 - 20). No load shedding occurs in the middle of the day, which happens to be when load is lowest and solar generation is greatest. Load shedding is roughly equally distributed throughout the day in absolute though not relative terms.
 
 \begin{figure}[H]
     \centering
     \begin{subfigure}[t]{0.45\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../plots/main_model_runs/ls_per_node_idx=63}
+        \includegraphics[width=\textwidth]{../plots/main_model_runs/ls_timeseries_idx=56}
+        \caption{}
+    \end{subfigure}
+    \newline
+    \begin{subfigure}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../plots/main_model_runs/ls_per_node_abs_idx=56}
         \caption{}
     \end{subfigure}
     \begin{subfigure}[t]{0.45\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../plots/main_model_runs/ls_per_node_idx=63}
+        \includegraphics[width=\textwidth]{../plots/main_model_runs/ls_per_node_idx=56}
         \caption{}
     \end{subfigure}
-    \caption{}
+    \caption{Load shedding distribution in time (top figure, aggregated over all nodes) and space (aggregated over the entire day) for UC, DANet, LM = 1.5 and $RSL = 0.5$.}
 \end{figure}
 
 \end{document}

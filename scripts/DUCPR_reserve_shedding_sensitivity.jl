@@ -14,15 +14,15 @@ opts = merge(
         "absolute_limit_on_nodal_imbalance" => true,
     ),
 )
-opts_vec = vcat(
-    [merge(
+opts_vec = vcat([
+    merge(
         opts,
         Dict(
             "reserve_shedding_limit" => v,
             "save_path" => joinpath(opts["save_path"], "RSL=$(v)_L=$L"),
         ),
-    ) v in 1.0:-0.1:0]...,
-)
+    ) for v in 1.0:-0.1:0
+])
 gep_vec = run_GEPPR(opts_vec)
 GC.gc() # Who knows, maybe this will help
 map(
