@@ -305,7 +305,7 @@ function load_shedding_distribution(gep_vec, opts_vec, idx)
     plt = Plots.bar(
         hcat(x...),
         sum(ls; dims=2)';
-        ylab="Load shedding / Load [-]",
+        ylab="Load shedding [MWh]",
         xticks=(x, N),
         lab="",
         tickfontrotation=90,
@@ -313,7 +313,7 @@ function load_shedding_distribution(gep_vec, opts_vec, idx)
         lw=0.0,
         c=:blue,
     )
-    Plots.savefig(plt, plotsdir(sn, "ls_per_node_idx=$(idx).png"))
+    Plots.savefig(plt, plotsdir(sn, "ls_per_node_abs_idx=$(idx).png"))
 
     D = dropdims(GEPPR.get_demand(gep); dims=(2, 3))
     norm_ls = (sum(ls; dims=2) ./ sum(D; dims=2))'
@@ -343,4 +343,4 @@ function load_shedding_distribution(gep_vec, opts_vec, idx)
     return nothing
 end
 
-load_shedding_distribution(gep_vec, opts_vec, 63)
+load_shedding_distribution(gep_vec, opts_vec, 56)
