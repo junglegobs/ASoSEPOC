@@ -208,10 +208,10 @@ This analysis relates only to the 309th day of the year (November 5th).
         \toprule
         UC  & DANet & PSCD & Load shedding [MWh] & Objective \\
         \midrule
-            &       &      & 0.0                 & 101,916   \\
-        \xm &       &      & 0.0                 & 212,558   \\
-        \xm & \xm   &      & 0.0                 & 252,327   \\
-        \xm & \xm   & \xm  & 0.0                 & 252,327   \\
+            &       &      & 0.0                 & 101,915   \\
+        \xm &       &      & 0.0                 & 109,148   \\
+        \xm & \xm   &      & 0.0                 & 227,495   \\
+        \xm & \xm   & \xm  & 0.0                 & 227,492   \\
         \bottomrule
     \end{tabular}
     \caption{Analysis of model results when operating reserves are not included. UC = Unit Commitment constraints, DANet = Day Ahead Network constraints, PSCD = Prevent Simultaneous Charging and Discharging constraints.}\label{tab:results_no_OR}
@@ -255,21 +255,21 @@ The dispatch for the model with and without unit commitment constraints and with
         \toprule
         UC  & DANet & PSCD & RSL & Load shedding [MWh] & Reserve Shedding [MWh] & Objective \\
         \midrule
-            &       &      & 0.0 & 0.0                 & 0.0                    & 117,290   \\
-            &       &      & 0.5 & 0.0                 & 0.0                    & 117,290   \\
-            &       &      & 1.0 & 0.0                 & 0.0                    & 117,290   \\
+            &       &      & 0.0 & 0.0                 & 0.0                    & 101,345   \\
+            &       &      & 0.5 & 0.0                 & 0.0                    & 101,014   \\
+            &       &      & 1.0 & 0.0                 & 0.0                    & 101,014   \\
         \midrule
-        \xm &       &      & 0.0 & 1,669               & 0.0                    & 645,679   \\
-        \xm &       &      & 0.5 & 1,669               & 0.0                    & 645,679   \\
-        \xm &       &      & 1.0 & 1,669               & 0.0                    & 645,679   \\
+        \xm &       &      & 0.0 & 1.669               & 0.0                    & 617,536   \\
+        \xm &       &      & 0.5 & 1.669               & 0.0                    & 617,536   \\
+        \xm &       &      & 1.0 & 1.669               & 0.0                    & 617,536   \\
         \midrule
-        \xm & \xm   &      & 0.0 & 1,669               & 0.0                    & 665,010   \\
-        \xm & \xm   &      & 0.5 & 1,669               & 136                    & 657,010   \\
-        \xm & \xm   &      & 1.0 & 1,669               & 136                    & 657,010   \\
+        \xm & \xm   &      & 0.0 & 1.669               & 0.0                    & 650,647   \\
+        \xm & \xm   &      & 0.5 & 1.669               & 136                    & 650,231   \\
+        \xm & \xm   &      & 1.0 & 1.669               & 136                    & 650,231   \\
         \midrule
-        \xm & \xm   & \xm  & 0.0 & 1,669               & 0.0                    & 665,705   \\
-        \xm & \xm   & \xm  & 0.5 & 1,669               & 136                    & 665,696   \\
-        \xm & \xm   & \xm  & 1.0 & 1,669               & 136                    & 665,696   \\
+        \xm & \xm   & \xm  & 0.0 & 1.669               & 0.0                    & 650,647   \\
+        \xm & \xm   & \xm  & 0.5 & 1.669               & 136                    & 650,231   \\
+        \xm & \xm   & \xm  & 1.0 & 1.669               & 136                    & 650,263   \\
         \bottomrule
     \end{tabular}
     \caption{Analysis of model results with operating reserves but no reserve activation network constraints. UC = Unit Commitment constraints, DANet = Day Ahead Network constraints, PSCD = Prevent Simultaneous Charging and Discharging constraints, RSL = Reserve Shedding Limit.}\label{tab:results_no_RANet}
@@ -319,29 +319,31 @@ Including network reserve activation constraints, that is Constraints \ref{eq:re
         \toprule
         UC  & DANet & PSCD & AbsImb & RSL & Load shedding [MWh] & Reserve Shedding [MWh] & Objective \\
         \midrule
-            &       &      &        & 0.0 & 34,860              & 0                      & 7,827,724 \\
-            &       &      &        & 0.5 & 16,346              & 19,257                 & 3,934,989 \\
-            &       &      &        & 1.0 & 7,521               & 28,209                 & 2,463,656 \\
+            &       &      &        & 0.0 & 32,366              & 0                      & 7,290,909 \\
+            &       &      &        & 0.5 & 0.0                 & 36,269                 & 447,102   \\
+            &       &      &        & 1.0 & 0.0                 & 36,082                 & 440,467   \\
         \midrule
-        \xm &       &      &        & 0.0 & 34,860              & 0                      & 7,969,802 \\
-        \xm &       &      &        & 0.5 & 16,672              & 19,002                 & 4,133,637 \\
-        \xm &       &      &        & 1.0 & 9,190               & 26,809                 & 2,892,401 \\
+        \xm &       &      &        & 0.0 & 32,366              & 0                      & 7,433,785 \\
+        \xm &       &      &        & 0.5 & 1,669               & 34,379                 & 924,686   \\
+        \xm &       &      &        & 1.0 & 1,669               & 34,308                 & 919,363   \\
         \midrule
-        \xm & \xm   &      &        & 0.0 & 42,008              & 0                      & 9,572,369 \\
-        \xm & \xm   &      &        & 0.5 & 16,950              & 28,096                 & 4,310,407 \\
-        \xm & \xm   &      &        & 1.0 & 15,482              & 29,604                 & 4,029,268 \\
+        \xm & \xm   &      &        & 0.0 & 33,929              & 0                      & 7,822,959 \\
+        \xm & \xm   &      &        & 0.5 & 1,967               & 39,234                 & 1,249,422 \\
+        \xm & \xm   &      &        & 1.0 & 1,941               & 39,160                 & 1,245,647 \\
         \midrule
-        \xm & \xm   & \xm  &        & 0.0 & 42,008              & 0                      & 9,572,828 \\
-        \xm & \xm   & \xm  &        & 0.5 & 16,950              & 28,096                 & 4,310,407 \\
-        \xm & \xm   & \xm  &        & 1.0 & 15,482              & 29,604                 & 4,029,268 \\
+        \xm & \xm   & \xm  &        & 0.0 & 33,929              & 0                      & 7,822,959 \\
+        \xm & \xm   & \xm  &        & 0.5 & 1,967               & 39,234                 & 1,249,422 \\
+        \xm & \xm   & \xm  &        & 1.0 & 1,941               & 39,160                 & 1,245,647 \\
         \midrule
-        \xm & \xm   & \xm  & \xm    & 0.0 & 42,008              & 0                      & 9,572,828 \\
-        \xm & \xm   & \xm  & \xm    & 0.5 & 16,950              & 28,096                 & 4,310,407 \\
-        \xm & \xm   & \xm  & \xm    & 1.0 & 15,482              & 29,604                 & 4,029,268 \\
+        \xm & \xm   & \xm  & \xm    & 0.0 & 33,929              & 0                      & 7,822,959 \\
+        \xm & \xm   & \xm  & \xm    & 0.5 & 1,967               & 39,234                 & 1,249,422 \\
+        \xm & \xm   & \xm  & \xm    & 1.0 & 1,941               & 39,160                 & 1,245,647 \\
         \bottomrule
     \end{tabular}
     \caption{Analysis of model results with operating reserves and with reserve activation network constraints with load multiplied by a factor of 1.5. UC = Unit Commitment constraints, DANet = Day Ahead Network constraints, PSCD = Prevent Simultaneous Charging and Discharging constraints, RSL = Reserve Shedding Limit.}\label{tab:results_no_RANet}
 \end{table}
+
+\todo[inline]{Objective is weird for some cases...}
 
 With reference to \tabref{tab:results_LM_1_5}:
 
@@ -354,24 +356,19 @@ With reference to \tabref{tab:results_LM_1_5}:
 
 % Closer investigation at load shedding patterns for the model with UC and DANet (but no PSCD and AbsImb) reveals that all load shedding occurs at the start of the day (when the battery has not charged yet).
 
-% \begin{figure}[H]
-%     \centering
-%     \begin{subfigure}[t]{0.7\textwidth}
-%         \centering
-%         \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_RSV=0.0/dispatch}
-%         \caption{No UC, no DANet, no PSCD, RSL is 0.0}
-%     \end{subfigure}
-%     \begin{subfigure}[t]{0.7\textwidth}
-%         \centering
-%         \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_UC=true_RSV=0.0/dispatch}
-%         \caption{UC, no DANet, no PSCD, RSL is 0.0}
-%     \end{subfigure}
-%     \begin{subfigure}[t]{0.7\textwidth}
-%         \centering
-%         \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_UC=true_DANet=true_RSV=0.0/dispatch}
-%         \caption{UC, DANet, no PSCD, RSL is 0.0}
-%     \end{subfigure}
-%     \caption{Dispatch schedules with and without operating reserves.\label{fig:dispatch_simple_reserves}}
-% \end{figure}
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../plots/main_model_runs/ls_per_node_idx=63}
+        \caption{}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../plots/main_model_runs/ls_per_node_idx=63}
+        \caption{}
+    \end{subfigure}
+    \caption{}
+\end{figure}
 
 \end{document}
