@@ -158,6 +158,7 @@ function run_GEPPR(opts::Dict; load_only=false)
             prevent_simultaneous_charge_and_discharge!(gep, opts)
             apply_initial_state_of_charge!(gep, opts)
             absolute_limit_on_nodal_imbalance!(gep, opts)
+            convex_hull_limit_on_nodal_imbalance!(gep, opts)
             optimize_GEP_model!(gep)
             save_optimisation_values!(gep)
         else
@@ -363,6 +364,7 @@ function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
     @unpack absolute_limit_on_nodal_imbalance = opts
     absolute_limit_on_nodal_imbalance == false && return gep
 
+    @info "Applying absolute limits on nodal imbalance..."
     scen_id = month_day(opts)
     data, file = produce_or_load(
         datadir("pro", "nodal_imbalance_abs_limits"),
@@ -399,11 +401,12 @@ function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
     return gep
 end
 
-function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
+function convex_hull_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
     @unpack convex_hull_limit_on_nodal_imbalance, n_scenarios_for_convex_hull_calc = opts
     convex_hull_limit_on_nodal_imbalance == false && return gep
+    
+    @info "Applying convex hull limits on nodal imbalance..."
     n_scens = n_scenarios_for_convex_hull_calc
-
     scen_id = month_day(opts)
     poly_dict, file = produce_or_load(
         datadir("pro", "nodal_imbalance_convex_hull_limits"),
