@@ -19,7 +19,7 @@ opts_vec = vcat([
         opts,
         Dict(
             "reserve_shedding_limit" => v,
-            "save_path" => joinpath(opts["save_path"], "RSL=$(v)_L=$L"),
+            "save_path" => joinpath(opts["save_path"], "RSL=$(v)"),
         ),
     ) for v in 1.0:-0.1:0
 ])
@@ -36,27 +36,27 @@ map(
 
 rsl_vec = [opts_vec[i]["reserve_shedding_limit"] for i in 1:length(opts_vec)]
 
-function plot_DUCPR_reserve_shedding_sensitivity(gep_vec, opts_vec, rsl_vec)
+function plot_DUCPR_reserve_shedding_sensitivity(
+    gep_vec, opts_vec, rsl_vec, days=["309"]
+)
     ls = Dict(
-        (sid_vec[i], rsl_vec[i]) => try
+        rsl_vec[i] => try
             sum(gep_vec[i][:loadShedding].data; dims=(1, 2, 3))[:]
         catch
             GEPPR.SVC(NaN)
         end for i in 1:length(opts_vec)
     )
-    rsLt = Dict(
-        (sid_vec[i], rsl_vec[i]) => try
-            gep_vec[i][:rsL⁺]
-        catch
-            GEPPR.SVC(NaN)
-        end for i in 1:length(opts_vec)
-    )
+    rsLt = Dict(rsl_vec[i] => try
+        gep_vec[i][:rsL⁺]
+    catch
+        GEPPR.SVC(NaN)
+    end for i in 1:length(opts_vec))
     rsL⁺ = Dict(
-        (sid_vec[i], rsl_vec[i]) => try
+        rsl_vec[i] => try
             sum(
-                rsLt[(sid_vec[i], rsl_vec[i])][n, l, 1, 1, t]
-                # rsLt[(sid_vec[i], rsl_vec[i])][n, l, 1, 1, t] *
-                # P⁺[(sid_vec[i], rsl_vec[i])][l, 1, 1, t] 
+                rsLt[(rsl_vec[i])][n, l, 1, 1, t]
+                # rsLt[(rsl_vec[i])][n, l, 1, 1, t] *
+                # P⁺[(rsl_vec[i])][l, 1, 1, t] 
                 for n in GEPPR.get_set_of_nodes(gep_vec[i]),
                 l in GEPPR.get_set_of_upward_reserve_levels(gep_vec[i]),
                 t in GEPPR.get_set_of_time_indices(gep_vec[i])[3]
@@ -65,49 +65,53 @@ function plot_DUCPR_reserve_shedding_sensitivity(gep_vec, opts_vec, rsl_vec)
             NaN
         end for i in 1:length(opts_vec)
     )
-    nd = length(options_diff_days(sn))
-    ls_mat = reshape(
-        [sum(ls[sid_vec[i], rsl_vec[i]]) for i in 1:length(opts_vec)], nd, 2, :
+    nd = length(days)
+    ls_mat = Matrix(
+        transpose(
+            reshape([sum(ls[rsl_vec[i]]) for i in 1:length(opts_vec)], nd, :)
+        ),
     )
-    rs_mat = reshape(
-        [rsL⁺[sid_vec[i], rsl_vec[i]] for i in 1:length(opts_vec)], nd, 2, :
+    rs_mat = Matrix(
+        transpose(
+            reshape([rsL⁺[rsl_vec[i]] for i in 1:length(opts_vec)], nd, :)
+        ),
     )
     Plots.plot(
-        ls_mat[:, 1, :]',
-        rs_mat[:, 1, :]';
+        ls_mat,
+        rs_mat;
         lw=2,
-        markerzise=20,
+        markerzise=16,
         markershape=:star5,
         xlab="Day ahead load shedding [MWh]",
         ylab="Reserve shedding [MWh]",
-        lab=["214" "210" "136" "309"],
+        lab=hcat(days...),
     )
     Plots.savefig(plotsdir(sn, "load_shedding_vs_reserve_shedding.png"))
 
-    rsl_mat = reshape(rsl_vec, nd, 2, :)
+    rsl_mat = Matrix(transpose(reshape(rsl_vec, nd, :)))
     Plots.plot(
-        rsl_mat[:, 1, :]',
-        ls_mat[:, 1, :]';
+        rsl_mat,
+        ls_mat;
         lw=2,
-        markersize=10,
+        markersize=6,
         markerwidth=0,
         markershape=:star5,
         xlab="Reserve shedding limit [0-1]",
         ylab="Load shedding [MWh]",
-        lab=["214" "210" "136" "309"],
+        lab=hcat(days...),
     )
     Plots.savefig(plotsdir(sn, "load_shedding_vs_reserve_shedding_limit.png"))
 
     Plots.plot(
-        rsl_mat[:, 1, :]',
-        rs_mat[:, 1, :]';
+        rsl_mat,
+        rs_mat;
         lw=2,
-        markersize=10,
+        markersize=6,
         markerwidth=0,
         markershape=:star5,
         xlab="Reserve shedding limit [0-1]",
         ylab="Reserve shedding [MWh]",
-        lab=["214" "210" "136" "309"],
+        lab=hcat(days...),
     )
     return Plots.savefig(
         plotsdir(sn, "reserve_shedding_vs_reserve_shedding_limit.png")
