@@ -7,6 +7,8 @@
 
 \title{Resource Adequacy and Operational Security Interaction in the EPOC 2030-50 Project}
 
+\author{Sebastian Gonzato}
+
 \maketitle
 
 \newpage
@@ -29,7 +31,9 @@ Secondly, the adequacy assessment is done using an unconventional \ac{UC} model,
 
 All code can be found at \href{https://github.com/junglegobs/ASoSEPOC}{https://github.com/junglegobs/ASoSEPOC}.
 
-\section{Description of a Deterministic Unit Commitment Model with Probabilistic Reserve (DUC-PR) constraints}
+The rest of this document is organised as follows. \secref{sec:model} describes the \ac{DUCPR} model used to simulate power system operations and obtain day ahead adequacy and very approximate real time operational security indicators, namely scheduled load shedding and reserve shedding. \secref{sec:data} describes the stylised Belgian system analysed. \secref{sec:initial_results} analyses a single day in order to identify sources of adequacy and security issues, while \secref{sec:adequacy_vs_security} analyses the trade-off between these two.
+
+\section{Description of a Deterministic Unit Commitment Model with Probabilistic Reserve (DUC-PR) constraints} \label{sec:model}
 
 Sets, variables and costs related to unit commitment and storage operation have been omitted for brevity though they are included in the model. The interested reader is referred to \href{https://github.com/junglegobs/ASoSEPOC}{https://github.com/junglegobs/ASoSEPOC} for the relevant code.
 
@@ -39,7 +43,7 @@ Sets, variables and costs related to unit commitment and storage operation have 
     \item $G$ - Generators
     \item $G_n$ - Generators located at node $n$
     \item $GD$ - Dispatchable / thermal / conventional generators
-    \item $GR$ - Renewable / variable generators
+    \item $GR$ - Renewable / variable generators (\ac{VRES}).
     \item $N$ - Nodes or buses in the network
     \item $B$ - Lines or branches
     \item $T$ - Time steps / intervals / slices
@@ -184,7 +188,7 @@ It is possible to calculate $d_{nt}^{min}$ and $d_{nt}^{max}$ since the quantile
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.9\textwidth]{../plots/nodal_imbalance_investigation/imbalance_range}
+    % \includegraphics[width=0.9\textwidth]{../plots/nodal_imbalance_investigation/imbalance_range}
     \caption{Range of possible imbalances for all hours of day 309.\label{fig:imbalance_range}}
 \end{figure}
 
@@ -192,19 +196,25 @@ The other possibility is to restrict $d_{nlt}^{L^+}$ and $d_{nlt}^{L^-}$ to lie 
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.9\textwidth]{../plots/nodal_imbalance_investigation/convex_hull_TIHANGE 1_TIHANGE 2}
+    % \includegraphics[width=0.9\textwidth]{../plots/nodal_imbalance_investigation/convex_hull_TIHANGE 1_TIHANGE 2}
     \caption{Illustration of convex hull constraints on $d_{nlt}^{L^+}$ and $d_{nlt}^{L^-}$. Blue circles are imbalance scenarios, shaded area is the convex hull, $d_{nt}^{min}$ and $d_{nt}^{max}$ are the x limits for TIHANGE 1 and the y limits for TIHANGE 2. \label{fig:convex_hull_tihange}}
 \end{figure}
 
 At the time of writing, this convex hull restriction led to model infeasibilities and so it is not
 
-\section{Input data - stylised Belgian grid with a large amount of variable renewable energy sources}
+\section{Input data - stylised Belgian grid with a large amount of variable renewable energy sources} \label{sec:data}
 
-\todo[inline]{For now, see README.md}
+All data used for this exercise can be found at: \href{https://www.dropbox.com/sh/mdvmc082gwng0tr/AABRyc3fZpxAFycmUfZmh8Csa?dl=0}.
 
-\section{Analysis of DUC-PR model results}
+The grid and resource data used for this interaction is inspired by the case study in \cite{Belderbos2020}, omitting the gas network and power to gas technologies. This data gives a stylised Belgian system with a high penetration (~8s0\%) of \ac{VRES}, which includes 75.7 GW of solar PV, 7.0 GW of Onshore Wind and 7.3 GW of Offshore Wind. The grid consists of 46 nodes connected by 69 lines. The total amount of conventional thermal generation is 9.9 GW, with all generators based on new \ac{CCGT} units apart from one new \ac{OCGT} unit at Lixhe. The nuclear generators of Doel and Tihange are therefore replaced with new \ac{CCGT} units.
 
-This analysis relates only to the 309th day of the year (November 5th).
+The residual load time series, aggregated across all nodes, for this system is plotted in \todo[inline]{Plot this}.
+
+A complete overview of the data is given in \cite{Belderbos2020}, Appendix B.
+
+\section{Analysis of \acl{DUCPR} model results} \label{sec:initial_results}
+
+This analysis relates only to the 309th day of the year (November 5th). The aim is to investigate what are the causes of load shedding.
 
 \subsection{No operating reserves}
 
@@ -231,23 +241,23 @@ The dispatch for the model with and without unit commitment constraints and with
     \centering
     \begin{subfigure}[t]{0.7\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base/dispatch}
+        % \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base/dispatch}
         \caption{Economic dispatch model}
     \end{subfigure}
     \begin{subfigure}[t]{0.7\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_UC=true/dispatch}
+        % \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_UC=true/dispatch}
         \caption{Unit commitment model}
     \end{subfigure}
     \begin{subfigure}[t]{0.7\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_UC=true_DANet=true/dispatch}
+        % \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_UC=true_DANet=true/dispatch}
         \caption{Unit commitment model with day ahead network constraints}
     \end{subfigure}
     \caption{Dispatch schedules with and without operating reserves.\label{fig:dispatch_base}}
 \end{figure}
 
-\subsection{Probabilistic operating reserves with no reserve activation network constraints}
+\subsection{Probabilistic operating reserves without reserve activation network constraints}
 
 \begin{itemize}
     \item Unit commitment constraints lead to unavoidable load shedding.
@@ -289,17 +299,17 @@ The dispatch for the model with and without unit commitment constraints and with
     \centering
     \begin{subfigure}[t]{0.7\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_RSV=0.0/dispatch}
+        % \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_RSV=0.0/dispatch}
         \caption{No UC, no DANet, no PSCD, RSL is 0.0}
     \end{subfigure}
     \begin{subfigure}[t]{0.7\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_UC=true_RSV=0.0/dispatch}
+        % \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_UC=true_RSV=0.0/dispatch}
         \caption{UC, no DANet, no PSCD, RSL is 0.0}
     \end{subfigure}
     \begin{subfigure}[t]{0.7\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_UC=true_DANet=true_RSV=0.0/dispatch}
+        % \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_UC=true_DANet=true_RSV=0.0/dispatch}
         \caption{UC, DANet, no PSCD, RSL is 0.0}
     \end{subfigure}
     \caption{Dispatch schedules with and without operating reserves.\label{fig:dispatch_simple_reserves}}
@@ -368,21 +378,23 @@ Closer investigation at load shedding patterns for the model with UC and DANet (
     \centering
     \begin{subfigure}[t]{0.45\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../plots/main_model_runs/ls_timeseries_idx=56}
+        % \includegraphics[width=\textwidth]{../plots/main_model_runs/ls_timeseries_idx=56}
         \caption{}
     \end{subfigure}
     \newline
     \begin{subfigure}[t]{0.45\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../plots/main_model_runs/ls_per_node_abs_idx=56}
+        % \includegraphics[width=\textwidth]{../plots/main_model_runs/ls_per_node_abs_idx=56}
         \caption{}
     \end{subfigure}
     \begin{subfigure}[t]{0.45\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../plots/main_model_runs/ls_per_node_idx=56}
+        % \includegraphics[width=\textwidth]{../plots/main_model_runs/ls_per_node_idx=56}
         \caption{}
     \end{subfigure}
     \caption{Load shedding distribution in time (top figure, aggregated over all nodes) and space (aggregated over the entire day) for UC, DANet, LM = 1.5 and $RSL = 0.5$.}
 \end{figure}
+
+\section{Day ahead adequacy and real time operational security trade offs} \label{sec:adequacy_vs_security}
 
 \end{document}
