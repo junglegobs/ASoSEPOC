@@ -45,6 +45,8 @@ Grid, load, renewables and capacity mix data come from [this paper](https://www.
 * It is a Belgium-like system with a very high share of renewables (~80%).
 * The nuclear reactors in Doel and Tihange have been replaced by gas fired power plants.
 
+More information can be found in `papers/main.pdf`.
+
 ### Model runs
 
 #### Questions to be answered
