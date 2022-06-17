@@ -109,12 +109,6 @@ git-tree-sha1 = "eb4cb44a499229b3b8426dcfb5dd85333951ff90"
 uuid = "fa961155-64e5-5f13-b03f-caf6b980ea82"
 version = "0.4.2"
 
-[[CPLEX]]
-deps = ["CEnum", "Libdl", "MathOptInterface", "SparseArrays"]
-git-tree-sha1 = "919740592714cf4750c17ee52ef64aadab203df9"
-uuid = "a076750e-1247-5638-91d2-ce28b192dca0"
-version = "0.9.3"
-
 [[CRlibm]]
 deps = ["CRlibm_jll"]
 git-tree-sha1 = "32abd86e3c2025db5172aa182b982debed519834"
@@ -505,7 +499,7 @@ uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 
 [[GEPPR]]
 deps = ["AxisArrays", "CSV", "Cbc", "DataFrames", "Dates", "Distributions", "FileIO", "Infiltrator", "JLD2", "JuMP", "LinearAlgebra", "Match", "OrderedCollections", "PowerModels", "SparseArrays", "UnPack", "YAML"]
-path = "dev/GEPPR"
+path = "/home/u0128861/Desktop/ASoSEPOC/dev/GEPPR"
 uuid = "bdf5de6c-7654-11e9-1af4-dbe25ce70594"
 version = "0.1.2"
 
@@ -601,12 +595,6 @@ version = "0.6.5"
 git-tree-sha1 = "53bb909d1151e57e2484c3d1b53e19552b887fb2"
 uuid = "42e2da0e-8278-4e71-bc24-59509adca0fe"
 version = "1.0.2"
-
-[[Gurobi]]
-deps = ["Libdl", "MathOptInterface", "Pkg"]
-git-tree-sha1 = "67d273949798c82781756b54af20d73b4dbe9e3f"
-uuid = "2e9cd046-0924-5485-92f1-d5272153d98b"
-version = "0.11.1"
 
 [[H5Zblosc]]
 deps = ["Blosc", "HDF5"]
