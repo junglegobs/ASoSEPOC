@@ -7,6 +7,8 @@ opts = options_diff_days(sn)[1]
 opts["initial_state_of_charge"] = 0.0
 opts["operating_reserves_type"] = "none"
 opts["time_out"] = 120
+opts["save_path"] *= "_no_reserves"
 gep = run_GEPPR(opts)
 
-z = gep[:z]
+opts["operating_reserves_type"] = "probabilistic"
+gep = run_GEPPR(opts)
