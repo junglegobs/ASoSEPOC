@@ -4,6 +4,13 @@ cd(@__DIR__)
 Pkg.activate(juliaenv)
 ENV["JULIA_PKG_DEVDIR"] = joinpath(juliaenv, "dev")
 
+# Remove my UC/ED/GEP package, GEPPR
+try
+    Pkg.rm("GEPPR")
+catch
+    nothing
+end
+
 # Deal with possibly not having Gurobi or CPLEX
 include(joinpath(@__DIR__, "src", "solvers.jl"))
 if CPLEX_EXISTS
@@ -25,12 +32,7 @@ else
     end
 end
 
-# Add my UC/ED/GEP package, GEPPR
-try
-    Pkg.rm("GEPPR")
-catch
-    nothing
-end
+# Add and develop GEPPR
 Pkg.add(url="https://gitlab.kuleuven.be/UCM/GEPPR.jl.git")
 Pkg.develop("GEPPR")
 cd(joinpath(@__DIR__, "dev", "GEPPR"))

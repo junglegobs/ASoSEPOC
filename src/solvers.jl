@@ -3,5 +3,18 @@ isdefined(Main, :GRB_EXISTS) == false &&
 isdefined(Main, :CPLEX_EXISTS) == false &&
     const CPLEX_EXISTS = haskey(ENV, "CPLEX_STUDIO_BINARIES")
 
-GRB_EXISTS && using Gurobi
-CPLEX_EXISTS && using CPLEX
+if GRB_EXISTS
+    try
+        using Gurobi
+    catch
+        @warn "Unable to load Gurobi"
+    end
+end
+
+if CPLEX_EXISTS
+    try
+        using CPLEX
+    catch
+        @warn "Unable to load CPLEX"
+    end
+end
