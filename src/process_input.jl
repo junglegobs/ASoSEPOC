@@ -328,6 +328,7 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
         (ids2node[v["bus"]], v["name"]) => Float64.(v["af"]) for
         (k, v) in network["res"]
     )
+
     df = DataFrame(
         "Timestep" => repeat(1:nT; outer=length(nodes)),
         "Node" => repeat(nodes; inner=nT),
@@ -340,7 +341,7 @@ function powermodels_2_GEPPR(grid_data_path, grid_red_path)
                 ]...,
             ) for t in res_names
         ]...,
-        "Weight" => [1.0 for i in 1:nT]
+        "Weight" => [1.0 for i in 1:nT*length(nodes)]
     )
     name = if isempty(network["storage"])
         "timeseries_wo_storage.csv"
