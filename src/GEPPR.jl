@@ -159,6 +159,7 @@ function run_GEPPR(opts::Dict; load_only=false)
             apply_initial_state_of_charge!(gep, opts)
             absolute_limit_on_nodal_imbalance!(gep, opts)
             convex_hull_limit_on_nodal_imbalance!(gep, opts)
+            fix_storage_dispatch!(gep, opts)
             optimize_GEP_model!(gep)
             save_optimisation_values!(gep)
         else
@@ -444,6 +445,17 @@ function convex_hull_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
     return gep
 end
 
+function fix_storage_dispatch!(gep::GEPM, opts::Dict)
+    try
+        @unpack sc, sd = opts
+        fix_model_variable!(gep, :sc, sc)
+        fix_model_variable!(gep, :sd, sd)
+    catch
+        nothing
+    end
+    return gep
+end
+
 function modify_timeseries!(gep::GEPM, opts::Dict)
     @unpack load_multiplier = opts
     if ismissing(load_multiplier) == false
@@ -594,7 +606,9 @@ function atval(idx, T::Type)
 end
 
 function save_gep_for_security_analysis(gep::GEPM, opts::Dict)
+    dt = now()
+    dt_string = string(year(dt), "_", month(dt), "_", day(dt), "_", hour(dt), ":", minute(dt))
     return save_gep_for_security_analysis(
-        gep, joinpath(opts["save_path"], "security_analysis.json")
+        gep, joinpath(opts["save_path"], "security_analysis_$(dt_string).json")
     )
 end
