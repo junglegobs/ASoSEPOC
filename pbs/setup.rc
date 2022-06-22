@@ -8,3 +8,4 @@ export JULIA_PROJECT="$VSC_DATA/ASoSEPOC"
 echo "Julia set up."
 
 module load libxcb/1.13-GCCcore-6.4.0
+module load Python/3.7.2-foss-2018a
