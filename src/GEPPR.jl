@@ -471,9 +471,12 @@ function save(gep::GEPM, opts::Dict)
     file_name = joinpath(save_path, "opts.jld2")
     wsave(file_name, opts)
 
+    opts_new = copy(opts)
+    delete!(opts_new, "sc")
+    delete!(opts_new, "sd")
     file_name = joinpath(save_path, "opts.json")
     open(file_name, "w") do f
-        JSON.print(f, opts, 4)
+        JSON.print(f, opts_new, 4)
     end
 
     save_gep_for_security_analysis(gep, opts)
