@@ -15,7 +15,7 @@ T = [0,71]
 opts["optimization_horizon"] = (TH[1] + T[1], TH[1] + T[end])
 opts["initial_state_of_charge"] = 0.0
 opts["operating_reserves_type"] = "none"
-opts["time_out"] = 300
+opts["time_out"] = 600
 sp = opts["save_path"]
 opts["save_path"] = sp * "_$(T)_no_reserves"
 gep = run_GEPPR(opts)
@@ -31,3 +31,10 @@ for T in [[0,8], [0,12], [0, 23], [0, 47]]
     z["T = $(T[end])"] = sum_z(gep)
     GC.gc()
 end
+
+plt = Plots.plot()
+for (k,v) in z
+    Plots.plot!(plt, v, lab=k, ylab="Commitment [-]", xlab="Time [h]")
+end
+display(plt)
+
