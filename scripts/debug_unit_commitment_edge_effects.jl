@@ -37,4 +37,3 @@ for (k,v) in z
     Plots.plot!(plt, v, lab=k, ylab="Commitment [-]", xlab="Time [h]")
 end
 display(plt)
-
