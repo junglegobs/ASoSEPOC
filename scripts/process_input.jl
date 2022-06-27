@@ -25,7 +25,7 @@ opts = options(
 # days, TVec = days_to_run_models_on(gep, "days_for_analysis_new.csv")
 
 # Choose days based on net load, so that I don't have to come back to this again
-days, TVec = days_to_run_models_on(opts, "days_for_analysis.csv")
+days, TVec = days_to_run_models_on(opts, "days_for_analysis_$(now()).csv")
 
 opts = options(
     "include_storage" => true,
@@ -45,7 +45,6 @@ for T in TVec
         simsdir(sn, "dispatch_T=$T.png"),
     )
 end
-
 # Plot daily load shedding for entire year
 ls = sum(
     reshape(

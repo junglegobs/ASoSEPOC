@@ -91,7 +91,8 @@ end
 function days_to_run_models_on(opts::Dict, filename::String)
     gep = gepm(opts)
     rl = demand_net_of_total_supply(gep)
-    rl = reshape()
+    rl = sum(collect(values(rl)))
+    rl = sum(reshape(rl, 24, :), dims=1)[:]
     srt_idx = sortperm(rl)
     day_least_scarce = srt_idx[1]
     day_little_scarce = srt_idx[Int(round(quantile(1:length(srt_idx), 1/3)))]

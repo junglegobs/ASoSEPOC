@@ -16,6 +16,8 @@ function mkrootdirs(dir::String)
     end
 end
 
+mkrootdirs(args...) = ([mkrootdirs(arg) for arg in args]; nothing)
+
 script_name(str) = splitext(splitdir(str)[2])[1]
 
 function Base.parse(::Type{UnitRange{T}}, str::AbstractString) where T<:Integer
