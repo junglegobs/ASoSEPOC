@@ -446,9 +446,9 @@ function load_scenarios(
     myf = open(datadir("pro", "scenario_loading", err_file * ".dat"), "w")
     f_list = readdir(root_dir)
     for (name, file_prefix) in files_dict
-
         print(myf, "-"^80 * "\nReading $name error scenarios\n")
 
+        file_prefix = string(splitdir(file_prefix)[end])
         idx = findfirst(f -> occursin(file_prefix, f), f_list)
         if idx === nothing
             error("Cannot find any files with prefix $file_prefix.")
