@@ -9,7 +9,8 @@ function param_and_config(opts::Dict)
     include_storage,
     copperplate,
     initial_state_of_charge,
-    reserve_provision_cost, operating_reserves_type = opts
+    reserve_provision_cost,
+    operating_reserves_type = opts
 
     is_linear = (opts["unit_commitment_type"] == "none")
     init_soc = opts["initial_state_of_charge"]
@@ -47,7 +48,7 @@ function param_and_config(opts::Dict)
             rolling_horizon ? false : true,
         "dispatchableGeneration" => Dict(),
         "intermittentGeneration" => Dict(),
-        "reserveType" => operating_reserves_type
+        "reserveType" => operating_reserves_type,
     )
 
     # In case including storage
@@ -388,24 +389,43 @@ function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
         gep
     )
 
+    # Slack variables
+    gep[:M, :variables, :abs_slack_L⁺] =
+        abs_slack_L⁺ = @variable(
+            gep.model,
+            [n = N, l = L⁺, y = Y, p = P, i = 1:length(T)],
+            lower_bound = 0
+        )
+    gep[:M, :variables, :abs_slack_L⁻] =
+        abs_slack_L⁻ = @variable(
+            gep.model,
+            [n = N, l = L⁻, y = Y, p = P, i = 1:length(T)],
+            lower_bound = 0
+        )
+
     gep[:M, :constraints, :MaxAbsNodalImbalance] = @constraint(
         gep.model,
         [n = N, l = L⁺, y = Y, p = P, i = 1:length(T)],
-        dL⁺[n, l, y, p, T[i]] <= d_max[n][i]
+        dL⁺[n, l, y, p, T[i]] - abs_slack_L⁺[n, l, y, p, T[i]] <= d_max[n][i]
     )
     gep[:M, :constraints, :MinAbsNodalImbalance] = @constraint(
         gep.model,
         [n = N, l = L⁻, y = Y, p = P, i = 1:length(T)],
-        dL⁻[n, l, y, p, T[i]] >= d_min[n][i]
+        dL⁻[n, l, y, p, T[i]] + abs_slack_L⁻[n, l, y, p, T[i]] >= d_min[n][i]
     )
+
+    # Overload objective
+    obj = gep[:M, :objective]
+    gep[:M, :objective] = @objective(Min, obj + 10^6 * (sum(abs_slack_L⁺) + sum(abs_slack_L⁻)))
 
     return gep
 end
 
 function convex_hull_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
-    @unpack convex_hull_limit_on_nodal_imbalance, n_scenarios_for_convex_hull_calc = opts
+    @unpack convex_hull_limit_on_nodal_imbalance,
+    n_scenarios_for_convex_hull_calc = opts
     convex_hull_limit_on_nodal_imbalance == false && return gep
-    
+
     @info "Applying convex hull limits on nodal imbalance..."
     n_scens = n_scenarios_for_convex_hull_calc
     scen_id = month_day(opts)
@@ -434,11 +454,11 @@ function convex_hull_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
         t = T[ti]
         for l in L⁺
             dl = [dL⁺[n, l, Y[1], P[1], t] for n in sort(N)]
-            con[t,l] = @constraint(gep.model, dl in poly_dict[string(ti)])
+            con[t, l] = @constraint(gep.model, dl in poly_dict[string(ti)])
         end
         for l in L⁻
             dl = [dL⁻[n, l, Y[1], P[1], t] for n in sort(N)]
-            con[t,-l] = @constraint(gep.model, dl in poly_dict[string(ti)])
+            con[t, -l] = @constraint(gep.model, dl in poly_dict[string(ti)])
         end
     end
 
@@ -610,7 +630,9 @@ end
 
 function save_gep_for_security_analysis(gep::GEPM, opts::Dict)
     dt = now()
-    dt_string = string(year(dt), "_", month(dt), "_", day(dt), "_", hour(dt), ":", minute(dt))
+    dt_string = string(
+        year(dt), "_", month(dt), "_", day(dt), "_", hour(dt), ":", minute(dt)
+    )
     return save_gep_for_security_analysis(
         gep, joinpath(opts["save_path"], "security_analysis_$(dt_string).json")
     )
