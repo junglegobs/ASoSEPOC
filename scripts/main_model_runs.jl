@@ -149,14 +149,18 @@ function main_model_run(opts; make_plots=false)
 end
 
 gep_vec = GEPM[]
-for opts in opts_vec
+idx_to_remove = Int[]
+for i in eachindex(opts_vec)
+    opts = opts_vec[i]
     try
         push!(gep_vec, main_model_run(opts; make_plots=true))
     catch e
         @warn "$(opts["save_path"]) failed."
+        push!(idx_to_remove, i)
         println(string(e))
     end
 end
+opts_vec = opts_vec[setdiff(eachindex(opts_vec), idx_to_remove)]
 
 function analyse_main_model_runs(gep_vec, opts_vec)
     df = DataFrame(
