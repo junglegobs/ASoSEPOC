@@ -21,6 +21,14 @@ julia> include("path/to/this/project/instantiate.jl")
 This will install all necessary packages for you to be able to run the scripts and
 everything should work out of the box, including correctly finding local paths.
 
+## Code description
+
+* `src` - source files (i.e. individual functions)
+* `scripts` - main scripts used for generating results
+* `scripts_debug` - scripts used for debugging or testing purposes (may not be functional)
+* `papers` - latex report of work done for this adequacy and operational security interaction.
+* `pbs` - useful files for running on the [Flemish super computer](https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/).
+
 ## General description
 
 ### Model
