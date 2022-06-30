@@ -394,23 +394,32 @@ function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
         gep[:M, :variables, :abs_slack_L⁺] = @variable(
             gep.model,
             [n = N, l = L⁺, y = Y, p = P, t = T],
-            lower_bound = 0,
             base_name = "abs_slack_L⁺"
         )
     abs_slack_L⁻ =
         gep[:M, :variables, :abs_slack_L⁻] = @variable(
             gep.model,
             [n = N, l = L⁻, y = Y, p = P, t = T],
-            lower_bound = 0,
             base_name = "abs_slack_L⁻"
         )
 
-    gep[:M, :constraints, :MaxAbsNodalImbalance] = @constraint(
+    # Constraints
+    gep[:M, :constraints, :MaxAbsNodalImbalanceUp] = @constraint(
         gep.model,
         [n = N, l = L⁺, y = Y, p = P, i = 1:length(T)],
-        dL⁺[n, l, y, p, T[i]] - abs_slack_L⁺[n, l, y, p, T[i]] <= d_max[n][i]
+        dL⁺[n, l, y, p, T[i]] + abs_slack_L⁺[n, l, y, p, T[i]] <= d_max[n][i]
     )
-    gep[:M, :constraints, :MinAbsNodalImbalance] = @constraint(
+    gep[:M, :constraints, :MinAbsNodalImbalanceUp] = @constraint(
+        gep.model,
+        [n = N, l = L⁺, y = Y, p = P, i = 1:length(T)],
+        dL⁺[n, l, y, p, T[i]] + abs_slack_L⁺[n, l, y, p, T[i]] >= d_min[n][i]
+    )
+    gep[:M, :constraints, :MaxAbsNodalImbalanceDown] = @constraint(
+        gep.model,
+        [n = N, l = L⁻, y = Y, p = P, i = 1:length(T)],
+        dL⁻[n, l, y, p, T[i]] + abs_slack_L⁻[n, l, y, p, T[i]] <= d_max[n][i]
+    )
+    gep[:M, :constraints, :MinAbsNodalImbalanceDown] = @constraint(
         gep.model,
         [n = N, l = L⁻, y = Y, p = P, i = 1:length(T)],
         dL⁻[n, l, y, p, T[i]] + abs_slack_L⁻[n, l, y, p, T[i]] >= d_min[n][i]
@@ -419,7 +428,7 @@ function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
     # Overload objective
     obj = gep[:M, :objective]
     gep[:M, :objective] = @objective(
-        gep.model, Min, obj + 10^3 * (sum(abs_slack_L⁺) + sum(abs_slack_L⁻))
+        gep.model, Min, obj + 10^3 * (sum(el^2 for el in abs_slack_L⁺) + sum(el^2 for el in abs_slack_L⁻))
     )
 
     return gep
