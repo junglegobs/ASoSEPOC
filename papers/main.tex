@@ -173,6 +173,8 @@ The following constraints attempt to take network constraints into account (albe
     \sum_{n \in N} rinj^{L^-}_{nt} = 0                                                       & \quad l \in L^-, \; n \in N, \; t \in T \label{eq:reserve_network_activation_constraints_2}
 \end{align}
 
+Note that $rinj^{L^+}_{nlt}$, $rinj^{L^-}_{nlt}$, $d^{L^+}_{nlt}$ and $d^{L^-}_{nlt}$ are all free variables and there is a change in sign between upward and downward reserve levels to ensure that the resulting additional line flows are correct.
+
 Since imbalances are aggregated across the network, a particular reserve level activation is not associated with an imbalance at the nodal level. The above constraints therefore enforce that for each reserve level $l$ and node $n$, there exists some combination of nodal imbalance, node injections, generator dispatches and line flows which would satisfy the network constraints AND the imbalance across the entire network.
 
 \subsubsection{Further constraining reserve activation network constraints} \label{sec:further_constraining_operating_reserve_network_activation_constraints}

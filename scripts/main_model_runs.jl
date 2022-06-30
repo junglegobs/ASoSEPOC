@@ -18,6 +18,7 @@ end
 
 opts = options_diff_days(sn)[4]
 opts["initial_state_of_charge"] = 0.5
+opts["time_out"] = 100
 opts_vec = [
     merge(
         opts,
