@@ -22,6 +22,7 @@ net_load_forecast_error_dict = scenarios_2_net_load_forecast_error(
     opts, scens, mult
 )
 
+gr()
 n1 = "TIHANGE 1"
 n2 = "TIHANGE 2"
 plt = scatter_nodal_imbalance(net_load_forecast_error_dict, "TIHANGE 1", "TIHANGE 2")
@@ -33,7 +34,7 @@ temp = mean_and_std.(eachcol(df))
 m = first.(temp)
 std = last.(temp)
 node_names = [n for n in names(df)]
-x = 0:2:length(node_names)*2
+x = 0:2:(length(node_names) - 1)*2
 Plots.bar(
     x,
     m;
@@ -49,7 +50,7 @@ Plots.savefig(plotsdir(sn, "mean_imbalance.png"))
 y_min = minimum.(eachcol(df))
 y_max = maximum.(eachcol(df))
 StatsPlots.groupedbar(
-    x[1:end-1],
+    x,
     hcat(y_min, y_max);
     lab="",
     bar_position=:stack,
