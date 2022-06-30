@@ -390,17 +390,19 @@ function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
     )
 
     # Slack variables
-    gep[:M, :variables, :abs_slack_L⁺] =
-        abs_slack_L⁺ = @variable(
+    abs_slack_L⁺ =
+        gep[:M, :variables, :abs_slack_L⁺] = @variable(
             gep.model,
-            [n = N, l = L⁺, y = Y, p = P, i = 1:length(T)],
-            lower_bound = 0
+            [n = N, l = L⁺, y = Y, p = P, t = T],
+            lower_bound = 0,
+            base_name = "abs_slack_L⁺"
         )
-    gep[:M, :variables, :abs_slack_L⁻] =
-        abs_slack_L⁻ = @variable(
+    abs_slack_L⁻ =
+        gep[:M, :variables, :abs_slack_L⁻] = @variable(
             gep.model,
-            [n = N, l = L⁻, y = Y, p = P, i = 1:length(T)],
-            lower_bound = 0
+            [n = N, l = L⁻, y = Y, p = P, t = T],
+            lower_bound = 0,
+            base_name = "abs_slack_L⁻"
         )
 
     gep[:M, :constraints, :MaxAbsNodalImbalance] = @constraint(
@@ -416,7 +418,9 @@ function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
 
     # Overload objective
     obj = gep[:M, :objective]
-    gep[:M, :objective] = @objective(Min, obj + 10^6 * (sum(abs_slack_L⁺) + sum(abs_slack_L⁻)))
+    gep[:M, :objective] = @objective(
+        gep.model, Min, obj + 10^3 * (sum(abs_slack_L⁺) + sum(abs_slack_L⁻))
+    )
 
     return gep
 end
