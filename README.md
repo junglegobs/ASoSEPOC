@@ -37,8 +37,9 @@ The Deterministic Unit Commitment with Probabilistic (Operating) Reserves (DUC-P
 
 * Network, unit commitment and storage are included in the model.
 * Operating reserves are modeled using "reserve levels", which have an associated activation probability.
-  * These reserve levels can essentially be thought of as different reserve types, e.g. FCR, RR, etc.
-  * No ramping / flexibility requirements are associated with reserve level activation (though these are taken into account in the day ahead scheduling).
+  * These reserve levels can essentially be thought of as different reserve types, e.g. FCR, RR, etc in that they have different probabilities of activation.
+  * No flexibility requirements (e.g. ramping) are associated with reserve level activation though they are taken into account in the day ahead scheduling.
+  * An attempt at including the network in the reserve level activation constraints is made, though this is a non-trivial task.
 
 ## Data
 
@@ -57,7 +58,7 @@ More information can be found in `papers/main.pdf`.
 
 ### Model runs
 
-#### Questions to be answered
+#### Questions to be answered in preliminary investigation
 
 * Is there load shedding with an entirely linear model with no network constraints?
 * Above, but with unit commitment constraints?
@@ -68,16 +69,16 @@ More information can be found in `papers/main.pdf`.
 * Same, but with convex hull constraints?
 * Same, but with load multiplier
 
-#### Model runs table
+Table below outlines this better. Acronyms are:
 
-UC = Unit commitment constraints
-DANet = Day ahead network constraints
-PSCD = Prevent simultaneous charge and discharge
-OR = Include operating reserves and reserve shedding limits
-RANet = Reserve activation network constraints
-AbsImb = absolute limits on nodal imbalance
-ConvImb = convex hull limits on nodal imbalance
-L1.5 = Load times 1.5
+* UC = Unit commitment constraints
+* DANet = Day ahead network constraints
+* PSCD = Prevent simultaneous charge and discharge
+* OR = Include operating reserves and reserve shedding limits
+* RANet = Reserve activation network constraints
+* AbsImb = absolute limits on nodal imbalance
+* ConvImb = convex hull limits on nodal imbalance
+* L1.5 = Load times 1.5
 
 | UC | DA Net. | PSCD | OR | RANet | AbsImb | ConvImb | L1.5 |
 |----|---------|------|----|-------|--------|---------|------|
@@ -93,4 +94,8 @@ L1.5 = Load times 1.5
 | x  | x       | x    | x  | x     | x      | x       |      |
 | x  | x       | x    | x  | x     | x      | x       | x    |
 
-All this just for one day, the 4th day in the list of days chosen.
+All this just for one day, the 4th day (the day with the most scarcity) of the days selected for investigation. 
+
+##### Trade off between load shedding and reserve shedding
+
+There should be a tradeoff between shedding load in the day ahead stage and shedding reserves which would jeopardise real time operational security (since there are less reserves available to deal with unforeseen situations). The DUC-PR model is able to make this tradeoff in a coarse way, hence the real time operational security is then analysed using a Quasi Steady State Simulator (QSSS) developped by ULiege. This verifies how well the DUC-PR model is able to perform this trade-off (if at all).
