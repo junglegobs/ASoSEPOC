@@ -38,8 +38,8 @@ function options(pairs...)
     return opts
 end
 
-function options_diff_days(sn)
-    df = CSV.read(datadir("pro", "days_for_analysis.csv"), DataFrame)
+function options_diff_days(sn, file="days_for_analysis.csv")
+    df = CSV.read(datadir("pro", file), DataFrame)
     opts = options(
         "include_storage" => true,
         "operating_reserves_sizing_type" => "given",
