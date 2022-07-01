@@ -31,6 +31,8 @@ function options(pairs...)
         "prevent_simultaneous_charge_and_discharge" => true,
         "rate_a_multiplier" => missing,
         "load_multiplier" => missing,
+        "allow_absolute_imbalance_slacks" => false,
+        "absolute_imbalance_slack_penalty" => 1e3
     )
     for (k, v) in pairs
         opts[k] = v

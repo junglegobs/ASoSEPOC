@@ -363,8 +363,9 @@ function apply_initial_state_of_charge!(gep::GEPM, opts::Dict)
 end
 
 function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
-    @unpack absolute_limit_on_nodal_imbalance = opts
+    @unpack absolute_limit_on_nodal_imbalance, allow_absolute_imbalance_slacks, absolute_imbalance_slack_penalty = opts
     absolute_limit_on_nodal_imbalance == false && return gep
+    sp = absolute_imbalance_slack_penalty
 
     @info "Applying absolute limits on nodal imbalance..."
     scen_id = month_day(opts)
@@ -403,6 +404,13 @@ function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
             base_name = "abs_slack_L⁻"
         )
 
+    # Fix slacks if necessary
+    if allow_absolute_imbalance_slacks == false
+        JuMP.fix.(abs_slack_L⁺, 0.0; force=true)
+        JuMP.fix.(abs_slack_L⁻, 0.0; force=true)
+    end
+
+
     # Constraints
     gep[:M, :constraints, :MaxAbsNodalImbalanceUp] = @constraint(
         gep.model,
@@ -428,7 +436,7 @@ function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
     # Overload objective
     obj = gep[:M, :objective]
     gep[:M, :objective_w_slack] = @objective(
-        gep.model, Min, obj + 1e-2 * (sum(el^2 for el in abs_slack_L⁺) + sum(el^2 for el in abs_slack_L⁻))
+        gep.model, Min, obj + sp * (sum(el^2 for el in abs_slack_L⁺) + sum(el^2 for el in abs_slack_L⁻))
     )
 
     return gep
