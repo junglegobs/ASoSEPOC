@@ -52,7 +52,7 @@ end
 ls = sum(
     reshape(
         dropdims(sum(gep[:loadShedding].data; dims=(1, 2, 3)); dims=(1, 2, 3)),
-        24,
+        N_HR_PER_DAY,
         :,
     );
     dims=1,
@@ -69,13 +69,13 @@ storage_dispatch_2_node_injection(
 
 # Check that dispatches make sense
 opts["save_path"] = ""
-opts["optimization_horizon"] = [1, 48]
+opts["optimization_horizon"] = [1, N_HR_PER_DAY*2]
 opts["include_storage"] = true
 gep = run_GEPPR(opts)
-plt_1 = plot_dispatch(gep, 1; T=1:48, N=["RODENHUIZE"])
+plt_1 = plot_dispatch(gep, 1; T=1:N_HR_PER_DAY*2, N=["RODENHUIZE"])
 Plots.savefig(plt_1, datadir("sims", sn, "dispatch_with_storage.pdf"))
 
 opts["include_storage"] = false
 gep = run_GEPPR(opts)
-plt_2 = plot_dispatch(gep, 1; T=1:48, N=["RODENHUIZE"])
+plt_2 = plot_dispatch(gep, 1; T=1:N_HR_PER_DAY*2, N=["RODENHUIZE"])
 Plots.savefig(plt_2, datadir("sims", sn, "dispatch_without_storage.pdf"))

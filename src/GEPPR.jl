@@ -427,8 +427,8 @@ function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
 
     # Overload objective
     obj = gep[:M, :objective]
-    gep[:M, :objective] = @objective(
-        gep.model, Min, obj + 1e-3 * (sum(el^2 for el in abs_slack_L⁺) + sum(el^2 for el in abs_slack_L⁻))
+    gep[:M, :objective_w_slack] = @objective(
+        gep.model, Min, obj + 1e-2 * (sum(el^2 for el in abs_slack_L⁺) + sum(el^2 for el in abs_slack_L⁻))
     )
 
     return gep
