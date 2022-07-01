@@ -6,7 +6,7 @@ function run_debug_abs_imb_infeasible(L)
     opts = options_diff_days(sn, "days_for_analysis_2022_07_01.csv")[4]
     opts["save_path"] *= "_L=$L"
     opts["initial_state_of_charge"] = 0.5
-    opts["time_out"] = 600
+    opts["time_out"] = 1200
     opts["upward_reserve_levels_included_in_redispatch"] = L
     opts["downward_reserve_levels_included_in_redispatch"] = L
     opts["absolute_limit_on_nodal_imbalance"] = true

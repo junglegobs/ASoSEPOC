@@ -14,21 +14,25 @@ opts_vec = [
         ),
     ) for opts in opts_vec
 ]
-opts_vec = [
-    merge(
-        opts,
-        Dict(
-            "absolute_limit_on_nodal_imbalance" => false,
-            "save_path" => opts["save_path"] * "_AbsIm=false",
-        ),
-    ),
-    merge(
-        opts,
-        Dict(
-            "absolute_limit_on_nodal_imbalance" => true,
-            "save_path" => opts["save_path"] * "_AbsIm=true",
-        ),
-    ) for opts in opts_vec
-]
+opts_vec = vcat(
+    [
+        merge(
+            opts,
+            Dict(
+                "absolute_limit_on_nodal_imbalance" => false,
+                "save_path" => opts["save_path"] * "_AbsIm=false",
+            ),
+        ) for opts in opts_vec
+    ]...,
+    [
+        merge(
+            opts,
+            Dict(
+                "absolute_limit_on_nodal_imbalance" => true,
+                "save_path" => opts["save_path"] * "_AbsIm=true",
+            ),
+        ) for opts in opts_vec
+    ]...,
+)
 gep = run_GEPPR(opts_vec)
 d_vec = [save_gep_for_security_analysis(gep, opts) for opts in opts_vec]
