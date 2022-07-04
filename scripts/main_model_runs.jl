@@ -19,7 +19,7 @@ end
 # Choose day 3, since this has day ahead load shedding!
 opts = options_diff_days(sn, "days_for_analysis.csv")[3]
 opts["initial_state_of_charge"] = 0.5
-opts["time_out"] = 1200
+opts["time_out"] = 1800
 opts_vec = [
     merge(
         opts,
