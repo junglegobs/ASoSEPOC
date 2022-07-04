@@ -148,24 +148,28 @@ function run_GEPPR(opts::Dict; load_only=false)
     elseif load_only == false
         @info "Running GEPM (save path is $(save_path))..."
         gep = gepm(opts)
-        if rolling_horizon == false
-            apply_operating_reserves!(gep, opts)
-            modify_network!(gep, opts)
-            modify_timeseries!(gep, opts)
-            @info "Building JuMP model..."
-            make_JuMP_model!(gep)
-            apply_initial_commitment!(gep, opts)
-            constrain_reserve_shedding!(gep, opts)
-            prevent_simultaneous_charge_and_discharge!(gep, opts)
-            apply_initial_state_of_charge!(gep, opts)
-            absolute_limit_on_nodal_imbalance!(gep, opts)
-            convex_hull_limit_on_nodal_imbalance!(gep, opts)
-            fix_storage_dispatch!(gep, opts)
-            optimize_GEP_model!(gep)
-            save_optimisation_values!(gep)
-        else
-            run_rolling_horizon(gep)
+        terminal_out = @capture_out begin
+            if rolling_horizon == false
+                apply_operating_reserves!(gep, opts)
+                modify_network!(gep, opts)
+                modify_timeseries!(gep, opts)
+                @info "Building JuMP model..."
+                make_JuMP_model!(gep)
+                apply_initial_commitment!(gep, opts)
+                constrain_reserve_shedding!(gep, opts)
+                prevent_simultaneous_charge_and_discharge!(gep, opts)
+                apply_initial_state_of_charge!(gep, opts)
+                absolute_limit_on_nodal_imbalance!(gep, opts)
+                convex_hull_limit_on_nodal_imbalance!(gep, opts)
+                fix_storage_dispatch!(gep, opts)
+                optimize_GEP_model!(gep)
+                save_optimisation_values!(gep)
+            else
+                run_rolling_horizon(gep)
+            end
+            nothing
         end
+        gep[:O, :terminal_out] = terminal_out
         save(gep, opts)
         gep
     else
@@ -538,7 +542,13 @@ function save(gep::GEPM, opts::Dict)
             k => gep[k] for k in exprs_2_save
         )
     end
-    return GEPPR.save(gep, save_path)
+    GEPPR.save(gep, save_path)
+
+    open(joinpath(save_path, "optimizer_out.dat"), "w") do io
+        print(io, gep[:O, :terminal_out])
+    end
+
+    return gep
 end
 
 """
