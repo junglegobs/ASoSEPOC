@@ -363,7 +363,9 @@ function apply_initial_state_of_charge!(gep::GEPM, opts::Dict)
 end
 
 function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
-    @unpack absolute_limit_on_nodal_imbalance, allow_absolute_imbalance_slacks, absolute_imbalance_slack_penalty = opts
+    @unpack absolute_limit_on_nodal_imbalance,
+    allow_absolute_imbalance_slacks,
+    absolute_imbalance_slack_penalty = opts
     absolute_limit_on_nodal_imbalance == false && return gep
     sp = absolute_imbalance_slack_penalty
 
@@ -410,7 +412,6 @@ function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
         JuMP.fix.(abs_slack_L⁻, 0.0; force=true)
     end
 
-
     # Constraints
     gep[:M, :constraints, :MaxAbsNodalImbalanceUp] = @constraint(
         gep.model,
@@ -436,7 +437,11 @@ function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
     # Overload objective
     obj = gep[:M, :objective]
     gep[:M, :objective_w_slack] = @objective(
-        gep.model, Min, obj + sp * (sum(el^2 for el in abs_slack_L⁺) + sum(el^2 for el in abs_slack_L⁻))
+        gep.model,
+        Min,
+        obj +
+            sp *
+        (sum(el^2 for el in abs_slack_L⁺) + sum(el^2 for el in abs_slack_L⁻))
     )
 
     return gep
@@ -657,4 +662,19 @@ function save_gep_for_security_analysis(gep::GEPM, opts::Dict)
     return save_gep_for_security_analysis(
         gep, joinpath(opts["save_path"], "security_analysis_$(dt_string).json")
     )
+end
+
+function change_gep_root_path(
+    load_path,
+    from_path="/vsc-hard-mounts/leuven-data/331/vsc33168/ASoSEPOC/",
+    to_path="/home/u0128861/Desktop/ASoSEPOC/",
+)
+    @load eval(joinpath(load_path, "config.jld2")) dictConfig
+    dc = dictConfig
+    dc["configFile"] = [
+        replace(el, from_path => to_path) for el in dc["configFile"]
+    ]
+    @save eval(joinpath(load_path, "config.jld2")) dictConfig
+
+    return dictConfig
 end
