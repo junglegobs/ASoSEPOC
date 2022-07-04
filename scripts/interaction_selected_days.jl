@@ -8,7 +8,7 @@ opts_vec = [
     merge(
         opts,
         Dict(
-            "time_out" => 1200,
+            "time_out" => 1800,
             "initial_state_of_charge" => 0.5,
             "upward_reserve_levels_included_in_redispatch" => 1:10,
             "downward_reserve_levels_included_in_redispatch" => 1:10,
