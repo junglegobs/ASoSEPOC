@@ -3,33 +3,42 @@ sn = script_name(@__FILE__)
 mkrootdirs.(plotsdir(sn), simsdir(sn))
 
 opts = options_diff_days(sn, "days_for_analysis_2022_06_21.csv")[4]
+opts["prevent_simultaneous_charge_and_discharge"] = false
 opts["initial_state_of_charge"] = 0.0
 opts["time_out"] = 600
-opts["save_path"] *= "SOC_init=0.0"
+opts["save_path"] *= "_SOC_init=0.0"
 gep = run_GEPPR(opts)
 d = save_gep_for_security_analysis(gep, opts)
 
 opts = options_diff_days(sn, "days_for_analysis_2022_06_21.csv")[4]
+opts["prevent_simultaneous_charge_and_discharge"] = false
 opts["initial_state_of_charge"] = 0.5
 opts["time_out"] = 600
-opts["save_path"] *= "SOC_init=0.5"
+opts["save_path"] *= "_SOC_init=0.5"
 gep = run_GEPPR(opts)
 d = save_gep_for_security_analysis(gep, opts)
 
 # Load the results in each folder
-function analyse_UC_edge_effect_results(sn)
+function analyse_UC_edge_effect_results(
+    sn,
+    files_2_ignore=[
+        "security_analysis_2022_7_1_14:0.json",
+        "security_analysis_2022_7_5_12:2.json",
+        "security_analysis_2022_7_1_18:8.json",
+        "security_analysis_2022_7_1_18:6.json",
+    ],
+)
     r = Dict()
     for (root, dirs, files) in walkdir(simsdir(sn))
         for file in files
             occursin("security_analysis", file) == false && continue
-            occursin("security_analysis_2022_7_1_14:0.json", file) && continue 
+            any(occursin.(files_2_ignore, file)) && continue
             file_path = joinpath(root, file)
-            dir_name = splitpath(file_path)[end-1]
+            dir_name = splitpath(file_path)[end - 1]
             if haskey(r, dir_name)
                 @warn "Overwriting result at $dir_name due to more than one JSON file."
             end
             r[dir_name] = JSON.parsefile(file_path)
-            
         end
     end
 
@@ -44,7 +53,7 @@ function analyse_UC_edge_effect_results(sn)
             gen_ids = string.(sort(parse.(Int, collect(keys(vals)))))
             j = 1
             for id in gen_ids
-                z[k1][i,j] = vals[id]["z"]
+                z[k1][i, j] = vals[id]["z"]
                 j += 1
             end
             i += 1
@@ -52,9 +61,21 @@ function analyse_UC_edge_effect_results(sn)
     end
 
     plt_vec = Plots.Plot[]
-    for (k,v) in z
-        push!(plt_vec, heatmap(v', title=k, ylab="Unit", xlab="Time", zlab="Commitment", margin=20mm))
+    for (k, v) in z
+        push!(
+            plt_vec,
+            heatmap(
+                v';
+                title=k,
+                ylab="Unit",
+                xlab="Time",
+                zlab="Commitment",
+                margin=20mm,
+            ),
+        )
     end
-    plt = Plots.plot(plt_vec..., size=(800,2000), layout=(length(plt_vec),1))
-    Plots.savefig(plt, plotsdir(sn, "commitments.pdf"))
+    plt = Plots.plot(plt_vec...; size=(800, 2000), layout=(length(plt_vec), 1))
+    return Plots.savefig(plt, plotsdir(sn, "commitments.pdf"))
 end
+
+analyse_UC_edge_effect_results(sn)
