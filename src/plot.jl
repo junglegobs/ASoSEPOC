@@ -174,11 +174,15 @@ function plot_dispatch(
     if length(N) == 1
         inj = gep[:inj]
         inj = [inj[N[1], Y[1], p, t] for t in T]
-        Plots.plot!(plt,
+        Plots.plot!(
+            plt,
             T,
             D + reshape(inj, :, 1);
-            lab = "Demand - injection",
-            lc=:black, line=:steppost, ls=:dash, lw=2
+            lab="Demand - injection",
+            lc=:black,
+            line=:steppost,
+            ls=:dash,
+            lw=2,
         )
     end
 
@@ -278,6 +282,24 @@ function plot_reserves_simple(
         plt_up, plt_down; layout=(2, 1), size=(800, 500), xlims=extrema(T)
     )
     return plt_all
+end
+
+function plot_commitment(
+    gep::GEPM,
+    p::Int;
+    Y=GEPPR.get_set_of_nodes_and_time_indices(gep)[2],
+    T=GEPPR.get_set_of_nodes_and_time_indices(gep)[4],
+)
+    z = gep[:z]
+    ytl = first.(z.axes[1])
+    z = dropdims(z.data; dims=(2, 3))
+    return Plots.heatmap(
+        z;
+        xlab="Time [h]",
+        yticks=(eachindex(ytl), ytl),
+        legend=:none,
+        title="Commitment [Black=off]",
+    )
 end
 
 nothing
