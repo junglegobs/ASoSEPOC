@@ -287,12 +287,16 @@ end
 function plot_commitment(
     gep::GEPM,
     p::Int;
+    N=GEPPR.get_set_of_nodes_and_time_indices(gep)[1],
     Y=GEPPR.get_set_of_nodes_and_time_indices(gep)[2],
     T=GEPPR.get_set_of_nodes_and_time_indices(gep)[4],
 )
+    @assert length(Y) == 1
     z = gep[:z]
-    ytl = first.(z.axes[1])
-    z = dropdims(z.data; dims=(2, 3))
+    GN = GEPPR.get_set_of_nodal_dispatchable_generators(gep)
+    GN = [(g,n) for (g,n) in GN if n in N]
+    z = [z[(g, n), Y[1], p, t] for (g, n) in GN, t in T]
+    ytl = first.(GN)
     return Plots.heatmap(
         z;
         xlab="Time [h]",

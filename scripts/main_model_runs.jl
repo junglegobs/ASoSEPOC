@@ -128,6 +128,12 @@ function main_model_run(opts; make_plots=false)
             Plots.savefig(plt, joinpath(opts["save_path"], "reserves.png"))
         end
 
+        # If has commitment variables, also plot the commitment heatmap
+        if opts["unit_commitment_type"] != "none"
+            plt = plot_reserves_simple(gep, 1)
+            Plots.savefig(plt, joinpath(opts["save_path"], "commitment.png"))
+        end
+
         # Plot the reserve shedding and load shedding time series
         ls = sum(gep[:loadShedding].data; dims=(1, 2, 3))[:]
         rs = gep[:rsL⁺]
