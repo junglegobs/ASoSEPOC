@@ -688,3 +688,38 @@ function change_gep_root_path(
 
     return dictConfig
 end
+
+function change_gep_root_path_full(
+    topdir,
+    from_paths=["/vsc-hard-mounts/leuven-data/331/vsc33168/ASoSEPOC/", ],
+    to_path="/home/u0128861/Desktop/ASoSEPOC/"
+)
+    for (root, dirs, file) in walkdir(topdir)
+        for dir in dirs
+            dirfl = joinpath(root, dir)
+            if isfile(joinpath(dirfl, "config.jld2"))
+                for from_path in from_paths
+                    change_gep_root_path(dirfl, from_path, to_path)
+                end
+            end
+        end
+    end
+end
+
+function change_gep_config_files_full(topdir)
+    for (root, dirs, file) in walkdir(topdir)
+        for dir in dirs
+            dirfl = joinpath(root, dir)
+            opts_file = joinpath(dirfl, "opts.json")
+            config_file = joinpath(dirfl, "config.jld2")
+            if isfile(config_file) && isfile(opts_file)
+                opts = JSON.parsefile(opts_file)
+                config, ~ = param_and_config(opts)
+                @load eval(config_file) dictConfig
+                dc = dictConfig
+                dc["configFile"] = config
+                @save eval(config_file) dictConfig
+            end
+        end
+    end
+end
