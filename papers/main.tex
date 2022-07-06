@@ -222,119 +222,118 @@ The residual load time series, aggregated across all nodes, for this system is p
 
 A complete overview of the data is given in \cite{Belderbos2020}, Appendix B.
 
+\subsubsection{Methodology used to select days for analysis}
+
+Four days were selected for analysis based on the results of a full year economic dispatch model which included network constraints. The load was multiplied uniformly across all nodes by a factor of 1.5 to ensure that some load shedding occurred and then four days were selected which represented the 0, 33, 66 and 100th percentile in terms of daily load shedding. The resulting days are presented in \tabref{tab:day_selection}.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{cccc}
+        \toprule
+        Day ahead daily load shedding [MWh/day] & Day of year & Month & Day of month \\
+        \midrule
+        0                                       & 161         & 6     & 10           \\
+        449                                     & 319         & 11    & 15           \\
+        1,247                                   & 285         & 10    & 12           \\
+        10,062                                  & 12          & 1     & 12           \\
+        \bottomrule
+    \end{tabular}
+    \caption{Days selected for analysis. These were selected based on the results of a full year economic dispatch model with load multiplied uniformly across all nodes by a factor of 1.5. The 0, 33, 66 and 100th percentiles in terms of daily load shedding were then selected.}\label{tab:day_selection}
+\end{table}
+
+It should be noted that of the four days selected, only day 285 exhibited load shedding when the load was not scaled but operating reserves were present. This finding highlights how day ahead adequacy may occur for reasons other than insufficient capacity aggregated across the network, i.e. analysis of the aggregated residual load (the load net of renewable generation) may be uninformative.
+
 \section{Analysis of \acl{DUCPR} model results} \label{sec:initial_results}
 
-This analysis relates only to the 309th day of the year (November 5th). The aim is to investigate what are the causes of load shedding.
+This analysis relates only to the 285th day of the year (12th of October). This day was selected since of the 4 days selected  The aim is to investigate what are the causes of load shedding to better understand the system.
 
 \subsection{No operating reserves}
 
-\tabref{tab:results_no_OR} lists results for an increasing level of technical constraints or increasingly inflexible system. While the objective more than doubles going from the simple linear economic dispatch model with no network constraints to the unit commitment model with network constraints, no load shedding occurs. Preventing simultaneous charging and discharging constraints does not affect results at all, implying that additional energy consumption (which is not physically possible) from storage does not aid congestion in this context.
+\tabref{tab:results_no_OR} lists results for an increasing level of technical constraints or increasingly inflexible system. While the objective increases by \euro 1,267,000 from the simple linear economic dispatch model with no network constraints to the unit commitment model with network constraints, no load shedding occurs. Preventing simultaneous charging and discharging constraints actually decreases, though this difference is within the optimality gap (0.01\%). This suggests that additional energy consumption (which is not physically possible) from storage does not aid congestion in this context.
 
 \begin{table}[H]
     \centering
     \begin{tabular}{ccccc}
         \toprule
-        UC  & DANet & PSCD & Load shedding [MWh] & Objective \\
+        UC  & DANet & PSCD & Load shedding [MWh] & Objective [\euro] \\
         \midrule
-            &       &      & 0.0                 & 101,915   \\
-        \xm &       &      & 0.0                 & 109,148   \\
-        \xm & \xm   &      & 0.0                 & 227,495   \\
-        \xm & \xm   & \xm  & 0.0                 & 227,492   \\
+            &       &      & 0.0                 & 3,127,814         \\
+        \xm &       &      & 0.0                 & 4,003,654         \\
+        \xm & \xm   &      & 0.0                 & 4,394,693         \\
+        \xm & \xm   & \xm  & 0.0                 & 4,394,513         \\
         \bottomrule
     \end{tabular}
     \caption{Analysis of model results when operating reserves are not included. UC = Unit Commitment constraints, DANet = Day Ahead Network constraints, PSCD = Prevent Simultaneous Charging and Discharging constraints.}\label{tab:results_no_OR}
 \end{table}
 
-The dispatch for the model with and without unit commitment constraints and with network constraints is shown in \figref{fig:dispatch_base}. The addition of unit commitment constraints leads to storage dispatching and conventional units generating throughout the day. Interestingly, the amount of solar generation and storage dispatch is higher in the economic dispatch model and the model with unit commitment and network constraints. This may be because batteries and solar generators are located in buses where there is also load, favouring their usage.
+The dispatch aggregated over the entire network for the model with and without unit commitment constraints and with network constraints is shown in \figref{fig:dispatch_base}. The addition of unit commitment constraints leads to less storage discharging and more conventional (thermal) units generating at the start of the day. The aggregated storage state of charge at 10AM (hour 6826) is approximately the same however. The addition of network constraints does not appear to change the aggregated dispatch significantly.
 
 \begin{figure}[H]
     \centering
     \begin{subfigure}[t]{0.7\textwidth}
         \centering
-        % \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base/dispatch}
+        \includegraphics[width=\textwidth]{../data/sims/main_model_runs/285/base/dispatch}
         \caption{Economic dispatch model}
     \end{subfigure}
     \begin{subfigure}[t]{0.7\textwidth}
         \centering
-        % \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_UC=true/dispatch}
+        \includegraphics[width=\textwidth]{../data/sims/main_model_runs/285/base_UC=true/dispatch}
         \caption{Unit commitment model}
     \end{subfigure}
     \begin{subfigure}[t]{0.7\textwidth}
         \centering
-        % \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_UC=true_DANet=true/dispatch}
+        \includegraphics[width=\textwidth]{../data/sims/main_model_runs/285/base_UC=true_DANet=true/dispatch}
         \caption{Unit commitment model with day ahead network constraints}
     \end{subfigure}
-    \caption{Dispatch schedules with and without operating reserves.\label{fig:dispatch_base}}
+    \caption{Dispatch schedules for day 285 and increasing model complexity.\label{fig:dispatch_base}}
 \end{figure}
 
-\subsection{Probabilistic operating reserves without reserve activation network constraints}
+\subsection{Probabilistic operating reserves}
 
-\begin{itemize}
-    \item Unit commitment constraints lead to unavoidable load shedding.
-    \item This result should be interpreted with caution however, since reserve provision is quite strict (storage can't provide reserves, non spinning reserves not modelled). If more flexibility would be available in terms of reserve provision then this might not occur.
-    \item Network constraints are less problematic than unit commitment (cost increase of \~20,000 euros instead of \~500,000).
-    \item Preventing simultaneous charge and discharge has a small but noticeable effect.
-\end{itemize}
+\tabref{tab:results_no_RANet} summarises results for the model runs with probabilistic operating reserves but no reserve activation network constraints. Clearly unit commitment constraints lead to greatly increased load shedding, 3.8 GWh to be precise. They also lead to reserve shedding where there wasn't any before. Neither day ahead network constraints or preventing simultaneous charging or discharging have an effect on the objective function which is greater than the MIP gap.
 
 \begin{table}[ht]
     \centering
     \footnotesize
     \begin{tabular}{ccccccc}
         \toprule
-        UC  & DANet & PSCD & RSL & Load shedding [MWh] & Reserve Shedding [MWh] & Objective \\
+        UC  & DANet & PSCD & RSL & Load shedding [MWh] & Reserve Shedding [MWh] & Objective  \\
         \midrule
-            &       &      & 0.0 & 0.0                 & 0.0                    & 101,345   \\
-            &       &      & 0.5 & 0.0                 & 0.0                    & 101,014   \\
-            &       &      & 1.0 & 0.0                 & 0.0                    & 101,014   \\
+            &       &      & 0.0 & 1,575               & 0.0                    & 19,508,913 \\
+            &       &      & 0.5 & 1,575               & 0.0                    & 19,508,913 \\
+            &       &      & 1.0 & 1,575               & 0.0                    & 19,508,913 \\
         \midrule
-        \xm &       &      & 0.0 & 1.669               & 0.0                    & 617,536   \\
-        \xm &       &      & 0.5 & 1.669               & 0.0                    & 617,536   \\
-        \xm &       &      & 1.0 & 1.669               & 0.0                    & 617,536   \\
+        \xm &       &      & 0.0 & 5,410               & 0.0                    & 63,198,973 \\
+        \xm &       &      & 0.5 & 5,410               & 5,683                  & 63,136,103 \\
+        \xm &       &      & 1.0 & 5,410               & 5,616                  & 63,136,444 \\
         \midrule
-        \xm & \xm   &      & 0.0 & 1.669               & 0.0                    & 650,647   \\
-        \xm & \xm   &      & 0.5 & 1.669               & 136                    & 650,231   \\
-        \xm & \xm   &      & 1.0 & 1.669               & 136                    & 650,231   \\
+        \xm & \xm   &      & 0.0 & 5,410               & 0.0                    & 63,198,620 \\
+        \xm & \xm   &      & 0.5 & 5,410               & 5,440                  & 63,137,301 \\
+        \xm & \xm   &      & 1.0 & 5,410               & 5,700                  & 63,140,438 \\
         \midrule
-        \xm & \xm   & \xm  & 0.0 & 1.669               & 0.0                    & 650,647   \\
-        \xm & \xm   & \xm  & 0.5 & 1.669               & 136                    & 650,231   \\
-        \xm & \xm   & \xm  & 1.0 & 1.669               & 136                    & 650,263   \\
+        \xm & \xm   & \xm  & 0.0 & 5,410               & 0.0                    & 63,198,858 \\
+        \xm & \xm   & \xm  & 0.5 & 5,410               & 5,112                  & 63,139,965 \\
+        \xm & \xm   & \xm  & 1.0 & 5,410               & 5,114                  & 63,140,337 \\
         \bottomrule
     \end{tabular}
     \caption{Analysis of model results with operating reserves but no reserve activation network constraints. UC = Unit Commitment constraints, DANet = Day Ahead Network constraints, PSCD = Prevent Simultaneous Charging and Discharging constraints, RSL = Reserve Shedding Limit.}\label{tab:results_no_RANet}
 \end{table}
 
-\figref{fig:dispatch_simple_reserves} shows the dispatch for 3 models with operating reserves, the first a simple economic dispatch, then a unit commitment and then a unit commitment with network constraints. Similarly to before, network constraints lead to greater usage of solar and storage compared to the unit commitment model without.
+\figref{fig:dispatch_with_operating_reserves} shows the dispatch schedule for the case with unit commitment constraints, day ahead network constraints and operating reserve requirements but no limit on reserve shedding. Load shedding occurs at 8 - 10 AM, even though there is still energy in the storage units. This is not due to congestion issues, since some of these storage units are located at the same node as the load being shed. Rather, this is likely due to the constraint which specifies that the storage state of charge at the end of the day must be greater than or equal to that at the start of the day. This constraint was included so as not to overestimate the flexibility that storage could provide, though it is unlikely that such a situation would occur in reality.
 
 \begin{figure}[H]
     \centering
-    \begin{subfigure}[t]{0.7\textwidth}
-        \centering
-        % \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_RSV=0.0/dispatch}
-        \caption{No UC, no DANet, no PSCD, RSL is 0.0}
-    \end{subfigure}
-    \begin{subfigure}[t]{0.7\textwidth}
-        \centering
-        % \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_UC=true_RSV=0.0/dispatch}
-        \caption{UC, no DANet, no PSCD, RSL is 0.0}
-    \end{subfigure}
-    \begin{subfigure}[t]{0.7\textwidth}
-        \centering
-        % \includegraphics[width=\textwidth]{../data/sims/main_model_runs/309/base_UC=true_DANet=true_RSV=0.0/dispatch}
-        \caption{UC, DANet, no PSCD, RSL is 0.0}
-    \end{subfigure}
-    \caption{Dispatch schedules with and without operating reserves.\label{fig:dispatch_simple_reserves}}
+    \includegraphics[width=0.7\textwidth]{../data/sims/main_model_runs/285/base_UC=true_DANet=true_RSV=1.0/dispatch}
+    \caption{Dispatch schedule for day 285, unit commitment constraints, day ahead network constraints and operating reserve requirements but no limit on reserve shedding.\label{fig:dispatch_with_operating_reserves}}
 \end{figure}
 
-\begin{itemize}
-    \item What's happening to reduce reserve shedding without reducing load shedding? Consider only the difference between $RSL$ 0.5 and 0.0 for the UC and DANet case.
-    \item For $RSL = 0.5 $, load shedding occurs across all nodes for the 10th hour of the day. Reserve shedding occurs on one node, LATOUR, for the 9th hour.
-    \item The commitment for the two values of $RSL$ is not different.
-    \item The load shed in both cases is the same i.e. it is not shed in different places. It is also equal everywhere, which seems strange...
-    \item To avoid reserve shedding, the cost increase appears to be simply from regulating the generation of 6 conventional generators - Eeklo Nord, Meerhout, Monce and the generators at TIHANGE 1 and TIHANGE 3. Various renewable generators also modify their output.
-    \item This leads me to believe that economic load shedding is occurring, and that more conventional generators are generating and providing reserves in order to satisfy the reserve shedding limit.
-\end{itemize}
+Considering the case with just unit commitment constraints, the reserve shedding limit can be decreased without increasing load shedding, though there is an increase (~0.09\%) in the objective function greater than the MIP gap. This is counterintuitive, as you would expect the DUC-PR model to shed all operating reserves before shedding load in the day ahead stage. The former is less costly than the latter after all, due to activation probabilities being < 1. However, what is occuring is most likely `economic reserve shedding' - shedding reserves because they are highly unlikely to be activated. This phenomenon was also observed in \cite{Hermans2018}. \figref{fig:reserves_with_operating_reserves} illustrates that almost all reserve shedding occurs between 14:00 and 16:00 (hour 6830 to 6832) and not 8:00 to 10:00 as with load shedding. These are hours with a lot of solar generation and very little conventional, so to avoid this reserve shedding only requires additional generator commitment and not increasing the amount of load shedding in those hours.
 
-The fact that upward operating reserves can be entirely satisfied while load shedding occurs signals to me that reserve provision is easier to provide than satisfying load. This is almost certainly due to the weak reserve activation network constraints. Further constraining these using the methods described in \secref{sec:further_constraining_operating_reserve_network_activation_constraints} attempts to address this, as will be detailed in the next section.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{../data/sims/main_model_runs/285/base_UC=true_DANet=true_RSV=1.0/reserves}
+    \caption{Dispatch schedule for day 285, unit commitment constraints, day ahead network constraints and operating reserve requirements but no limit on reserve shedding.\label{fig:reserves_with_operating_reserves}}
+\end{figure}
 
 \subsection{Probabilistic operating reserves with reserve activation network constraints}
 
