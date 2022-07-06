@@ -260,8 +260,8 @@ function how_is_reserve_shed_without_increasing_load_shedding(gep_vec, opts_vec)
     rs_0_5 = dropdims(
         sum(gep_vec[i + 4][:rsL⁺].data; dims=(2, 3, 4)); dims=(2, 3, 4)
     )
-    @show ls_0_5_idx = findall(ls_0_5 .> 1e-3)
-    @show rs_0_5_idx = findall(rs_0_5 .> 1e-6)
+    ls_0_5_idx = findall(ls_0_5 .> 1e-3)
+    rs_0_5_idx = findall(rs_0_5 .> 1e-6)
 
     # Load shedding occurs same time when RSL = 0 and RSL = 0.5
     ls_0 = dropdims(
@@ -270,8 +270,7 @@ function how_is_reserve_shed_without_increasing_load_shedding(gep_vec, opts_vec)
     ls_0_idx = findall(ls_0_5 .> 1e-3)
     @show ls_0_idx == ls_0_5_idx
 
-    # Plot load shedding
-    @show sum(ls_0[:, 10] .- ls_0_5[:, 10])
+    # Plot load shedding, which occurs at hour 8
     N = GEPPR.get_set_of_nodes(gep_vec[i])
     x = eachindex(N)
     display(
@@ -300,7 +299,7 @@ function how_is_reserve_shed_without_increasing_load_shedding(gep_vec, opts_vec)
     @show GN[q_idx]
 end
 
-# how_is_reserve_shed_without_increasing_load_shedding(gep_vec, opts_vec)
+how_is_reserve_shed_without_increasing_load_shedding(gep_vec, opts_vec)
 
 function load_shedding_distribution(gep_vec, opts_vec, idx)
     pyplot()
