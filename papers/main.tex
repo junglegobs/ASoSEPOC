@@ -212,6 +212,12 @@ The grid and resource data used for this interaction is inspired by the case stu
 
 Power to Gas is omitted but 14.1 GW of storage power capacity (1.1 GW provided by pumped hydro at Coo, the rest batteries) and 101 GWh of storage energy capacity (8.2 GWh provided by pumped hydro at Coo, the rest batteries) is included. The batteries therefore have a duration of 7.2 hours (which could be considered atypical, given current durations of 1 - 2 hours \addcite{MIT paper for this?}).
 
+The network topology was obtained from the Belgian TSO, Elia \cite{Elia2018grid}. It consists of 46 nodes connected by 69 lines.
+
+The load time series used was the load as seen by Elia on the high-voltage grid from the year 2015 \todo{add cite.}. For this year, the minimum and maximum load was 5,777 MW and 13,670 MW respectively, with an average of 9,934 MW. The electrical load is assigned to the different nodes in the system according to the rated capacity of the transformer feeding each node.
+
+The \ac{VRES} availability factor time series are taken from Elia data for the year 2015, same as the load. This was done by dividing generation from offshore wind, wind and solar by the total installed capacities available. This allows scaling up the generation of \ac{VRES} to the previously mentioned capacities. The distribution of onshore wind and solar photovoltaic (PV) capacity was done according to the distribution made in \cite{DelarueErik2016Dtio}.
+
 The residual load time series, aggregated across all nodes, for this system is plotted in \todo[inline]{Plot this}.
 
 A complete overview of the data is given in \cite{Belderbos2020}, Appendix B.
