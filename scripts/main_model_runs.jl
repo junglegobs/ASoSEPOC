@@ -115,8 +115,9 @@ function main_model_run(opts; make_plots=false)
 
     dis_file = joinpath(opts["save_path"], "dispatch.png")
     res_file = joinpath(opts["save_path"], "ls_and_rs.png")
+    comm_file = joinpath(opts["save_path"], "commitment.png")
 
-    if make_plots && (isfile(dis_file) == false && isfile(res_file) == false)
+    if make_plots && (any(isfile.([dis_file,res_file, comm_file]) .== false))
         # Plot dispatch
         plt = plot_dispatch(gep, 1)
         Plots.savefig(plt, dis_file)
@@ -125,13 +126,13 @@ function main_model_run(opts; make_plots=false)
         if opts["operating_reserves_type"] != "none"
             has_OR(gep) == false && apply_operating_reserves!(gep, opts)
             plt = plot_reserves_simple(gep, 1)
-            Plots.savefig(plt, joinpath(opts["save_path"], "reserves.png"))
+            Plots.savefig(plt, res_file)
         end
 
         # If has commitment variables, also plot the commitment heatmap
         if opts["unit_commitment_type"] != "none"
-            plt = plot_reserves_simple(gep, 1)
-            Plots.savefig(plt, joinpath(opts["save_path"], "commitment.png"))
+            plt = plot_commitment(gep, 1)
+            Plots.savefig(plt, comm_file)
         end
 
         # Plot the reserve shedding and load shedding time series
@@ -148,7 +149,7 @@ function main_model_run(opts; make_plots=false)
             [ls rs];
             lab=["Load shedding" "Reserve shedding"],
             ylabel="Power",
-            ylims=(0, max(100, maximum(ls))),
+            ylims=(0, max(100, maximum(ls), maximum(rs))),
         )
         Plots.savefig(plt, res_file)
     end
