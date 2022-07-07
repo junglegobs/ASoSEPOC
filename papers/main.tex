@@ -321,7 +321,7 @@ The dispatch aggregated over the entire network for the model with and without u
 
 \figref{fig:dispatch_with_operating_reserves} shows the dispatch schedule for the case with unit commitment constraints, day ahead network constraints and operating reserve requirements but no limit on reserve shedding. Load shedding occurs at 8 - 10 AM, even though there is still energy in the storage units. This is not due to congestion issues, since some of these storage units are located at the same node as the load being shed. Rather, this is likely due to the constraint which specifies that the storage state of charge at the end of the day must be greater than or equal to that at the start of the day. This constraint was included so as not to overestimate the flexibility that storage could provide, though it is unlikely that such a situation would occur in reality.
 
-\begin{figure}[H]
+\begin{figure}[H]I
     \centering
     \includegraphics[width=0.7\textwidth]{../data/sims/main_model_runs/285/base_UC=true_DANet=true_RSV=1.0/dispatch}
     \caption{Dispatch schedule for day 285, unit commitment constraints, day ahead network constraints and operating reserve requirements but no limit on reserve shedding.\label{fig:dispatch_with_operating_reserves}}

@@ -10,7 +10,7 @@ function param_and_config(opts::Dict)
     copperplate,
     initial_state_of_charge,
     reserve_provision_cost,
-    operating_reserves_type = opts
+    operating_reserves_type, cyclic_state_of_charge_constraint = opts
 
     is_linear = (opts["unit_commitment_type"] == "none")
     init_soc = opts["initial_state_of_charge"]
@@ -45,7 +45,7 @@ function param_and_config(opts::Dict)
             "end" => [1, 1, optimization_horizon[end]],
         ),
         "imposePeriodicityConstraintOnStorage" =>
-            rolling_horizon ? false : true,
+            rolling_horizon || (cyclic_state_of_charge_constraint == false) ? false : true,
         "dispatchableGeneration" => Dict(),
         "intermittentGeneration" => Dict(),
         "reserveType" => operating_reserves_type,

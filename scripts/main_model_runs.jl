@@ -355,3 +355,13 @@ function load_shedding_distribution(gep_vec, opts_vec, idx)
 end
 
 load_shedding_distribution(gep_vec, opts_vec, 56)
+
+function re_run_but_without_SOC(opts_vec, idx)
+    opts = copy(opts_vec[idx])
+    opts["cyclic_state_of_charge_constraint"] = false
+    opts["save_path"] *= "_wo_cyclic_SOC"
+
+    return main_model_run(opts; make_plots=true)
+end
+
+re_run_but_without_SOC(opts_vec, 15)
