@@ -321,6 +321,8 @@ The dispatch aggregated over the entire network for the model with and without u
 
 \figref{fig:dispatch_with_operating_reserves} shows the dispatch schedule for the case with unit commitment constraints, day ahead network constraints and operating reserve requirements but no limit on reserve shedding. Load shedding occurs at 8 - 10 AM, even though there is still energy in the storage units. This is not due to congestion issues, since some of these storage units are located at the same node as the load being shed. Rather, this is likely due to the constraint which specifies that the storage state of charge at the end of the day must be greater than or equal to that at the start of the day. This constraint was included so as not to overestimate the flexibility that storage could provide, though it is unlikely that such a situation would occur in reality.
 
+\todo[inline]{Confirm the above suspicion}
+
 \begin{figure}[H]I
     \centering
     \includegraphics[width=0.7\textwidth]{../data/sims/main_model_runs/285/base_UC=true_DANet=true_RSV=1.0/dispatch}
@@ -337,72 +339,57 @@ Considering the case with just unit commitment constraints, the reserve shedding
 
 \subsection{Probabilistic operating reserves with reserve activation network constraints}
 
-Including network reserve activation constraints, that is Constraints \ref{eq:reserve_network_activation_constraints_1} through \ref{eq:reserve_network_activation_constraints_1}, led to no discernible change in objective. This particular instance is not able to make a trade-off between day ahead adequacy and real time operational security. As a first attempt to overcome this issue, the load at all nodes was multiplied by a factor of 1.5. This gave the results shown in \tabref{tab:results_LM_1_5}.
+Including network reserve activation constraints, that is Constraints \ref{eq:reserve_network_activation_constraints_1} through \ref{eq:reserve_network_activation_constraints_2}, led to no discernible changes in objective value within the 0.01\% MIP gap, as can be seen from \tabref{tab:results_with_RANet} (see the difference between first three and second three rows). Similarly including absolute limits on the nodal imbalance realisations has very little effect on the results.
 
 \begin{table}[ht]
     \centering
     \footnotesize
-    \begin{tabular}{cccccccc}
+    \begin{tabular}{ccccccccc}
         \toprule
-        UC  & DANet & PSCD & AbsImb & RSL & Load shedding [MWh] & Reserve Shedding [MWh] & Objective \\
+        UC  & DANet & PSCD & RANet & AbsImb & RSL & Load shedding [MWh] & Reserve Shedding [MWh] & Objective [\euro] (MIP Gap [\%]) \\
         \midrule
-            &       &      &        & 0.0 & 32,366              & 0                      & 7,290,909 \\
-            &       &      &        & 0.5 & 0.0                 & 36,269                 & 447,102   \\
-            &       &      &        & 1.0 & 0.0                 & 36,082                 & 440,467   \\
+        \xm & \xm   & \xm  &       &        & 0.0 & 5,410               & 0.0                    & 63,198,858                       \\
+        \xm & \xm   & \xm  &       &        & 0.5 & 5,410               & 5,112                  & 63,139,965                       \\
+        \xm & \xm   & \xm  &       &        & 1.0 & 5,410               & 5,114                  & 63,140,337                       \\
         \midrule
-        \xm &       &      &        & 0.0 & 32,366              & 0                      & 7,433,785 \\
-        \xm &       &      &        & 0.5 & 1,669               & 34,379                 & 924,686   \\
-        \xm &       &      &        & 1.0 & 1,669               & 34,308                 & 919,363   \\
+        \xm & \xm   & \xm  & \xm   &        & 0.0 & 5,410               & 0                      & 63,199,116                       \\
+        \xm & \xm   & \xm  & \xm   &        & 0.5 & 5,410               & 4,898                  & 63,139,874                       \\
+        \xm & \xm   & \xm  & \xm   &        & 1.0 & 5,410               & 5,611                  & 63,137,767                       \\
         \midrule
-        \xm & \xm   &      &        & 0.0 & 33,929              & 0                      & 7,822,959 \\
-        \xm & \xm   &      &        & 0.5 & 1,967               & 39,234                 & 1,249,422 \\
-        \xm & \xm   &      &        & 1.0 & 1,941               & 39,160                 & 1,245,647 \\
-        \midrule
-        \xm & \xm   & \xm  &        & 0.0 & 33,929              & 0                      & 7,822,959 \\
-        \xm & \xm   & \xm  &        & 0.5 & 1,967               & 39,234                 & 1,249,422 \\
-        \xm & \xm   & \xm  &        & 1.0 & 1,941               & 39,160                 & 1,245,647 \\
-        \midrule
-        \xm & \xm   & \xm  & \xm    & 0.0 & 33,929              & 0                      & 7,822,959 \\
-        \xm & \xm   & \xm  & \xm    & 0.5 & 1,967               & 39,234                 & 1,249,422 \\
-        \xm & \xm   & \xm  & \xm    & 1.0 & 1,941               & 39,160                 & 1,245,647 \\
+        \xm & \xm   & \xm  & \xm   & \xm    & 0.0 & 5,410               & 0                      & 63,232,938 (0.04)
+        )                                                                                                                           \\
+        \xm & \xm   & \xm  & \xm   & \xm    & 0.5 & 5,410               & 5,687                  & 63,150,183                       \\
+        \xm & \xm   & \xm  & \xm   & \xm    & 1.0 & 5,410               & 6,452                  & 63,155,353 (0.02)                \\
         \bottomrule
     \end{tabular}
-    \caption{Analysis of model results with operating reserves and with reserve activation network constraints with load multiplied by a factor of 1.5. UC = Unit Commitment constraints, DANet = Day Ahead Network constraints, PSCD = Prevent Simultaneous Charging and Discharging constraints, RSL = Reserve Shedding Limit.}\label{tab:results_no_RANet}
+    \caption{Analysis of model results with operating reserves, with and without reserve activation network constraints and with and without absolute limits on nodal imbalances. MIP gap is shown in the case where this was greater than 0.01\%. UC = Unit Commitment constraints, DANet = Day Ahead Network constraints, PSCD = Prevent Simultaneous Charging and Discharging constraints, RANet = Reserve Activation Network constraints, AbsImb = Absolute limits on nodal Imbalance realisation, RSL = Reserve Shedding Limit.}\label{tab:results_with_RANet}
 \end{table}
 
-\todo[inline]{Objective is weird for some cases...}
+Multiplying the load by a factor of 1.5 gives the results shown in \tabref{tab:results_with_RANet_LM_15}. Here it is possible to discern a trade-off between load shedding and reserve shedding, albeit a small one - reducing reserve shedding to 0 from approximately 12,000 MWh increases load shedding only by 914 MWh. That this effect is slight is for similar reasons to that listed previously - reserve shedding occurs in different hours to load shedding and load shedding occurs in the same hours as before (8:00 to 11:00) and is likely due to the cyclic constraint on storage.
 
-With reference to \tabref{tab:results_LM_1_5}:
-
-\begin{itemize}
-    \item Even in this case, the reserve activation network constraints are not binding, since the AbsImb constraints do not alter the objective function.
-    \item On the other hand, the trade-off between reserve shedding and load shedding can be seen now in all cases. This trade-off is also obvious when observing the objective function.
-    \item Unit commitment constraints do relatively little to increase total costs, but this is unsurprising given that costs are dominated by load shedding.
-    \item Day ahead network constraints increase load shedding considerably i.e. congestion also plays a role in increasing load shedding.
-\end{itemize}
-
-Closer investigation at load shedding patterns for the model with UC and DANet (but no PSCD and AbsImb) and $RSL = 0.0$ reveals that load shedding is at it's highest in the mornings (8 - 10 AM) and in the evenings (17 - 20). No load shedding occurs in the middle of the day, which happens to be when load is lowest and solar generation is greatest. Load shedding is roughly equally distributed throughout the day in absolute though not relative terms.
-
-\begin{figure}[H]
+\begin{table}[ht]
     \centering
-    \begin{subfigure}[t]{0.45\textwidth}
-        \centering
-        % \includegraphics[width=\textwidth]{../plots/main_model_runs/ls_timeseries_idx=56}
-        \caption{}
-    \end{subfigure}
-    \newline
-    \begin{subfigure}[t]{0.45\textwidth}
-        \centering
-        % \includegraphics[width=\textwidth]{../plots/main_model_runs/ls_per_node_abs_idx=56}
-        \caption{}
-    \end{subfigure}
-    \begin{subfigure}[t]{0.45\textwidth}
-        \centering
-        % \includegraphics[width=\textwidth]{../plots/main_model_runs/ls_per_node_idx=56}
-        \caption{}
-    \end{subfigure}
-    \caption{Load shedding distribution in time (top figure, aggregated over all nodes) and space (aggregated over the entire day) for UC, DANet, LM = 1.5 and $RSL = 0.5$.}
-\end{figure}
+    \footnotesize
+    \begin{tabular}{ccccccccc}
+        \toprule
+        UC  & DANet & PSCD & RANet & AbsImb & RSL & Load shedding [MWh] & Reserve Shedding [MWh] & Objective [\euro] (MIP Gap [\%]) \\
+        \midrule
+            &       &      & \xm   &        & 0.0 & 5,825               & 0.0                    & 69,902,500                       \\
+        \xm &       &      & \xm   &        & 0.0 & 5,825               & 0.0                    & 77,491,233                       \\
+        \xm & \xm   &      & \xm   &        & 0.0 & 6,314               & 0.0                    & 82,523,020                       \\
+        \xm & \xm   & \xm  & \xm   &        & 0.0 & 6,314               & 0.0                    & 82,523,020                       \\
+        \midrule
+        \xm & \xm   & \xm  & \xm   &        & 0.0 & 6,314               & 0.0                    & 82,523,020                       \\
+        \xm & \xm   & \xm  & \xm   &        & 0.5 & 5,410               & 12,187                 & 72,771,511                       \\
+        \xm & \xm   & \xm  & \xm   &        & 1.0 & 5,410               & 12,244                 & 72,771,897                       \\
+        \midrule
+        \xm & \xm   & \xm  & \xm   & \xm    & 0.0 & 6,314               & 0                      & 83,163,868                       \\
+        \xm & \xm   & \xm  & \xm   & \xm    & 0.5 & 5,410               & 13,115                 & 73,298,008                       \\
+        \xm & \xm   & \xm  & \xm   & \xm    & 1.0 & 5,410               & 13,430                 & 73,296,805                       \\
+        \bottomrule
+    \end{tabular}
+    \caption{Analysis of model results with operating reserves, with and without reserve activation network constraints and with and without absolute limits on nodal imbalances and for load multiplied by a factor of 1.5. MIP gap is shown in the case where this was greater than 0.01\%. UC = Unit Commitment constraints, DANet = Day Ahead Network constraints, PSCD = Prevent Simultaneous Charging and Discharging constraints, RANet = Reserve Activation Network constraints, AbsImb = Absolute limits on nodal Imbalance realisation, RSL = Reserve Shedding Limit.}\label{tab:results_with_RANet_LM_15}
+\end{table}
 
 \section{Day ahead adequacy and real time operational security trade offs} \label{sec:adequacy_vs_security}
 
