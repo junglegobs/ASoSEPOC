@@ -23,6 +23,7 @@ function options(pairs...)
         "vars_2_save" => Symbol[],
         "exprs_2_save" => Symbol[],
         "initial_state_of_charge" => missing,
+        "cyclic_state_of_charge_constraint" => true,
         "replace_storage_dispatch_with_node_injection" => false,
         "reserve_provision_cost" => 0.0,
         "absolute_limit_on_nodal_imbalance" => false,
