@@ -714,6 +714,7 @@ function change_gep_config_files_full(topdir)
             config_file = joinpath(dirfl, "config.jld2")
             if isfile(config_file) && isfile(opts_file)
                 opts = JSON.parsefile(opts_file)
+                opts = options(collect(opts)...)
                 config, ~ = param_and_config(opts)
                 @load eval(config_file) dictConfig
                 dc = dictConfig
