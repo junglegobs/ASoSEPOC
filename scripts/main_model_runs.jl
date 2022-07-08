@@ -157,6 +157,7 @@ function main_model_run(opts; make_plots=false)
     return gep
 end
 
+change_gep_config_files_full(simsdir(sn))
 gep_vec = GEPM[]
 idx_to_remove = Int[]
 for i in eachindex(opts_vec)
