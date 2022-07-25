@@ -2,9 +2,9 @@ include(joinpath(@__DIR__, "..", "intro.jl"))
 using LinearAlgebra
 sn = script_name(@__FILE__)
 
-function check_scenarios()
+function check_scenarios(file_name="days_for_analysis.csv")
     gep = gepm(options())
-    df = CSV.read(datadir("pro", "days_for_analysis.csv"), DataFrame)
+    df = CSV.read(datadir("pro", file_name), DataFrame)
     GN = GEPPR.get_set_of_nodal_intermittent_generators(gep)
     AF = GEPPR.get_generator_availability_factors(gep)
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
@@ -134,9 +134,9 @@ check_scenarios()
 
 # NOTE: Sometimes you get Infs in the CSV files, watch out for this!    
 
-function fix_scenarios(; verbose=false)
+function fix_scenarios(file_name="days_for_analysis.csv"; verbose=false)
     gep = gepm(options())
-    df = CSV.read(datadir("pro", "days_for_analysis.csv"), DataFrame)
+    df = CSV.read(datadir("pro", file_name), DataFrame)
     GN = GEPPR.get_set_of_nodal_intermittent_generators(gep)
     AF = GEPPR.get_generator_availability_factors(gep)
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
