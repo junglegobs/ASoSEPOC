@@ -33,7 +33,6 @@ function compare_reliability_DUCPR_and_PF()
         ),
     )
     gep = load_GEP(simsdir("interaction_check", "309"))
-    N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
     rsL⁺ = gep[:rsL⁺]
 
     # Forecast
@@ -65,7 +64,19 @@ function compare_reliability_DUCPR_and_PF()
         :,
     )
     ls_pf_scen = sum(ls_pf_scen; dims=2)[:] / size(ls_pf_scen, 2) * 100 # base unit is 100 MVA
-    ls_uc_scen = ls_uc_fc .+ sum(rsL⁺.data; dims=(1, 2, 3, 4))[:]
+    
+    # For the UC case, need to get probabilities to weight the load shedding
+    opts = JSON.parsefile(
+        simsdir(
+            "interaction_check", "309", "opts.json"
+        ),
+    )
+    opts = options(collect(opts)...)
+    N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
+    L⁺ = GEPPR.get_set_of_upward_reserve_levels(gep)
+    scens = load_scenarios(opts)
+    D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻ = scenarios_2_GEPPR(opts, scens)
+    ls_uc_scen = ls_uc_fc .+ [sum(rsL⁺[n,l,y,p,T[i]]*P⁺[l,i] for n=N, l=L⁺, y=Y, p=P) for i in eachindex(T)]
     
     p2 = plot_vecs(
         ls_uc_scen,
@@ -79,3 +90,5 @@ function compare_reliability_DUCPR_and_PF()
 end
 
 p1, p2 = compare_reliability_DUCPR_and_PF()
+Plots.savefig(p1, plotsdir(sn, "forecast_only_no_contingency.pdf"))
+Plots.savefig(p2, plotsdir(sn, "with_scenarios_no_contingency.pdf"))

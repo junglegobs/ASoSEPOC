@@ -1,4 +1,4 @@
-using Plots, StatsPlots, PyPlot, Measures
+using StatsPlots, PyPlot, Measures
 
 function plot_dispatch(
     gep::GEPM,
