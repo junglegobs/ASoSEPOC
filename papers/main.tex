@@ -159,7 +159,7 @@ The DC power flow approximation used in this exercise is described below:
 \begin{align}
     f_{bt} = \sum_{n \in N} PTDF_{nb} \cdot inj_{nt} & \quad b \in B, \; t \in T \\
     -F_b \leq f_{bt} \leq F_b                        & \quad b \in B, \; t \in T \\
-    \sum_{n \in N} inj_{nt} = 0                      & \quad n \in N, \; t \in T \\
+    \sum_{n \in N} inj_{nt} = 0                      & \quad n \in N, \; t \in T
 \end{align}
 
 \subsubsection{Generators}
@@ -177,7 +177,7 @@ Minimum up and down times:
 
 \begin{align}
     1 - z_{gt} \geq \sum_{\tau \in 1:MDT_g - 1} w_{gt-\tau} & \quad g \in GD, \; t \in T_{MDT:end} \\
-    z_{gt} \geq \sum_{\tau \in 1:MUT_g - 1} v_{gt-\tau}     & \quad g \in GD, \; t \in T_{MUT:end} \\
+    z_{gt} \geq \sum_{\tau \in 1:MUT_g - 1} v_{gt-\tau}     & \quad g \in GD, \; t \in T_{MUT:end}
 \end{align}
 
 Relationship between commitment, startup and shutdown:
@@ -191,21 +191,23 @@ Ramping constraints:
 
 \begin{align}
     q_{gt} - q_{gt-1} + r^+_{gt} \leq RAMP_g & \quad g \in GD, \; t \in T_{2:end} \\
-    q_{gt-1} - q_{gt} + r^-_{gt} \leq RAMP_g & \quad g \in GD, \; t \in T_{2:end} \\
+    q_{gt-1} - q_{gt} + r^-_{gt} \leq RAMP_g & \quad g \in GD, \; t \in T_{2:end}
 \end{align}
 
 \subsubsection{Storage}
 
 \begin{align}
-    e_{t+1} = e_t + \sqrt{\eta} \cdot c_{st} - \sqrt{\eta} \cdot d_{st} & \quad s \in S, \; t \in T_{1:end} \\
-    e_{end} \geq e_0                                                    & \quad s \in S                     \\
-    y_{st} \cdot d_{st} \geq 0                                          & \quad s \in S, \; t \in T         \\
-    y_{st} \cdot d_{st} \leq K_s                                        & \quad s \in S, \; t \in T         \\
-    (1 - y_{st}) \cdot c_{st} \geq 0                                    & \quad s \in S, \; t \in T         \\
+    e_{t+1} = e_t + \sqrt{\eta} \cdot c_{st} - \sqrt{\eta} \cdot d_{st} & \quad s \in S, \; t \in T_{1:end}                   \\
+    e_{end} \geq e_0                                                    & \quad s \in S   \label{eq:storage_cyclic_constrant} \\
+    y_{st} \cdot d_{st} \geq 0                                          & \quad s \in S, \; t \in T                           \\
+    y_{st} \cdot d_{st} \leq K_s                                        & \quad s \in S, \; t \in T                           \\
+    (1 - y_{st}) \cdot c_{st} \geq 0                                    & \quad s \in S, \; t \in T                           \\
     (1 - y_{st}) \cdot c_{st} \leq K_s                                  & \quad s \in S, \; t \in T
 \end{align}
 
 The binary variable $y_{st}$ prevents simultaneous charging and discharging. While such unphysical behaviour is not typical, in this case the constraint was deemed necessary since such behaviour could be exploited to reduce congestion. This was also investigated in the results.
+
+When carrying out this exercise it was noticed that the system being studied was very sensitive to assumptions on storage due to the high penetration of batteries (~92 GWh). Assuming that all storage technologies were empty at the beginning of the day led to load shedding at this time because the system relies on charging storage during the day. Assuming they were full led to no scarcity issues at all. Assuming they were half full sometimes led to a single spike in load shedding \emph{despite there being sufficient energy in the storage units to avoid this}. This is because of the cyclic constraint on the state of charge given by \eqref{eq:storage_cyclic_constrant}, that is that the load shedding was occurring so as to satisfy this constraint and not because there was any real scarcity.
 
 \subsubsection{Operating reserve (activation) constraints}
 
@@ -222,7 +224,7 @@ The constraints on reserve provision are as follows:
 The amount of reserve shedding can be limited to a fraction of the total upward reserve requirements $RSL$:
 
 \begin{equation}
-    \sum_{n \in N, l \in L^+} rs_{nlt} \leq RSL \cdot \sum_{l \in L^+} D^{L^+}_{l't} \quad t \in T
+    \sum_{n \in N, l \in L^+} rs_{nlt} \leq RSL \cdot \sum_{l \in L^+} D^{L^+}_{lt} \quad t \in T
 \end{equation}
 
 There are several matters to note here:
@@ -253,7 +255,7 @@ The following constraints attempt to take network constraints into account (albe
 
 Note that $rinj^{L^+}_{nlt}$, $rinj^{L^-}_{nlt}$, $d^{L^+}_{nlt}$ and $d^{L^-}_{nlt}$ are all free variables and there is a change in sign between upward and downward reserve levels to ensure that the resulting addition to the line flows, $rf^{L^+}_{blt}$ and $rf^{L^-}_{blt}$, are correct.
 
-Since imbalances are aggregated across the network, a particular reserve level activation is not associated with an imbalance at the nodal level. The above constraints therefore enforce that for each reserve level $l$ and node $n$, there exists some combination of nodal imbalance, node injections, generator dispatches and line flows which would satisfy the network constraints AND the imbalance across the entire network.
+Since imbalances are aggregated across the network, a particular reserve level activation is not associated with an imbalance at the nodal level. The above constraints therefore enforce that for each reserve level $l$ and node $n$, \emph{there exists some combination} of nodal imbalance, node injections, generator dispatches and line flows which would satisfy the network constraints AND the imbalance across the entire network. This weakly constrains the reserve activation network flows since the optimizer is free to choose this combination.
 
 \subsubsection{Further constraining reserve activation network constraints} \label{sec:further_constraining_operating_reserve_network_activation_constraints}
 
