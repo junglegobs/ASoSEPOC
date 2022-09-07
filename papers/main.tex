@@ -25,7 +25,7 @@ Adequacy assessments and operational security analyses are two fundamental exerc
 
 Typically, these exercises are performed independently. This interaction combines the two by feeding the results of an adequacy assessment to an operational security analysis.
 
-In doing so, we deviate from typical practices in a number of ways. First, the adequacy assessment is done for a limited number of days instead of many Monte Carlo years for the sake of clarity and brevity. Indeed, doing this exercise for many Monte Carlo years would drastically increase the computational complexity while the aim of this exercise is to illustrate how such an interaction could be performed.
+In doing so, we deviate from typical practices in a number of ways. First, the adequacy assessment was done for a limited number of days instead of many Monte Carlo years for the sake of clarity and brevity. Indeed, doing this exercise for many Monte Carlo years would drastically increase the computational complexity while the aim of this exercise is to illustrate how such an interaction could be performed.
 
 Secondly, the adequacy assessment is done using an unconventional \ac{UC} model, a modified version of the \ac{DUCPR} model described in \cite{Bruninx2017}. This model can be seen as a compromise between a computationally expensive stochastic \ac{UC} model and a more tractable though less accurate deterministic \ac{UC} model with operating reserve requirements. The treatment of operating reserves in this model allows a trade-off between shedding load in the day ahead stage, which would reduce day ahead adequacy, and shedding operating reserves, which should reduce operational security. By making this trade-off explicit and verifying the results in an operational security analysis we aim to elaborate on the results of \cite{Hermans2018}, which did not consider the possibility that shedding operating reserves would lead to insecure operation of the electric power system.
 
@@ -44,6 +44,7 @@ Sets, variables and costs related to unit commitment and storage operation have 
     \item $G_n$ - Generators located at node $n$
     \item $GD$ - Dispatchable / thermal / conventional generators
     \item $GR$ - Renewable / variable generators (\ac{VRES}).
+    \item $S$ - Storage technologies
     \item $N$ - Nodes or buses in the network
     \item $B$ - Lines or branches
     \item $T$ - Time steps / intervals / slices
@@ -60,8 +61,13 @@ Sets, variables and costs related to unit commitment and storage operation have 
     \item $K_g$ - Capacity
     \item $P^{min}_g$ - Minimum power output
     \item $P^{max}_g$ - Maximum power output
+    \item $MUT_g$ - Minimum up time
+    \item $MDT_g$ - Minimum down time
+    \item $RAMP_g$ - Maximum ramping limit (up and down)
     \item $D^{L^+}_{lt}$ - Upward reserve requirement
     \item $D^{L^-}_{lt}$ - Downward reserve requirement
+    \item $P^{L^+}_{lt}$ - Upward reserve level activation probability
+    \item $P^{L^-}_{lt}$ - Downward reserve level activation probability
 \end{itemize}
 
 \subsection{Variables}
@@ -69,8 +75,15 @@ Sets, variables and costs related to unit commitment and storage operation have 
 All variables are positive apart from node injection variables which may also be negative.
 
 \begin{itemize}
+    \item $z_{gt}$ - Commitment
+    \item $v_{gt}$ - start up
+    \item $w_{gt}$ - Shut down
     \item $q_{gt}$ - Generation
     \item $\hat{q}_{gt}$ - Generation above the minimum stable operating point (0 in the case of renewables).
+    \item $d_{st}$ - Storage discharge
+    \item $c_{st}$ - Storage charge
+    \item $y_{st}$ - Binary variable, 1 if storage discharges and 0 if it charges
+    \item $e_{st}$ - Storage state of charge variable
     \item $ls_{nt}$ - Load shedding
     \item $inj_{nt}$ - Node injection
     \item $f_{lt}$ - Branch flow
@@ -90,27 +103,58 @@ All variables are positive apart from node injection variables which may also be
 
 \subsection{Objective}
 
+Objective is to minimise the sum of all day ahead and real time expected operational costs, the terms of which are defined in the following sections.
+
+\subsubsection{Commitment, start up and shut down costs}
+
+These costs are only defined for dispatchable generators $g \in GD$.
+
+\begin{equation}
+    \sum_{t \in T} \sum_{g \in GD} \left ( C^{comm} \cdot z_{gt} + C^{start} \cdot v_{gt} + C^{shut} \cdot w_{gt} \right ) \\
+\end{equation}
+
+\subsubsection{Day ahead generation costs}
+
+These costs are defined for all generators $g \in G$.
+
+\begin{equation}
+    \sum_{t \in T} \sum_{g \in G} C^{var}_{g} \cdot \hat{q}_{gt}
+\end{equation}
+
+\subsubsection{Probabilistic reserve activation costs}
+
+These are defined for all generators $g \in G$.
+
 \begin{align}
-    \min \quad & \sum_{t \in T} \sum_{g \in G} C^{var}_{g} \cdot \hat{q}_{gt} \nonumber                                                                  \\
-               & + \sum_{t \in T} \sum_{l \in L^+} \sum_{n \in N} P^{L^+} \cdot \sum_{g \in G} C^{var}_{g} \cdot r^{L^+}_{glt} + C^{shed} \cdot rs_{nlt} \\
-               & - \sum_{t \in T} \sum_{l \in L^-} \sum_{n \in N} P^{L^-} \cdot C^{var}_{g} \cdot r^{L^-}_{gnlt} + C^{shed} \cdot rc_{nlt} \nonumber
+     & + \sum_{g \in G, \; t \in T} \sum_{l \in L^+} \sum_{n \in N} \left ( P^{L^+}_{lt} \cdot \sum_{g \in G} C^{var}_{g} \cdot r^{L^+}_{glt} + C^{shed} \cdot rs_{nlt} \right ) \\
+     & - \sum_{g \in G, \; t \in T} \sum_{l \in L^-} \sum_{n \in N} \left ( P^{L^-}_{lt} \cdot C^{var}_{g} \cdot r^{L^-}_{gnlt} + C^{shed} \cdot rc_{nlt} \right ) \nonumber
 \end{align}
 
-From the top line to the bottom, the costs are those of dispatching generators and activating upwards or downwards reserves.
+These terms attempt to take into account the expected cost of activating operating reserves. The expectation is obtained by weighting the cost of activating a particular upward reserve level $l \in L^+$ (increase in costs) or downward reserve level $l \in L^-$ (decrease in costs) by the probability of that reserve level being activated, $P^{L^+}_{lt}$ and $P^{L^-}_{lt}$ respectively.
+
+Both upward and downward reserve levels can be `shed', i.e. not provided. In the case of upward reserves, load shedding in real time is expected so as to satisfy the power balance. In the case of downward reserves, load shedding in the day ahead stage provides the additional downward reserves. The assumption (perhaps implausible) is that this load could in fact be served i.e. not shed depending on the imbalance realisation.  Since load shedding in day ahead is the most expensive decision that the model can take, downward reserve provided in this way is a last resort, even though this term of the objective on its own leads to a decrease in objective costs.
 
 \subsection{Constraints}
 
-\subsubsection{Day ahead constraints}
+\subsubsection{Day ahead power balance}
 
 The power balance:
 
 \begin{equation}
-    \sum_{g \in G_n} q_{gt} + ls_{nt} = D_{nt} + inj_{nt} \quad n \in N, \; t \in T
+    \sum_{g \in G_n} q_{gt} + \sum_{s \in S_n} (d_{st} - c_{st}) + ls_{nt} = D_{nt} + inj_{nt} \quad n \in N, \; t \in T
 \end{equation}
 
-Note the use of the set $G_n$ to only allow generators at node $n$ to contribute to the power balance. Another way of describing this would have been through an incidence matrix.
+Note the use of the set $G_n$ to only allow generators at node $n$ to contribute to the power balance (similarly for storage technologies). Another way of describing this would have been through an incidence matrix.
 
-Network constraints:
+The equation below limits load shedding to the demand at that node. In copper plate systems this constraint is not needed, however in nodal systems this constraint is required as unphysical load shedding may be exploited to improve congestion (as was the case during this exercise).
+
+\begin{equation}
+    ls_{nt} \leq D_{nt} \quad n \in N, \; t \in T
+\end{equation}
+
+\subsubsection{Day ahead network constraints}
+
+The DC power flow approximation used in this exercise is described below:
 
 \begin{align}
     f_{bt} = \sum_{n \in N} PTDF_{nb} \cdot inj_{nt} & \quad b \in B, \; t \in T \\
@@ -118,7 +162,9 @@ Network constraints:
     \sum_{n \in N} inj_{nt} = 0                      & \quad n \in N, \; t \in T \\
 \end{align}
 
-Constraints on generator output:
+\subsubsection{Generators}
+
+Constraints on generation:
 
 \begin{align}
     q_{gt} - r^{-}_{gt} \geq 0                    & \quad g \in GR, \; t \in T \\
@@ -127,7 +173,39 @@ Constraints on generator output:
     q_{gt} + r^{+}_{gt} \leq P^{max} \cdot z_{gt} & \quad g \in GD, \; t \in T
 \end{align}
 
-For brevity and clarity, constraints on ramping and minimum up and down times are omitted.
+Minimum up and down times:
+
+\begin{align}
+    1 - z_{gt} \geq \sum_{\tau \in 1:MDT_g - 1} w_{gt-\tau} & \quad g \in GD, \; t \in T_{MDT:end} \\
+    z_{gt} \geq \sum_{\tau \in 1:MUT_g - 1} v_{gt-\tau}     & \quad g \in GD, \; t \in T_{MUT:end} \\
+\end{align}
+
+Relationship between commitment, startup and shutdown:
+
+\begin{align}
+    z_{gt-1} = z_{gt} - v_{gt} + w_{gt} & \quad g \in GD, \; t \in T_{2:end} \\
+    w_{gt} + v_{gt} \leq 1              & \quad g \in GD, \; t \in T
+\end{align}
+
+Ramping constraints:
+
+\begin{align}
+    q_{gt} - q_{gt-1} + r^+_{gt} \leq RAMP_g & \quad g \in GD, \; t \in T_{2:end} \\
+    q_{gt-1} - q_{gt} + r^-_{gt} \leq RAMP_g & \quad g \in GD, \; t \in T_{2:end} \\
+\end{align}
+
+\subsubsection{Storage}
+
+\begin{align}
+    e_{t+1} = e_t + \sqrt{\eta} \cdot c_{st} - \sqrt{\eta} \cdot d_{st} & \quad s \in S, \; t \in T_{1:end} \\
+    e_{end} \geq e_0                                                    & \quad s \in S                     \\
+    y_{st} \cdot d_{st} \geq 0                                          & \quad s \in S, \; t \in T         \\
+    y_{st} \cdot d_{st} \leq K_s                                        & \quad s \in S, \; t \in T         \\
+    (1 - y_{st}) \cdot c_{st} \geq 0                                    & \quad s \in S, \; t \in T         \\
+    (1 - y_{st}) \cdot c_{st} \leq K_s                                  & \quad s \in S, \; t \in T
+\end{align}
+
+The binary variable $y_{st}$ prevents simultaneous charging and discharging. While such unphysical behaviour is not typical, in this case the constraint was deemed necessary since such behaviour could be exploited to reduce congestion. This was also investigated in the results.
 
 \subsubsection{Operating reserve (activation) constraints}
 
@@ -202,7 +280,7 @@ The other possibility is to restrict $d_{nlt}^{L^+}$ and $d_{nlt}^{L^-}$ to lie 
     \caption{Illustration of convex hull constraints on $d_{nlt}^{L^+}$ and $d_{nlt}^{L^-}$. Blue circles are imbalance scenarios, shaded area is the convex hull, $d_{nt}^{min}$ and $d_{nt}^{max}$ are the x limits for TIHANGE 1 and the y limits for TIHANGE 2. \label{fig:convex_hull_tihange}}
 \end{figure}
 
-At the time of writing, this convex hull restriction led to model infeasibilities and so it is not
+At the time of writing, this convex hull restriction led to model infeasibilities and so it was not implemented.
 
 \section{Input data - stylised Belgian grid with a large amount of variable renewable energy sources} \label{sec:data}
 
@@ -392,5 +470,9 @@ Multiplying the load by a factor of 1.5 gives the results shown in \tabref{tab:r
 \end{table}
 
 \section{Day ahead adequacy and real time operational security trade offs} \label{sec:adequacy_vs_security}
+
+\clearpage
+
+\bibliography{bibliography}
 
 \end{document}
