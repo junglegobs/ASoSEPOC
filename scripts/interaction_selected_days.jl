@@ -36,7 +36,7 @@ opts_vec = vcat(
     ]...,
 )
 gep_vec = run_GEPPR(opts_vec)
-d_vec = [save_gep_for_security_analysis(gep, opts) for opts in opts_vec]
+d_vec = [save_gep_for_security_analysis(gep, opts) for (gep,opts) in zip(gep_vec,opts_vec)]
 
 # Some short analysis
 function analyse_interaction_selected_days()

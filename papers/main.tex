@@ -11,6 +11,10 @@
 
 \maketitle
 
+\begin{abstract}
+    To be filled in
+\end{abstract}
+
 \newpage
 
 \tableofcontents
@@ -27,7 +31,7 @@ Typically, these exercises are performed independently. This interaction combine
 
 In doing so, we deviate from typical practices in a number of ways. First, the adequacy assessment was done for a limited number of days instead of many Monte Carlo years for the sake of clarity and brevity. Indeed, doing this exercise for many Monte Carlo years would drastically increase the computational complexity while the aim of this exercise is to illustrate how such an interaction could be performed.
 
-Secondly, the adequacy assessment is done using an unconventional \ac{UC} model, a modified version of the \ac{DUCPR} model described in \cite{Bruninx2017}. This model can be seen as a compromise between a computationally expensive stochastic \ac{UC} model and a more tractable though less accurate deterministic \ac{UC} model with operating reserve requirements. The treatment of operating reserves in this model allows a trade-off between shedding load in the day ahead stage, which would reduce day ahead adequacy, and shedding operating reserves, which should reduce operational security. By making this trade-off explicit and verifying the results in an operational security analysis we aim to elaborate on the results of \cite{Hermans2018}, which did not consider the possibility that shedding operating reserves would lead to insecure operation of the electric power system.
+Secondly, the adequacy assessment is done using an unconventional \ac{UC} model, a modified version of the \ac{DUCPR} model described in~\cite{Bruninx2017}. This model can be seen as a compromise between a computationally expensive stochastic \ac{UC} model and a more tractable though less accurate deterministic \ac{UC} model with operating reserve requirements. The treatment of operating reserves in this model allows a trade-off between shedding load in the day ahead stage, which would reduce day ahead adequacy, and shedding operating reserves, which should reduce operational security. By making this trade-off explicit and verifying the results in an operational security analysis we aim to elaborate on the results of~\cite{Hermans2018}, which did not consider the possibility that shedding operating reserves would lead to insecure operation of the electric power system.
 
 All code can be found at \href{https://github.com/junglegobs/ASoSEPOC}{https://github.com/junglegobs/ASoSEPOC}.
 
@@ -270,7 +274,7 @@ It is possible to calculate $d_{nt}^{min}$ and $d_{nt}^{max}$ since the quantile
 
 \begin{figure}[ht]
     \centering
-    % \includegraphics[width=0.9\textwidth]{../plots/nodal_imbalance_investigation/imbalance_range}
+    \includegraphics[width=0.9\textwidth]{../plots/nodal_imbalance_investigation/imbalance_range}
     \caption{Range of possible imbalances for all hours of day 309.\label{fig:imbalance_range}}
 \end{figure}
 
@@ -278,7 +282,7 @@ The other possibility is to restrict $d_{nlt}^{L^+}$ and $d_{nlt}^{L^-}$ to lie 
 
 \begin{figure}[ht]
     \centering
-    % \includegraphics[width=0.9\textwidth]{../plots/nodal_imbalance_investigation/convex_hull_TIHANGE 1_TIHANGE 2}
+    \includegraphics[width=0.9\textwidth]{../plots/nodal_imbalance_investigation/convex_hull_TIHANGE 1_TIHANGE 2}
     \caption{Illustration of convex hull constraints on $d_{nlt}^{L^+}$ and $d_{nlt}^{L^-}$. Blue circles are imbalance scenarios, shaded area is the convex hull, $d_{nt}^{min}$ and $d_{nt}^{max}$ are the x limits for TIHANGE 1 and the y limits for TIHANGE 2. \label{fig:convex_hull_tihange}}
 \end{figure}
 
@@ -288,25 +292,23 @@ At the time of writing, this convex hull restriction led to model infeasibilitie
 
 All data used for this exercise can be found at: \href{https://www.dropbox.com/sh/mdvmc082gwng0tr/AABRyc3fZpxAFycmUfZmh8Csa?dl=0}.
 
-The grid and resource data used for this interaction is inspired by the case study in \cite{Belderbos2020}, omitting the gas network and power to gas technologies. This data gives a stylised Belgian system with a high penetration (~8s0\%) of \ac{VRES}, which includes 75.7 GW of solar PV, 7.0 GW of Onshore Wind and 7.3 GW of Offshore Wind. The grid consists of 46 nodes connected by 69 lines. The total amount of conventional thermal generation is 9.9 GW, with all generators based on new \ac{CCGT} units apart from one new \ac{OCGT} unit at Lixhe. The nuclear generators of Doel and Tihange are therefore replaced with new \ac{CCGT} units.
+The grid and resource data used for this interaction is inspired by the case study in~\cite{Belderbos2020}, omitting the gas network and power to gas technologies. This data gives a stylised Belgian system with a high penetration (~8s0\%) of \ac{VRES}, which includes 75.7 GW of solar PV, 7.0 GW of Onshore Wind and 7.3 GW of Offshore Wind. The grid consists of 46 nodes connected by 69 lines. The total amount of conventional thermal generation is 9.9 GW, with all generators based on new \ac{CCGT} units apart from one new \ac{OCGT} unit at Lixhe. The nuclear generators of Doel and Tihange are therefore replaced with new \ac{CCGT} units.
 
-Power to Gas is omitted but 14.1 GW of storage power capacity (1.1 GW provided by pumped hydro at Coo, the rest batteries) and 101 GWh of storage energy capacity (8.2 GWh provided by pumped hydro at Coo, the rest batteries) is included. The batteries therefore have a duration of 7.2 hours (which could be considered atypical, given current durations of 1 - 2 hours \addcite{MIT paper for this?}).
+Power to Gas is omitted but 14.1 GW of storage power capacity (1.1 GW provided by pumped hydro at Coo, the rest batteries) and 101 GWh of storage energy capacity (8.2 GWh provided by pumped hydro at Coo, the rest batteries) is included. The batteries therefore have a duration of 7.2 hours (which could be considered atypical, given current durations of 1 - 2 hours~\cite{MITEI2022}).
 
-The network topology was obtained from the Belgian TSO, Elia \cite{Elia2018grid}. It consists of 46 nodes connected by 69 lines.
+The network topology was obtained from the Belgian TSO, Elia~\cite{Elia2018grid}. It consists of 46 nodes connected by 69 lines.
 
-The load time series used was the load as seen by Elia on the high-voltage grid from the year 2015 \todo{add cite.}. For this year, the minimum and maximum load was 5,777 MW and 13,670 MW respectively, with an average of 9,934 MW. The electrical load is assigned to the different nodes in the system according to the rated capacity of the transformer feeding each node.
+The load time series used was the load as seen by Elia on the high-voltage grid from the year 2015~\cite{Belderbos2020}. For this year, the minimum and maximum load was 5,777 MW and 13,670 MW respectively, with an average of 9,934 MW. The electrical load is assigned to the different nodes in the system according to the rated capacity of the transformer feeding each node.
 
-The \ac{VRES} availability factor time series are taken from Elia data for the year 2015, same as the load. This was done by dividing generation from offshore wind, wind and solar by the total installed capacities available. This allows scaling up the generation of \ac{VRES} to the previously mentioned capacities. The distribution of onshore wind and solar photovoltaic (PV) capacity was done according to the distribution made in \cite{DelarueErik2016Dtio}.
+The \ac{VRES} availability factor time series are taken from Elia data for the year 2015, same as the load. This was done by dividing generation from offshore wind, wind and solar by the total installed capacities available. This allows scaling up the generation of \ac{VRES} to the previously mentioned capacities. The distribution of onshore wind and solar photovoltaic (PV) capacity was done according to the distribution made in~\cite{DelarueErik2016Dtio}.
 
 The residual load time series, aggregated across all nodes, for this system is plotted in \todo[inline]{Plot this}.
 
-A complete overview of the data is given in \cite{Belderbos2020}, Appendix B.
-
-\subsubsection{Methodology used to select days for analysis}
+A complete overview of the data is given in~\cite{Belderbos2020}, Appendix B.
 
 Four days were selected for analysis based on the results of a full year economic dispatch model which included network constraints. The load was multiplied uniformly across all nodes by a factor of 1.5 to ensure that some load shedding occurred and then four days were selected which represented the 0, 33, 66 and 100th percentile in terms of daily load shedding. The resulting days are presented in \tabref{tab:day_selection}.
 
-\begin{table}[H]
+\begin{table}[ht]
     \centering
     \begin{tabular}{cccc}
         \toprule
@@ -331,7 +333,7 @@ This analysis relates only to the 285th day of the year (12th of October). This 
 
 \tabref{tab:results_no_OR} lists results for an increasing level of technical constraints or increasingly inflexible system. While the objective increases by \euro 1,267,000 from the simple linear economic dispatch model with no network constraints to the unit commitment model with network constraints, no load shedding occurs. Preventing simultaneous charging and discharging constraints actually decreases, though this difference is within the optimality gap (0.01\%). This suggests that additional energy consumption (which is not physically possible) from storage does not aid congestion in this context.
 
-\begin{table}[H]
+\begin{table}[ht]
     \centering
     \begin{tabular}{ccccc}
         \toprule
@@ -401,15 +403,13 @@ The dispatch aggregated over the entire network for the model with and without u
 
 \figref{fig:dispatch_with_operating_reserves} shows the dispatch schedule for the case with unit commitment constraints, day ahead network constraints and operating reserve requirements but no limit on reserve shedding. Load shedding occurs at 8 - 10 AM, even though there is still energy in the storage units. This is not due to congestion issues, since some of these storage units are located at the same node as the load being shed. Rather, this is likely due to the constraint which specifies that the storage state of charge at the end of the day must be greater than or equal to that at the start of the day. This constraint was included so as not to overestimate the flexibility that storage could provide, though it is unlikely that such a situation would occur in reality.
 
-\todo[inline]{Confirm the above suspicion}
-
-\begin{figure}[H]I
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.7\textwidth]{../data/sims/main_model_runs/285/base_UC=true_DANet=true_RSV=1.0/dispatch}
     \caption{Dispatch schedule for day 285, unit commitment constraints, day ahead network constraints and operating reserve requirements but no limit on reserve shedding.\label{fig:dispatch_with_operating_reserves}}
 \end{figure}
 
-Considering the case with just unit commitment constraints, the reserve shedding limit can be decreased without increasing load shedding, though there is an increase (~0.09\%) in the objective function greater than the MIP gap. This is counterintuitive, as you would expect the DUC-PR model to shed all operating reserves before shedding load in the day ahead stage. The former is less costly than the latter after all, due to activation probabilities being < 1. However, what is occuring is most likely `economic reserve shedding' - shedding reserves because they are highly unlikely to be activated. This phenomenon was also observed in \cite{Hermans2018}. \figref{fig:reserves_with_operating_reserves} illustrates that almost all reserve shedding occurs between 14:00 and 16:00 (hour 6830 to 6832) and not 8:00 to 10:00 as with load shedding. These are hours with a lot of solar generation and very little conventional, so to avoid this reserve shedding only requires additional generator commitment and not increasing the amount of load shedding in those hours.
+Considering the case with just unit commitment constraints, the reserve shedding limit can be decreased without increasing load shedding, though there is an increase (~0.09\%) in the objective function greater than the MIP gap. This is counterintuitive, as you would expect the DUC-PR model to shed all operating reserves before shedding load in the day ahead stage. The former is less costly than the latter after all, due to activation probabilities being < 1. However, what is occuring is most likely `economic reserve shedding' - shedding reserves because they are highly unlikely to be activated. This phenomenon was also observed in~\cite{Hermans2018}. \figref{fig:reserves_with_operating_reserves} illustrates that almost all reserve shedding occurs between 14:00 and 16:00 (hour 6830 to 6832) and not 8:00 to 10:00 as with load shedding. These are hours with a lot of solar generation and very little conventional, so to avoid this reserve shedding only requires additional generator commitment and not increasing the amount of load shedding in those hours.
 
 \begin{figure}[H]
     \centering
@@ -423,7 +423,7 @@ Including network reserve activation constraints, that is Constraints \ref{eq:re
 
 \begin{table}[ht]
     \centering
-    \footnotesize
+    \tiny
     \begin{tabular}{ccccccccc}
         \toprule
         UC  & DANet & PSCD & RANet & AbsImb & RSL & Load shedding [MWh] & Reserve Shedding [MWh] & Objective [\euro] (MIP Gap [\%]) \\
@@ -449,7 +449,7 @@ Multiplying the load by a factor of 1.5 gives the results shown in \tabref{tab:r
 
 \begin{table}[ht]
     \centering
-    \footnotesize
+    \tiny
     \begin{tabular}{ccccccccc}
         \toprule
         UC  & DANet & PSCD & RANet & AbsImb & RSL & Load shedding [MWh] & Reserve Shedding [MWh] & Objective [\euro] (MIP Gap [\%]) \\
@@ -472,6 +472,12 @@ Multiplying the load by a factor of 1.5 gives the results shown in \tabref{tab:r
 \end{table}
 
 \section{Day ahead adequacy and real time operational security trade offs} \label{sec:adequacy_vs_security}
+
+\subsection{Simple illustratve case}
+
+We begin by illustrating the tradeoff that exists between real time load shedding and day ahead reserve shedding with a simple model. No network or unit commitment constraints are included and no storage either. The latter choice is made since in this model formulation storage is not able to contribute to operating reserve requirements, complicating the interpretation of the results. Day 319 is chosen since resource use is not as `tight' as the other days and the absence of storage increases the probability of load or reserve shedding.
+
+A comparison of the real time operational security from the DUC-PR model compared to those obtained from a power flow performed by the team ULiege is given in the figure below.
 
 \clearpage
 
