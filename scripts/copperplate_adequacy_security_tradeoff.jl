@@ -2,15 +2,14 @@ include(joinpath(@__DIR__, "..", "intro.jl"))
 sn = script_name(@__FILE__)
 mkrootdirs(plotsdir(sn))
 
-opts = options_diff_days(sn, "days_for_analysis.csv")[2]
+opts = options_diff_days(sn, "days_for_analysis.csv")[3]
 opts = merge(
     opts,
     Dict(
         "copperplate" => true,
-        "unit_commitment" => false,
-        # "downward_reserve_levels_included_in_redispatch" => 1:10,
-        # "upward_reserve_levels_included_in_redispatch" => 1:10,
+        "unit_commitment_type" => "none",
         "include_storage" => false,
+        "load_multiplier" => 1.5,
         "vars_2_save" => [:z, :q, :ls, :rL⁺, :rL⁻, :rsL⁺, :rsL⁻],
     ),
 )
@@ -21,7 +20,7 @@ opts_vec = [
             "reserve_shedding_limit" => rsl,
             "save_path" => opts["save_path"] * "_RSL=$rsl",
         ),
-    ) for rsl in 1.0:-0.5:0.0
+    ) for rsl in 1.0:-0.1:0.0
 ]
 gep_vec = run_GEPPR(opts_vec)
 rsl_vec = [opts_vec[i]["reserve_shedding_limit"] for i in 1:length(opts_vec)]
@@ -109,3 +108,5 @@ function plot_DUCPR_reserve_shedding_sensitivity(
 
     return nothing
 end
+
+plot_DUCPR_reserve_shedding_sensitivity(gep_vec, opts_vec, rsl_vec, ["161"])

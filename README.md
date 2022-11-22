@@ -35,8 +35,6 @@ For the scripts:
 * `check_and_fix_scenarios` - fixes infeasible wind, solar and load forecast errors (e.g. wind output less than that which is forecasted).
 * `main_model_runs` - DUC-PR model runs to investigate whether tradeoff between adequacy and security is possible for day 285.
 * `copperplate_adequacy_security_tradeoff` - same as above but without network constraints, to illustrate that the trade-off is possible in the absence of these.
-* `interaction_check` - not sure.
-* `interaction_selected_days` - not sure.
 * `nodal_imbalance_investigation` - illustration of how to tighten reserve activation network constraints.
 
 ## General description

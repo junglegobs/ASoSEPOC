@@ -327,7 +327,7 @@ It should be noted that of the four days selected, only day 285 exhibited load s
 
 \section{Analysis of \acl{DUCPR} model results} \label{sec:initial_results}
 
-This analysis relates only to the 285th day of the year (12th of October). This day was selected since of the 4 days selected  The aim is to investigate what are the causes of load shedding to better understand the system.
+This analysis relates only to the 285th day of the year (12th of October). The aim is to investigate what are the causes of load shedding to better understand the system.
 
 \subsection{No operating reserves}
 
@@ -473,11 +473,21 @@ Multiplying the load by a factor of 1.5 gives the results shown in \tabref{tab:r
 
 \section{Day ahead adequacy and real time operational security trade offs} \label{sec:adequacy_vs_security}
 
-\subsection{Simple illustratve case}
+\subsection{Simple illustrative case}
 
-We begin by illustrating the tradeoff that exists between real time load shedding and day ahead reserve shedding with a simple model. No network or unit commitment constraints are included and no storage either. The latter choice is made since in this model formulation storage is not able to contribute to operating reserve requirements, complicating the interpretation of the results. Day 319 is chosen since resource use is not as `tight' as the other days and the absence of storage increases the probability of load or reserve shedding.
+We begin by illustrating the tradeoff that exists between real time load shedding and day ahead reserve shedding with a simple model. No network or unit commitment constraints are included and no storage either. The latter choice is made since in this model formulation storage is not able to contribute to operating reserve requirements, complicating the interpretation of the results.
 
-A comparison of the real time operational security from the DUC-PR model compared to those obtained from a power flow performed by the team ULiege is given in the figure below.
+\subsection{Comparison with ULiege operational security results}
+
+A comparison of the real time operational security as percieved by the DUC-PR model compared to those obtained from a power flow performed by the team ULiege is given in the figure below.
+
+Clearly the two models disagree. We suggest the following non-exhaustive list of reasons why this could be:
+
+\begin{itemize}
+    \item The approximate modeling of real time imbalances in the DUC-PR model (see \secref{sec:operating_reserve_network_activation_constraints} and \secref{sec:further_constraining_operating_reserve_network_activation_constraints}). As extensively discussed, this means the DUC-PR model overestimates the ease with which real time imbalances may be dealt with.
+    \item The omission of N-1 contingencies in the DUC-PR model. This omission also leads to an overestimation of the ease of dealing with real time imbalances.
+    \item The extra-liberty for storage to deal with real time imbalances in ULiege's power flow model. This has the opposite effect.
+\end{itemize}
 
 \clearpage
 
