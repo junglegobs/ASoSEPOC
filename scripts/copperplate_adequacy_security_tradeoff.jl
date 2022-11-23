@@ -28,6 +28,7 @@ rsl_vec = [opts_vec[i]["reserve_shedding_limit"] for i in 1:length(opts_vec)]
 function plot_DUCPR_reserve_shedding_sensitivity(
     gep_vec, opts_vec, rsl_vec, days=["161"]
 )
+    @assert length(days) == 1 "This is horrific coding, apologies, but I can't have more than one day here."
     ls = Dict(
         rsl_vec[i] => try
             sum(gep_vec[i][:loadShedding].data; dims=(1, 2, 3))[:]
@@ -35,15 +36,30 @@ function plot_DUCPR_reserve_shedding_sensitivity(
             GEPPR.SVC(NaN)
         end for i in 1:length(opts_vec)
     )
-    rsLt = Dict(rsl_vec[i] => try
-        gep_vec[i][:rsL⁺]
-    catch
-        GEPPR.SVC(NaN)
-    end for i in 1:length(opts_vec))
+    scens = load_scenarios(first(opts_vec))
+    D⁺, D⁻, P⁺, P⁻, Dmid⁺, Dmid⁻ = scenarios_2_GEPPR(first(opts_vec), scens)
+    rsLt = Dict(
+        rsl_vec[i] => gep_vec[i][:rsL⁺, GEPPR.SVC(NaN)] for
+        i in 1:length(opts_vec)
+    )
+    T = GEPPR.get_set_of_time_indices(first(gep_vec))[3]
     rsL⁺ = Dict(
         rsl_vec[i] => try
             sum(
-                rsLt[(rsl_vec[i])][n, l, 1, 1, t]
+                rsLt[(rsl_vec[i])][n, l, 1, 1, t] *
+                P⁺[l, t - T[1] + 1] for
+                n in GEPPR.get_set_of_nodes(gep_vec[i]),
+                l in GEPPR.get_set_of_upward_reserve_levels(gep_vec[i]),
+                t in GEPPR.get_set_of_time_indices(gep_vec[i])[3]
+            )
+        catch
+            NaN
+        end for i in 1:length(opts_vec)
+    )
+    rsLexp = Dict(
+        rsl_vec[i] => try
+            sum(
+                rsLt[(rsl_vec[i])][n, l, 1, 1, t] * P⁺[l, t]
                 # rsLt[(rsl_vec[i])][n, l, 1, 1, t] *
                 # P⁺[(rsl_vec[i])][l, 1, 1, t] 
                 for n in GEPPR.get_set_of_nodes(gep_vec[i]),
@@ -76,6 +92,18 @@ function plot_DUCPR_reserve_shedding_sensitivity(
         lab=hcat(days...),
     )
     Plots.savefig(plotsdir(sn, "load_shedding_vs_reserve_shedding.png"))
+
+    Plots.plot(
+        ls_mat,
+        rs_mat .+ ls_mat;
+        lw=2,
+        markerzise=16,
+        markershape=:star5,
+        xlab="Day ahead load shedding [MWh]",
+        ylab="Expected real time load shedding [MWh]",
+        lab=hcat(days...),
+    )
+    Plots.savefig(plotsdir(sn, "load_shedding_vs_expected_load__shedding.png"))
 
     rsl_mat = Matrix(transpose(reshape(rsl_vec, nd, :)))
     Plots.plot(
