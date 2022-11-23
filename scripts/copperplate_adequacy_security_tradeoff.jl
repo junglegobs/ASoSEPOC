@@ -46,8 +46,7 @@ function plot_DUCPR_reserve_shedding_sensitivity(
     rsL⁺ = Dict(
         rsl_vec[i] => try
             sum(
-                rsLt[(rsl_vec[i])][n, l, 1, 1, t] *
-                P⁺[l, t - T[1] + 1] for
+                rsLt[(rsl_vec[i])][n, l, 1, 1, t] for
                 n in GEPPR.get_set_of_nodes(gep_vec[i]),
                 l in GEPPR.get_set_of_upward_reserve_levels(gep_vec[i]),
                 t in GEPPR.get_set_of_time_indices(gep_vec[i])[3]
@@ -59,7 +58,7 @@ function plot_DUCPR_reserve_shedding_sensitivity(
     rsLexp = Dict(
         rsl_vec[i] => try
             sum(
-                rsLt[(rsl_vec[i])][n, l, 1, 1, t] * P⁺[l, t]
+                rsLt[(rsl_vec[i])][n, l, 1, 1, t] * P⁺[l, t - T[1] + 1]
                 # rsLt[(rsl_vec[i])][n, l, 1, 1, t] *
                 # P⁺[(rsl_vec[i])][l, 1, 1, t] 
                 for n in GEPPR.get_set_of_nodes(gep_vec[i]),
@@ -81,6 +80,11 @@ function plot_DUCPR_reserve_shedding_sensitivity(
             reshape([rsL⁺[rsl_vec[i]] for i in 1:length(opts_vec)], nd, :)
         ),
     )
+    rsexp_mat = Matrix(
+        transpose(
+            reshape([rsLexp[rsl_vec[i]] for i in 1:length(opts_vec)], nd, :)
+        ),
+    )
     Plots.plot(
         ls_mat,
         rs_mat;
@@ -95,15 +99,17 @@ function plot_DUCPR_reserve_shedding_sensitivity(
 
     Plots.plot(
         ls_mat,
-        rs_mat .+ ls_mat;
+        rsexp_mat;
         lw=2,
         markerzise=16,
         markershape=:star5,
         xlab="Day ahead load shedding [MWh]",
-        ylab="Expected real time load shedding [MWh]",
-        lab=hcat(days...),
+        ylab="Additional real time expected load shedding [MWh]",
+        lab="",
+        legend=:topleft
     )
-    Plots.savefig(plotsdir(sn, "load_shedding_vs_expected_load__shedding.png"))
+    # Plots.plot!(ls_mat,ls_mat, lc=:grey, lab="Line of equal (expected) load shedding")
+    Plots.savefig(plotsdir(sn, "load_shedding_vs_expected_load_shedding.png"))
 
     rsl_mat = Matrix(transpose(reshape(rsl_vec, nd, :)))
     Plots.plot(
@@ -115,7 +121,7 @@ function plot_DUCPR_reserve_shedding_sensitivity(
         markershape=:star5,
         xlab="Reserve shedding limit [0-1]",
         ylab="Load shedding [MWh]",
-        lab=hcat(days...),
+        lab="",
     )
     Plots.savefig(plotsdir(sn, "load_shedding_vs_reserve_shedding_limit.png"))
 
@@ -128,7 +134,7 @@ function plot_DUCPR_reserve_shedding_sensitivity(
         markershape=:star5,
         xlab="Reserve shedding limit [0-1]",
         ylab="Reserve shedding [MWh]",
-        lab=hcat(days...),
+        lab="",
     )
     Plots.savefig(
         plotsdir(sn, "reserve_shedding_vs_reserve_shedding_limit.png")
