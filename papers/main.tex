@@ -12,7 +12,7 @@
 \maketitle
 
 \begin{abstract}
-    To be filled in
+    This report outlines an attempt to integrate a resource adequacy and operational security exercise. The idea is to use a unit commitment schedule which is then used as the input to a more detailed power flow model. An additional goal was to make explicit the trade-off between day ahead adequacy and real time reliability. We used an adapted version of KU Leuven's \ac{DUCPR} model which accounts for network constraints in the reserve activation phase for this purpose. However the \ac{DUCPR} model is not able to capture enough detail in the reserve activation phase for this tradeoff to be made. This and other omissions of the \ac{DUCPR} model when compared to the power flow model meant the results of the two models differed significantly.
 \end{abstract}
 
 \newpage
@@ -521,7 +521,9 @@ Clearly the two models disagree. We suggest the following non-exhaustive list of
     \item The extra-liberty for storage to deal with real time imbalances in ULiege's power flow model. This has the opposite effect.
 \end{itemize}
 
-While the remark regarding storage could be resolved by allowing for storage to contribute to operating reserves as in \cite{Bruninx2016}, the remaining two issues are non-trivial to address in the DUC-PR framework. A stochastic unit commitment model, in which real time imbalances are fully defined within a scenario, would lend itself more easily to addressing these issues while coming at considerable computational cost. 
+While the remark regarding storage could be resolved by allowing for storage to contribute to operating reserves as in \cite{Bruninx2016}, the remaining two issues are non-trivial to address in the DUC-PR framework. A stochastic unit commitment model, in which real time imbalances are fully defined within a scenario, would lend itself more easily to addressing these issues while coming at considerable computational cost.
+
+\section{Thoughts}
 
 \clearpage
 
