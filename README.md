@@ -102,8 +102,8 @@ Table below outlines this better. Acronyms are:
 | x  | x       | x    | x  | x     | x      | x       |      |
 | x  | x       | x    | x  | x     | x      | x       | x    |
 
-All this just for one day, the 4th day (the day with the most scarcity) of the days selected for investigation. 
+All this for just one of the days selected for investigation.
 
-##### Trade off between load shedding and reserve shedding
+## Trade-off between load shedding and reserve shedding
 
-There should be a tradeoff between shedding load in the day ahead stage and shedding reserves which would jeopardise real time operational security (since there are less reserves available to deal with unforeseen situations). The DUC-PR model is able to make this tradeoff in a coarse way, hence the real time operational security is then analysed using a Quasi Steady State Simulator (QSSS) developped by ULiege. This verifies how well the DUC-PR model is able to perform this trade-off (if at all).
+There should be a tradeoff between shedding load in the day ahead stage and shedding reserves which would jeopardise real-time operational security (since there are fewer reserves available to deal with unforeseen situations). The DUC-PR model can make this tradeoff coarsely, hence the real-time operational security is then analysed using a Quasi Steady State Simulator (QSSS) developed by ULiege. This verifies how well the DUC-PR model can perform this trade-off (if at all).
