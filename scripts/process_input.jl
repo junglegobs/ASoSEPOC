@@ -19,6 +19,7 @@ opts = options(
     "prevent_simultaneous_charge_and_discharge" => false,
     "optimization_horizon" => [1, 8_760],
     "rolling_horizon" => true,
+    "vars_2_save" => [:q, :sc, :sd, :e, :ls, :lsel],
     "save_path" => datadir("sims", "linear_w_storage_v2"),
 )
 gep = run_GEPPR(opts)
@@ -75,7 +76,7 @@ Plots.savefig(simsdir(sn, "load_shedding_daily_timeseries.png"))
 Plots.plot(sort(ls; rev=true); xlab="Day", ylab="Load shedding [MW]", lab="")
 Plots.savefig(simsdir(sn, "load_shedding_daily_timeseries_sorted.png"))
 
-# Save storage dispatch as a node injection
+# Save storage dispatch as a node injection, not used in the end
 storage_dispatch_2_node_injection(
     gep, grid_path, grid_w_store_ts_path, grid_wo_store_path
 )

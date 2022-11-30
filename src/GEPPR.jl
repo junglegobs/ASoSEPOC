@@ -167,7 +167,7 @@ function run_GEPPR(opts::Dict; load_only=false)
             else
                 modify_network!(gep, opts)
                 modify_timeseries!(gep, opts)
-                run_rolling_horizon(gep; scheduleHorizon=168, slackVariables=(:sc, :sd, :z, :d⁺, :Δq, :v))
+                run_rolling_horizon(gep; scheduleLength=168, slackVariables=(:sc, :sd, :z, :d⁺, :Δq, :v))
             end
             nothing
         end
