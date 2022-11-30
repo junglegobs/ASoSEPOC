@@ -8,12 +8,14 @@ videos
 plots
 notebooks
 _research
+tmp
 
 # Custom
 .~lock*
 dev
 data
-*.pbs
+*.pbs*
+*.pdf
 
 ################################################################################
 #                                    Julia                                     #

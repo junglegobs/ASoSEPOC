@@ -21,6 +21,7 @@
 
 % Bibliography
 % \usepackage[round,numbers]{natbib} % Not used since loaded by elsarticle
+\bibliographystyle{elsarticle-harv}
 
 % For graphics
 \usepackage{graphicx}
@@ -124,7 +125,8 @@
 
 % For cross and checkmarks
 \usepackage{pifont}
-\newcommand{\xmark}{\ding{55}}
+\newcommand{\xm}{\ding{55}}
+
 
 % Acronyms
 \usepackage{acronym}
@@ -242,31 +244,6 @@ breaklines=true
 \newcommand{\tabref}[1]{Table \ref{#1}}
 \newcommand{\appref}[1]{Appendix \ref{#1}}
 \newcommand{\secref}[1]{Section \ref{#1}}
-
-% Technologies
-\newcommand{\CCGT}{CCGT\xspace}
-\newcommand{\OCGT}{OCGT\xspace}
-\newcommand{\WindOnsh}{Onshore Wind\xspace}
-\newcommand{\WindOffsh}{Offshore Wind\xspace}
-\renewcommand{\PV}{Solar\xspace}
-\newcommand{\Battery}{Short Term\xspace}
-\newcommand{\LTS}{Long Term\xspace}
-
-% Storage operations
-\newcommand{\mincost}{\emph{Min Cost}\xspace}
-\newcommand{\ddvoll}{\emph{DDVOLL}\xspace}
-\newcommand{\minlol}{\emph{Min LOL}\xspace}
-\newcommand{\maxlol}{\emph{Max LOL}\xspace}
-\newcommand{\minpeak}{\emph{Min Peak}\xspace}
-\newcommand{\greedy}{\emph{Greedy}\xspace}
-
-% Capacity credits
-\newcommand{\avCC}{\emph{AvCC}\xspace}
-\newcommand{\efceens}{\emph{EFC-EENS}\xspace}
-\newcommand{\efclole}{\emph{EFC-LOLE}\xspace}
-
-% Expectation operator
-\newcommand{\Expct}{\mathop{\mathbb{E}}}
 
 % Commands for comments
 \usepackage{ulem} % For striking through text

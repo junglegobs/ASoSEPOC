@@ -1,3 +1,5 @@
+N_HR_PER_DAY = 24
+
 """
 	mkrootdirs(dir::String)
 
@@ -13,6 +15,8 @@ function mkrootdirs(dir::String)
         end
     end
 end
+
+mkrootdirs(args...) = ([mkrootdirs(arg) for arg in args]; nothing)
 
 script_name(str) = splitext(splitdir(str)[2])[1]
 

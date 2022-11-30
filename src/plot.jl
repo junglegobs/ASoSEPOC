@@ -1,4 +1,4 @@
-using Plots, StatsPlots, PyPlot, Measures
+using StatsPlots, PyPlot, Measures
 
 function plot_dispatch(
     gep::GEPM,
@@ -174,11 +174,15 @@ function plot_dispatch(
     if length(N) == 1
         inj = gep[:inj]
         inj = [inj[N[1], Y[1], p, t] for t in T]
-        Plots.plot!(plt,
+        Plots.plot!(
+            plt,
             T,
             D + reshape(inj, :, 1);
-            lab = "Demand - injection",
-            lc=:black, line=:steppost, ls=:dash, lw=2
+            lab="Demand - injection",
+            lc=:black,
+            line=:steppost,
+            ls=:dash,
+            lw=2,
         )
     end
 
@@ -278,6 +282,28 @@ function plot_reserves_simple(
         plt_up, plt_down; layout=(2, 1), size=(800, 500), xlims=extrema(T)
     )
     return plt_all
+end
+
+function plot_commitment(
+    gep::GEPM,
+    p::Int;
+    N=GEPPR.get_set_of_nodes_and_time_indices(gep)[1],
+    Y=GEPPR.get_set_of_nodes_and_time_indices(gep)[2],
+    T=GEPPR.get_set_of_nodes_and_time_indices(gep)[4],
+)
+    @assert length(Y) == 1
+    z = gep[:z]
+    GN = GEPPR.get_set_of_nodal_dispatchable_generators(gep)
+    GN = [(g,n) for (g,n) in GN if n in N]
+    z = [z[(g, n), Y[1], p, t] for (g, n) in GN, t in T]
+    ytl = first.(GN)
+    return Plots.heatmap(
+        z;
+        xlab="Time [h]",
+        yticks=(eachindex(ytl), ytl),
+        legend=:none,
+        title="Commitment [Black=off]",
+    )
 end
 
 nothing

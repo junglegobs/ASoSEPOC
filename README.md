@@ -21,6 +21,22 @@ julia> include("path/to/this/project/instantiate.jl")
 This will install all necessary packages for you to be able to run the scripts and
 everything should work out of the box, including correctly finding local paths.
 
+## Code description
+
+* `src` - source files (i.e. individual functions)
+* `scripts` - main scripts used for generating results
+* `scripts_debug` - scripts used for debugging or testing purposes (may not be functional)
+* `papers` - latex report of work done for this adequacy and operational security interaction.
+* `pbs` - useful files for running on the [Flemish super computer](https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/).
+
+For the scripts:
+
+* `process_input` - converts input data from Belderbos paper to format required for [`GEPPR.jl`](https://gitlab.kuleuven.be/UCM/GEPPR.jl).
+* `check_and_fix_scenarios` - fixes infeasible wind, solar and load forecast errors (e.g. wind output less than that which is forecasted).
+* `main_model_runs` - DUC-PR model runs to investigate whether tradeoff between adequacy and security is possible for day 285.
+* `copperplate_adequacy_security_tradeoff` - same as above but without network constraints, to illustrate that the trade-off is possible in the absence of these.
+* `nodal_imbalance_investigation` - illustration of how to tighten reserve activation network constraints.
+
 ## General description
 
 ### Model
@@ -29,8 +45,9 @@ The Deterministic Unit Commitment with Probabilistic (Operating) Reserves (DUC-P
 
 * Network, unit commitment and storage are included in the model.
 * Operating reserves are modeled using "reserve levels", which have an associated activation probability.
-  * These reserve levels can essentially be thought of as different reserve types, e.g. FCR, RR, etc.
-  * No ramping / flexibility requirements are associated with reserve level activation (though these are taken into account in the day ahead scheduling).
+  * These reserve levels can essentially be thought of as different reserve types, e.g. FCR, RR, etc in that they have different probabilities of activation.
+  * No flexibility requirements (e.g. ramping) are associated with reserve level activation though they are taken into account in the day ahead scheduling.
+  * An attempt at including the network in the reserve level activation constraints is made, though this is a non-trivial task.
 
 ## Data
 
@@ -44,3 +61,49 @@ Grid, load, renewables and capacity mix data come from [this paper](https://www.
 
 * It is a Belgium-like system with a very high share of renewables (~80%).
 * The nuclear reactors in Doel and Tihange have been replaced by gas fired power plants.
+
+More information can be found in `papers/main.pdf`.
+
+### Model runs
+
+#### Questions to be answered in preliminary investigation
+
+* Is there load shedding with an entirely linear model with no network constraints?
+* Above, but with unit commitment constraints?
+* Above, but with the network?
+* Above, but with simultaneous charging/discharging not allowed?
+* Same 3 questions as above, but with operating reserves and for different reserve level shedding limits, i.e. attempting to trace a adequacy / security pareto curve? + additional run with reserve activation network constraints?
+* Starting from the most "inflexible" system, does adding absolute limits on the nodal imbalance change anything?
+* Same, but with convex hull constraints?
+* Same, but with load multiplier
+
+Table below outlines this better. Acronyms are:
+
+* UC = Unit commitment constraints
+* DANet = Day ahead network constraints
+* PSCD = Prevent simultaneous charge and discharge
+* OR = Include operating reserves and reserve shedding limits
+* RANet = Reserve activation network constraints
+* AbsImb = absolute limits on nodal imbalance
+* ConvImb = convex hull limits on nodal imbalance
+* L1.5 = Load times 1.5
+
+| UC | DA Net. | PSCD | OR | RANet | AbsImb | ConvImb | L1.5 |
+|----|---------|------|----|-------|--------|---------|------|
+|    |         |      |    |       |        |         |      |
+| x  |         |      |    |       |        |         |      |
+| x  | x       |      |    |       |        |         |      |
+| x  | x       | x    |    |       |        |         |      |
+| x  |         |      | x  |       |        |         |      |
+| x  | x       |      | x  |       |        |         |      |
+| x  | x       | x    | x  |       |        |         |      |
+| x  | x       | x    | x  | x     |        |         |      |
+| x  | x       | x    | x  | x     | x      |         |      |
+| x  | x       | x    | x  | x     | x      | x       |      |
+| x  | x       | x    | x  | x     | x      | x       | x    |
+
+All this for just one of the days selected for investigation.
+
+## Trade-off between load shedding and reserve shedding
+
+There should be a tradeoff between shedding load in the day ahead stage and shedding reserves which would jeopardise real-time operational security (since there are fewer reserves available to deal with unforeseen situations). The DUC-PR model can make this tradeoff coarsely, hence the real-time operational security is then analysed using a Quasi Steady State Simulator (QSSS) developed by ULiege. This verifies how well the DUC-PR model can perform this trade-off (if at all).

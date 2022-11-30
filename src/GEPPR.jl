@@ -9,7 +9,8 @@ function param_and_config(opts::Dict)
     include_storage,
     copperplate,
     initial_state_of_charge,
-    reserve_provision_cost = opts
+    reserve_provision_cost,
+    operating_reserves_type, cyclic_state_of_charge_constraint = opts
 
     is_linear = (opts["unit_commitment_type"] == "none")
     init_soc = opts["initial_state_of_charge"]
@@ -44,9 +45,10 @@ function param_and_config(opts::Dict)
             "end" => [1, 1, optimization_horizon[end]],
         ),
         "imposePeriodicityConstraintOnStorage" =>
-            rolling_horizon ? false : true,
+            rolling_horizon || (cyclic_state_of_charge_constraint == false) ? false : true,
         "dispatchableGeneration" => Dict(),
         "intermittentGeneration" => Dict(),
+        "reserveType" => operating_reserves_type,
     )
 
     # In case including storage
@@ -146,21 +148,30 @@ function run_GEPPR(opts::Dict; load_only=false)
     elseif load_only == false
         @info "Running GEPM (save path is $(save_path))..."
         gep = gepm(opts)
-        if rolling_horizon == false
-            apply_operating_reserves!(gep, opts)
-            @info "Building JuMP model..."
-            make_JuMP_model!(gep)
-            apply_initial_commitment!(gep, opts)
-            constrain_reserve_shedding!(gep, opts)
-            prevent_simultaneous_charge_and_discharge!(gep, opts)
-            apply_initial_state_of_charge!(gep, opts)
-            # fix_model_variable!(gep, :sc, GEPPR.SVC(0.0))
-            # fix_model_variable!(gep, :sd, GEPPR.SVC(0.0))
-            optimize_GEP_model!(gep)
-            save_optimisation_values!(gep)
-        else
-            run_rolling_horizon(gep)
+        terminal_out = @capture_out begin
+            if rolling_horizon == false
+                apply_operating_reserves!(gep, opts)
+                modify_network!(gep, opts)
+                modify_timeseries!(gep, opts)
+                @info "Building JuMP model..."
+                make_JuMP_model!(gep)
+                apply_initial_commitment!(gep, opts)
+                constrain_reserve_shedding!(gep, opts)
+                prevent_simultaneous_charge_and_discharge!(gep, opts)
+                apply_initial_state_of_charge!(gep, opts)
+                absolute_limit_on_nodal_imbalance!(gep, opts)
+                convex_hull_limit_on_nodal_imbalance!(gep, opts)
+                fix_storage_dispatch!(gep, opts)
+                optimize_GEP_model!(gep)
+                save_optimisation_values!(gep)
+            else
+                modify_network!(gep, opts)
+                modify_timeseries!(gep, opts)
+                run_rolling_horizon(gep; scheduleLength=168, slackVariables=(:sc, :sd, :z, :d⁺, :Δq, :v))
+            end
+            nothing
         end
+        gep[:O, :terminal_out] = terminal_out
         save(gep, opts)
         gep
     else
@@ -264,6 +275,17 @@ function apply_operating_reserves!(gep::GEPM, opts::Dict)
     return gep
 end
 
+function modify_network!(gep::GEPM, opts::Dict)
+    @unpack rate_a_multiplier = opts
+    if ismissing(rate_a_multiplier) == false
+        @info "Multiplying network branch limits by a factor $rate_a_multiplier..."
+        for (idx, br) in gep.networkData["branch"]
+            br["rate_a"] *= rate_a_multiplier
+        end
+    end
+    return gep
+end
+
 function constrain_reserve_shedding!(gep::GEPM, opts::Dict)
     @unpack reserve_shedding_limit,
     operating_reserves_type,
@@ -298,8 +320,12 @@ function constrain_reserve_shedding!(gep::GEPM, opts::Dict)
 end
 
 function prevent_simultaneous_charge_and_discharge!(gep::GEPM, opts::Dict)
-    @unpack include_storage = opts
-    include_storage == false && return gep
+    @unpack include_storage, prevent_simultaneous_charge_and_discharge = opts
+    if include_storage == false ||
+        prevent_simultaneous_charge_and_discharge == false
+        return gep
+    end
+    @info "Preventing simultaneous charging and discharging"
 
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
     STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
@@ -330,6 +356,8 @@ function prevent_simultaneous_charge_and_discharge!(gep::GEPM, opts::Dict)
 end
 
 function apply_initial_state_of_charge!(gep::GEPM, opts::Dict)
+    @unpack initial_state_of_charge = opts
+    ismissing(initial_state_of_charge) && return gep
     E_init = GEPPR.get_storage_initial_state_of_charge(gep; default=missing)
     e = GEPPR.get_storage_state_of_charge_var(gep)
     STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
@@ -340,8 +368,171 @@ function apply_initial_state_of_charge!(gep::GEPM, opts::Dict)
     return gep
 end
 
+function absolute_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
+    @unpack absolute_limit_on_nodal_imbalance,
+    allow_absolute_imbalance_slacks,
+    absolute_imbalance_slack_penalty = opts
+    absolute_limit_on_nodal_imbalance == false && return gep
+    sp = absolute_imbalance_slack_penalty
+
+    @info "Applying absolute limits on nodal imbalance..."
+    scen_id = month_day(opts)
+    data, file = produce_or_load(
+        datadir("pro", "nodal_imbalance_abs_limits"),
+        opts,
+        absolute_limits_on_nodal_imbalance;
+        filename="$(scen_id).jld2",
+    )
+    @unpack d_min, d_max = data
+    dL⁺ = GEPPR.get_possible_nodal_imbalance_due_to_upward_reserve_level_activation(
+        gep
+    )
+    dL⁻ = GEPPR.get_possible_nodal_imbalance_due_to_downward_reserve_level_activation(
+        gep
+    )
+    N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
+    L⁺ = GEPPR.get_set_of_upward_reserve_levels_included_in_network_redispatch(
+        gep
+    )
+    L⁻ = GEPPR.get_set_of_downward_reserve_levels_included_in_network_redispatch(
+        gep
+    )
+
+    # Slack variables
+    abs_slack_L⁺ =
+        gep[:M, :variables, :abs_slack_L⁺] = @variable(
+            gep.model,
+            [n = N, l = L⁺, y = Y, p = P, t = T],
+            base_name = "abs_slack_L⁺"
+        )
+    abs_slack_L⁻ =
+        gep[:M, :variables, :abs_slack_L⁻] = @variable(
+            gep.model,
+            [n = N, l = L⁻, y = Y, p = P, t = T],
+            base_name = "abs_slack_L⁻"
+        )
+
+    # Fix slacks if necessary
+    if allow_absolute_imbalance_slacks == false
+        JuMP.fix.(abs_slack_L⁺, 0.0; force=true)
+        JuMP.fix.(abs_slack_L⁻, 0.0; force=true)
+    end
+
+    # Constraints
+    gep[:M, :constraints, :MaxAbsNodalImbalanceUp] = @constraint(
+        gep.model,
+        [n = N, l = L⁺, y = Y, p = P, i = 1:length(T)],
+        dL⁺[n, l, y, p, T[i]] + abs_slack_L⁺[n, l, y, p, T[i]] <= d_max[n][i]
+    )
+    gep[:M, :constraints, :MinAbsNodalImbalanceUp] = @constraint(
+        gep.model,
+        [n = N, l = L⁺, y = Y, p = P, i = 1:length(T)],
+        dL⁺[n, l, y, p, T[i]] + abs_slack_L⁺[n, l, y, p, T[i]] >= d_min[n][i]
+    )
+    gep[:M, :constraints, :MaxAbsNodalImbalanceDown] = @constraint(
+        gep.model,
+        [n = N, l = L⁻, y = Y, p = P, i = 1:length(T)],
+        dL⁻[n, l, y, p, T[i]] + abs_slack_L⁻[n, l, y, p, T[i]] <= d_max[n][i]
+    )
+    gep[:M, :constraints, :MinAbsNodalImbalanceDown] = @constraint(
+        gep.model,
+        [n = N, l = L⁻, y = Y, p = P, i = 1:length(T)],
+        dL⁻[n, l, y, p, T[i]] + abs_slack_L⁻[n, l, y, p, T[i]] >= d_min[n][i]
+    )
+
+    # Overload objective
+    obj = gep[:M, :objective]
+    gep[:M, :objective_w_slack] = @objective(
+        gep.model,
+        Min,
+        obj +
+            sp *
+        (sum(el^2 for el in abs_slack_L⁺) + sum(el^2 for el in abs_slack_L⁻))
+    )
+
+    return gep
+end
+
+function convex_hull_limit_on_nodal_imbalance!(gep::GEPM, opts::Dict)
+    @unpack convex_hull_limit_on_nodal_imbalance,
+    n_scenarios_for_convex_hull_calc = opts
+    convex_hull_limit_on_nodal_imbalance == false && return gep
+
+    @info "Applying convex hull limits on nodal imbalance..."
+    n_scens = n_scenarios_for_convex_hull_calc
+    scen_id = month_day(opts)
+    poly_dict, file = produce_or_load(
+        datadir("pro", "nodal_imbalance_convex_hull_limits"),
+        opts,
+        convex_hull_limits_on_nodal_imbalance;
+        filename="$(scen_id)_n_scens=$(n_scens).jld2",
+    )
+    dL⁺ = GEPPR.get_possible_nodal_imbalance_due_to_upward_reserve_level_activation(
+        gep
+    )
+    dL⁻ = GEPPR.get_possible_nodal_imbalance_due_to_downward_reserve_level_activation(
+        gep
+    )
+    N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
+    L⁺ = GEPPR.get_set_of_upward_reserve_levels_included_in_network_redispatch(
+        gep
+    )
+    L⁻ = GEPPR.get_set_of_downward_reserve_levels_included_in_network_redispatch(
+        gep
+    )
+
+    gep[:M, :constraints, :convexHullNodalImbalance] = con = Dict()
+    for ti in 1:length(T)
+        t = T[ti]
+        for l in L⁺
+            dl = [dL⁺[n, l, Y[1], P[1], t] for n in sort(N)]
+            con[t, l] = @constraint(gep.model, dl in poly_dict[string(ti)])
+        end
+        for l in L⁻
+            dl = [dL⁻[n, l, Y[1], P[1], t] for n in sort(N)]
+            con[t, -l] = @constraint(gep.model, dl in poly_dict[string(ti)])
+        end
+    end
+
+    return gep
+end
+
+function fix_storage_dispatch!(gep::GEPM, opts::Dict)
+    try
+        @unpack sc, sd = opts
+        fix_model_variable!(gep, :sc, sc)
+        fix_model_variable!(gep, :sd, sd)
+    catch
+        nothing
+    end
+    return gep
+end
+
+function modify_timeseries!(gep::GEPM, opts::Dict)
+    @unpack load_multiplier = opts
+    if ismissing(load_multiplier) == false
+        @info "Multiplying load by a factor $load_multiplier..."
+        gep.timeSeriesData[:, "Load"] *= load_multiplier
+    end
+
+    return gep
+end
+
 function save(gep::GEPM, opts::Dict)
     @unpack save_path = opts
+    file_name = joinpath(save_path, "opts.jld2")
+    wsave(file_name, opts)
+
+    opts_new = copy(opts)
+    delete!(opts_new, "sc")
+    delete!(opts_new, "sd")
+    file_name = joinpath(save_path, "opts.json")
+    open(file_name, "w") do f
+        JSON.print(f, opts_new, 4)
+    end
+
+    save_gep_for_security_analysis(gep, opts)
+
     vars_2_save = get(opts, "vars_2_save", nothing)
     exprs_2_save = get(opts, "exprs_2_save", nothing)
     if vars_2_save !== nothing
@@ -353,7 +544,13 @@ function save(gep::GEPM, opts::Dict)
             k => gep[k] for k in exprs_2_save
         )
     end
-    return GEPPR.save(gep, save_path)
+    GEPPR.save(gep, save_path)
+
+    open(joinpath(save_path, "optimizer_out.dat"), "w") do io
+        print(io, gep[:O, :terminal_out])
+    end
+
+    return gep
 end
 
 """
@@ -363,11 +560,11 @@ Saves data in the format: hour -> generator (with associated bus) -> values / na
 """
 function save_gep_for_security_analysis(gep::GEPM, path::String)
     q = gep[:q]
-    z = gep[:z]
-    e = gep[:e]
-    sc = gep[:sc]
-    sd = gep[:sd]
-    ls = gep[:loadShedding]
+    z = gep[:z, SVC(missing)]
+    e = gep[:e, SVC(missing)]
+    sc = gep[:sc, SVC(missing)]
+    sd = gep[:sd, SVC(missing)]
+    ls = gep[:loadShedding, gep[:ls, SVC(missing)] .+ gep[:lsel, SVC(missing)]]
     UC_results = Dict{Integer,Dict}()
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
     GDN = GEPPR.get_set_of_nodal_dispatchable_generators(gep)
@@ -418,7 +615,7 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
 end
 
 function tech_node_to_idx(gep::GEPM)
-    d = gep.networkData
+    nd = gep.networkData
     GDN = GEPPR.get_set_of_nodal_dispatchable_generators(gep)
     GRN = GEPPR.get_set_of_nodal_intermittent_generators(gep)
     STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
@@ -431,7 +628,7 @@ function tech_node_to_idx(gep::GEPM)
                         bus_idx_2_name[string(pair[2]["bus"])] ==
                         string(gn[2]) && pair[2]["name"] == gn[1]
                     ),
-                    collect(n["res"]),
+                    collect(nd["res"]),
                 )][1],
             ) for gn in GRN
         ),
@@ -470,7 +667,62 @@ function atval(idx, T::Type)
 end
 
 function save_gep_for_security_analysis(gep::GEPM, opts::Dict)
-    return save_gep_for_security_analysis(
-        gep, joinpath(opts["save_path"], "security_analysis.json")
+    dt = now()
+    dt_string = string(
+        year(dt), "_", month(dt), "_", day(dt), "_", hour(dt), ":", minute(dt)
     )
+    return save_gep_for_security_analysis(
+        gep, joinpath(opts["save_path"], "security_analysis_$(dt_string).json")
+    )
+end
+
+function change_gep_root_path(
+    load_path,
+    from_path="/vsc-hard-mounts/leuven-data/331/vsc33168/ASoSEPOC/",
+    to_path="/home/u0128861/Desktop/ASoSEPOC/",
+)
+    @load eval(joinpath(load_path, "config.jld2")) dictConfig
+    dc = dictConfig
+    dc["configFile"] = [
+        replace(el, from_path => to_path) for el in dc["configFile"]
+    ]
+    @save eval(joinpath(load_path, "config.jld2")) dictConfig
+
+    return dictConfig
+end
+
+function change_gep_root_path_full(
+    topdir,
+    from_paths=["/vsc-hard-mounts/leuven-data/331/vsc33168/ASoSEPOC/", ],
+    to_path="/home/u0128861/Desktop/ASoSEPOC/"
+)
+    for (root, dirs, file) in walkdir(topdir)
+        for dir in dirs
+            dirfl = joinpath(root, dir)
+            if isfile(joinpath(dirfl, "config.jld2"))
+                for from_path in from_paths
+                    change_gep_root_path(dirfl, from_path, to_path)
+                end
+            end
+        end
+    end
+end
+
+function change_gep_config_files_full(topdir)
+    for (root, dirs, file) in walkdir(topdir)
+        for dir in dirs
+            dirfl = joinpath(root, dir)
+            opts_file = joinpath(dirfl, "opts.json")
+            config_file = joinpath(dirfl, "config.jld2")
+            if isfile(config_file) && isfile(opts_file)
+                opts = JSON.parsefile(opts_file)
+                opts = options(collect(opts)...)
+                config, ~ = param_and_config(opts)
+                @load eval(config_file) dictConfig
+                dc = dictConfig
+                dc["configFile"] = config
+                @save eval(config_file) dictConfig
+            end
+        end
+    end
 end

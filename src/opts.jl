@@ -6,7 +6,7 @@ Create a dictionary which specifies simulation parameters.
 """
 function options(pairs...)
     opts = Dict(
-        "include_storage" => false,
+        "include_storage" => true,
         "unit_commitment_type" => "binary",
         "operating_reserves_sizing_type" => "given",
         "operating_reserves_type" => "none",
@@ -23,8 +23,17 @@ function options(pairs...)
         "vars_2_save" => Symbol[],
         "exprs_2_save" => Symbol[],
         "initial_state_of_charge" => missing,
+        "cyclic_state_of_charge_constraint" => true,
         "replace_storage_dispatch_with_node_injection" => false,
-        "reserve_provision_cost" => 0.0
+        "reserve_provision_cost" => 0.0,
+        "absolute_limit_on_nodal_imbalance" => false,
+        "convex_hull_limit_on_nodal_imbalance" => false,
+        "n_scenarios_for_convex_hull_calc" => 1_000,
+        "prevent_simultaneous_charge_and_discharge" => true,
+        "rate_a_multiplier" => missing,
+        "load_multiplier" => missing,
+        "allow_absolute_imbalance_slacks" => false,
+        "absolute_imbalance_slack_penalty" => 1e3
     )
     for (k, v) in pairs
         opts[k] = v
@@ -32,8 +41,8 @@ function options(pairs...)
     return opts
 end
 
-function options_diff_days(sn)
-    df = CSV.read(datadir("pro", "days_for_analysis.csv"), DataFrame)
+function options_diff_days(sn, file="days_for_analysis.csv")
+    df = CSV.read(datadir("pro", file), DataFrame)
     opts = options(
         "include_storage" => true,
         "operating_reserves_sizing_type" => "given",

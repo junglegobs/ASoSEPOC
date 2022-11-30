@@ -19,20 +19,26 @@ function demand_net_of_total_supply(gep::GEPM)
     )
 
     # Store flows
-    STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
-    ST = GEPPR.get_set_of_storage_technologies(gep)
     sc = gep[:sc]
     sd = gep[:sd]
-    grid_store_flow = Dict(
-        n1 => [
-            reduce(
-                +,
-                sd[(st, n2), Y[1], P[1], t] - sc[(st, n2), Y[1], P[1], t]
-                for (st, n2) in STN if n2 == n1;
-                init=0.0,
-            ) for t in T
-        ] for n1 in N
-    )
+    if ismissing(sc) == false && ismissing(sd) == false
+        STN = GEPPR.get_set_of_nodal_storage_technologies(gep)
+        ST = GEPPR.get_set_of_storage_technologies(gep)
+        sc = gep[:sc]
+        sd = gep[:sd]
+        grid_store_flow = Dict(
+            n1 => [
+                reduce(
+                    +,
+                    sd[(st, n2), Y[1], P[1], t] - sc[(st, n2), Y[1], P[1], t]
+                    for (st, n2) in STN if n2 == n1;
+                    init=0.0,
+                ) for t in T
+            ] for n1 in N
+        )
+    else
+        grid_store_flow = GEPPR.SVC(0.0)
+    end
 
     # Demand
     D = GEPPR.get_demand(gep)
@@ -50,7 +56,7 @@ function days_to_run_models_on(gep::GEPM, filename::String)
             dropdims(
                 sum(gep[:loadShedding].data; dims=(1, 2, 3)); dims=(1, 2, 3)
             ),
-            24,
+            N_HR_PER_DAY,
             :,
         );
         dims=1,
@@ -77,9 +83,40 @@ function days_to_run_models_on(gep::GEPM, filename::String)
     df[:, "day_of_month"] = [
         day(DateTime(2018, 1, 1) + Day(row["days"] - 1)) for row in eachrow(df)
     ]
-    df[:, "timesteps"] = [((i - 1) * 24 + 1):(i * 24) for i in df[:, "days"]]
+    df[:, "timesteps"] = [((i - 1) * N_HR_PER_DAY + 1):(i * N_HR_PER_DAY) for i in df[:, "days"]]
     CSV.write(datadir("pro", filename), df)
     return df[:, "days"], df[:, "timesteps"]
+end
+
+function days_to_run_models_on(opts::Dict, filename::String)
+    gep = gepm(opts)
+    rl = demand_net_of_total_supply(gep)
+    rl = sum(collect(values(rl)))
+    rl = sum(reshape(rl, N_HR_PER_DAY, :), dims=1)[:]
+    srt_idx = sortperm(rl)
+    day_least_scarce = srt_idx[1]
+    day_little_scarce = srt_idx[Int(round(quantile(1:length(srt_idx), 1/3)))]
+    day_middle_scarce = srt_idx[Int(round(quantile(1:length(srt_idx), 2/3)))]
+    day_scarce = srt_idx[end]
+    df = DataFrame(;
+        Aggregated_Residual_Load=rl[[
+            day_least_scarce, day_little_scarce, day_middle_scarce, day_scarce
+        ]],
+        days=[
+            day_least_scarce
+            day_little_scarce
+            day_middle_scarce
+            day_scarce
+        ],
+    )
+    df[:, "month"] = [
+        month(DateTime(2018, 1, 1) + Day(row["days"] - 1)) for row in eachrow(df)
+    ]
+    df[:, "day_of_month"] = [
+        day(DateTime(2018, 1, 1) + Day(row["days"] - 1)) for row in eachrow(df)
+    ]
+    df[:, "timesteps"] = [((i - 1) * N_HR_PER_DAY + 1):(i * N_HR_PER_DAY) for i in df[:, "days"]]
+    CSV.write(datadir("pro", filename), df)
 end
 
 function overall_network_results(gep::GEPM)

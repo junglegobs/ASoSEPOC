@@ -1,4 +1,6 @@
 tmp
 results
+sims
 _research
 data/monte_carlo_years
+*.toml
