@@ -12,7 +12,7 @@
 \maketitle
 
 \begin{abstract}
-    This report outlines an attempt to integrate a resource adequacy and operational security exercise. The idea is to use a unit commitment schedule which is then used as the input to a more detailed power flow model. An additional goal was to make explicit the trade-off between day ahead adequacy and real time reliability. We used an adapted version of KU Leuven's \ac{DUCPR} model which accounts for network constraints in the reserve activation phase for this purpose. However the \ac{DUCPR} model is not able to capture enough detail in the reserve activation phase for this tradeoff to be made. This and other omissions of the \ac{DUCPR} model when compared to the power flow model meant the results of the two models differed. All code for the adequacy side of this exercise can be found at \href{https://github.com/junglegobs/ASoSEPOC}{https://github.com/junglegobs/ASoSEPOC}.
+    This report outlines an attempt to integrate a resource adequacy and operational security exercise. The idea is to use a unit commitment schedule which is then used as the input to a more detailed power flow model. An additional goal was to make explicit the trade-off between day ahead adequacy and real time reliability. We used an adapted version of KU Leuven's \ac{DUCPR} model which accounts for network constraints in the reserve activation phase for this purpose. However the \ac{DUCPR} model is not able to capture enough detail in the reserve activation phase for this tradeoff to be made. This and other omissions of the \ac{DUCPR} model when compared to the power flow model meant that the load shedding observed in the two models differed by an order of magntiude. All code for the adequacy side of this exercise can be found at \href{https://github.com/junglegobs/ASoSEPOC}{https://github.com/junglegobs/ASoSEPOC}.
 \end{abstract}
 
 \newpage
@@ -25,21 +25,21 @@
 
 \section{Interaction description}
 
-Adequacy assessments and operational security analyses are two fundamental exercises in determining and ensuring the reliable operation of the electric power system. The former assesses the ability of the power system to satisfy demand for electricity in the day ahead stage, while the latter assesses (or ensures, depending on the context) that an unexpected event, such as an outage of a transmission line or generator or lower or greater than expected realisation of demand or renewable generation, does not lead to cascading failures and a possible blackout.
+Adequacy assessments and operational security analyses are two fundamental exercises in determining and ensuring the reliable operation of the electric power system. The former assesses the ability of the power system to satisfy demand for electricity in the day ahead stage, while the latter assesses (or ensures, depending on the context) that an unexpected event, such as an outage of a transmission line or generator or lower or greater than expected realisation of demand or renewable generation, will lead to cascading failures and a possible blackout.
 
-Typically, these exercises are performed independently. This interaction combines the two by feeding the results of an adequacy assessment to an operational security analysis.
+Typically, these exercises are performed independently. This interaction combines the two by feeding the unit commitment of an adequacy assessment to an operational security analysis which takes these commitments as given.
 
 In doing so, we deviate from typical practices in a number of ways. First, the adequacy assessment was done for a limited number of days instead of many Monte Carlo years for the sake of clarity and brevity. Indeed, doing this exercise for many Monte Carlo years would drastically increase the computational complexity while the aim of this exercise is to illustrate how such an interaction could be performed.
 
-Secondly, the adequacy assessment is done using an unconventional \ac{UC} model, a modified version of the \ac{DUCPR} model described in~\cite{Bruninx2017}. This model can be seen as a compromise between a computationally expensive stochastic \ac{UC} model and a more tractable though less accurate deterministic \ac{UC} model with operating reserve requirements. The treatment of operating reserves in this model allows a trade-off between shedding load in the day ahead stage, which would reduce day ahead adequacy, and shedding operating reserves, which should reduce operational security. By making this trade-off explicit and verifying the results in an operational security analysis we aim to elaborate on the results of~\cite{Hermans2018}, which did not consider the possibility that shedding operating reserves would lead to insecure operation of the electric power system.
+Secondly, we perform the adequacy assessment using an unconventional \ac{UC} model, a modified version of the \ac{DUCPR} model described in~\cite{Bruninx2017}. This model can be seen as a compromise between a computationally expensive stochastic \ac{UC} model and a more tractable though less accurate deterministic \ac{UC} model with operating reserve requirements. The treatment of operating reserves in this model in principle allows a trade-off between shedding load in the day ahead stage, which would reduce day ahead adequacy, and shedding operating reserves, which should reduce operational security. By making this trade-off explicit and verifying the results in an operational security analysis we wished to elaborate on the results of~\cite{Hermans2018}, which did not consider the possibility that shedding operating reserves would lead to insecure operation of the electric power system.
+
+As noted in the abstract, we were unsuccesful in illustrating the value of this interaction for two reasons. Firstly, we were unable to illustrate the tradeoff between adequacy and security with only the \ac{DUCPR} model due to its approximate treatment of real time network imbalances due to reserve activation. Secondly and related, the expected load shedding resulting from the \ac{DUCPR} differed by an order of magnitude to that found by the power flow, likely due to due to the difference in the treatment of storage as well as the more detailed network representation in the power flow model.
 
 All code can be found at \href{https://github.com/junglegobs/ASoSEPOC}{https://github.com/junglegobs/ASoSEPOC}.
 
-The rest of this document is organised as follows. \secref{sec:model} describes the \ac{DUCPR} model used to simulate power system operations and obtain day ahead adequacy and very approximate real time operational security indicators, namely scheduled load shedding and reserve shedding. \secref{sec:data} describes the stylised Belgian system analysed. \secref{sec:initial_results} analyses a single day in order to identify sources of adequacy and security issues, while \secref{sec:adequacy_vs_security} analyses the trade-off between these two.
+The rest of this document is organised as follows. \secref{sec:model} describes the \ac{DUCPR} model used to simulate power system operations and obtain day ahead adequacy and very approximate real time operational security indicators, namely scheduled load shedding and reserve shedding. \secref{sec:data} describes the stylised Belgian system analysed. \secref{sec:initial_results} analyses a single day in order to identify sources of adequacy and security issues, while \secref{sec:adequacy_vs_security} compares the \ac{DUCPR} model results to that of the power flow analysis.
 
 \section{Description of a Deterministic Unit Commitment Model with Probabilistic Reserve (DUC-PR) constraints} \label{sec:model}
-
-Sets, variables and costs related to unit commitment and storage operation have been omitted for brevity though they are included in the model. The interested reader is referred to \href{https://github.com/junglegobs/ASoSEPOC}{https://github.com/junglegobs/ASoSEPOC} for the relevant code.
 
 \subsection{Sets}
 
@@ -49,6 +49,7 @@ Sets, variables and costs related to unit commitment and storage operation have 
     \item $GD$ - Dispatchable / thermal / conventional generators
     \item $GR$ - Renewable / variable generators (\ac{VRES}).
     \item $S$ - Storage technologies
+    \item $S$ - Storage technologies located at node $n$
     \item $N$ - Nodes or buses in the network
     \item $B$ - Lines or branches
     \item $T$ - Time steps / intervals / slices
@@ -59,19 +60,19 @@ Sets, variables and costs related to unit commitment and storage operation have 
 \subsection{Parameters}
 
 \begin{itemize}
-    \item $D_{nt}$ - Demand
-    \item $PTDF_{nl}$ - Power Transfer Distribution Factor
-    \item $AF_{gt}$ - Availability Factor
-    \item $K_g$ - Capacity
-    \item $P^{min}_g$ - Minimum power output
-    \item $P^{max}_g$ - Maximum power output
-    \item $MUT_g$ - Minimum up time
-    \item $MDT_g$ - Minimum down time
-    \item $RAMP_g$ - Maximum ramping limit (up and down)
-    \item $D^{L^+}_{lt}$ - Upward reserve requirement
-    \item $D^{L^-}_{lt}$ - Downward reserve requirement
-    \item $P^{L^+}_{lt}$ - Upward reserve level activation probability
-    \item $P^{L^-}_{lt}$ - Downward reserve level activation probability
+    \item $D_{nt}$ - Demand [MW]
+    \item $PTDF_{nl}$ - Power Transfer Distribution Factor [-]
+    \item $AF_{gt}$ - Availability Factor [-]
+    \item $K_g$ - Capacity [MW]
+    \item $P^{min}_g$ - Minimum power output [MW]
+    \item $P^{max}_g$ - Maximum power output [MW]
+    \item $MUT_g$ - Minimum up time [timesteps]
+    \item $MDT_g$ - Minimum down time [timesteps]
+    \item $RAMP_g$ - Maximum ramping limit (up and down) [MW/timestep]
+    \item $D^{L^+}_{lt}$ - Upward reserve requirement [MW]
+    \item $D^{L^-}_{lt}$ - Downward reserve requirement [MW]
+    \item $P^{L^+}_{lt}$ - Upward reserve level activation probability [-]
+    \item $P^{L^-}_{lt}$ - Downward reserve level activation probability [-]
 \end{itemize}
 
 \subsection{Variables}
@@ -79,30 +80,30 @@ Sets, variables and costs related to unit commitment and storage operation have 
 All variables are positive apart from node injection variables which may also be negative.
 
 \begin{itemize}
-    \item $z_{gt}$ - Commitment
-    \item $v_{gt}$ - start up
-    \item $w_{gt}$ - Shut down
-    \item $q_{gt}$ - Generation
-    \item $\hat{q}_{gt}$ - Generation above the minimum stable operating point (0 in the case of renewables).
-    \item $d_{st}$ - Storage discharge
-    \item $c_{st}$ - Storage charge
-    \item $y_{st}$ - Binary variable, 1 if storage discharges and 0 if it charges
-    \item $e_{st}$ - Storage state of charge variable
-    \item $ls_{nt}$ - Load shedding
-    \item $inj_{nt}$ - Node injection
-    \item $f_{lt}$ - Branch flow
-    \item $r^+_{gt}$ - Total upward reserve provision
-    \item $r^-_{gt}$ - Total downward reserve provision
-    \item $r^{L^+}_{glt}$ - Upward reserve provision for reserve level $l$
-    \item $r^{L^-}_{glt}$ - Downward reserve provision for reserve level $l$
-    \item $rs_{nlt}$ - Upward reserve shedding for reserve level $l$
-    \item $rc_{nlt}$ - Downward reserve provided by day ahead load shedding for reserve level $l$
-    \item $rinj_{nlt}^{L^+}$ - Possible node injection due to activation of upward reserve level $l$
-    \item $rinj_{nlt}^{L^-}$ - Possible node injection due to activation of downward reserve level $l$
-    \item $rf_{nbt}^{L^+}$ - Possible branch flow due to activation of upward reserve level $l$
-    \item $rf_{nbt}^{L^-}$ - Possible branch flow due to activation of downward reserve level $l$
-    \item $d_{nlt}^{L^+}$ - Possible imbalance on node $n$ for upward reserve level $l$
-    \item $d_{nlt}^{L^-}$ - Possible imbalance on node $n$ for downward reserve level $l$
+    \item $z_{gt}$ - Commitment [-]
+    \item $v_{gt}$ - Start up [-]
+    \item $w_{gt}$ - Shut down [-]
+    \item $q_{gt}$ - Generation [MW]
+    \item $\hat{q}_{gt}$ - Generation above the minimum stable operating point (0 in the case of renewables) [MW]
+    \item $d_{st}$ - Storage discharge [MW]
+    \item $c_{st}$ - Storage charge [MW]
+    \item $y_{st}$ - Binary variable, 1 if storage discharges and 0 if it charges [-]
+    \item $e_{st}$ - Storage state of charge variable [MWh]
+    \item $ls_{nt}$ - Load shedding [MW]
+    \item $inj_{nt}$ - Node injection [MW]
+    \item $f_{lt}$ - Branch flow [MW]
+    \item $r^+_{gt}$ - Total upward reserve provision [MW]
+    \item $r^-_{gt}$ - Total downward reserve provision [MW]
+    \item $r^{L^+}_{glt}$ - Upward reserve provision for reserve level $l$ [MW]
+    \item $r^{L^-}_{glt}$ - Downward reserve provision for reserve level $l$ [MW]
+    \item $rs_{nlt}$ - Upward reserve shedding for reserve level $l$ [MW]
+    \item $rc_{nlt}$ - Downward reserve provided by day ahead load shedding for reserve level $l$ [MW]
+    \item $rinj_{nlt}^{L^+}$ - Possible node injection due to activation of upward reserve level $l$ [MW]
+    \item $rinj_{nlt}^{L^-}$ - Possible node injection due to activation of downward reserve level $l$ [MW]
+    \item $rf_{nbt}^{L^+}$ - Possible branch flow due to activation of upward reserve level $l$ [MW]
+    \item $rf_{nbt}^{L^-}$ - Possible branch flow due to activation of downward reserve level $l$ [MW]
+    \item $d_{nlt}^{L^+}$ - Possible imbalance on node $n$ for upward reserve level $l$ [MW]
+    \item $d_{nlt}^{L^-}$ - Possible imbalance on node $n$ for downward reserve level $l$ [MW]
 \end{itemize}
 
 \subsection{Objective}
@@ -148,7 +149,9 @@ The power balance:
     \sum_{g \in G_n} q_{gt} + \sum_{s \in S_n} (d_{st} - c_{st}) + ls_{nt} = D_{nt} + inj_{nt} \quad n \in N, \; t \in T
 \end{equation}
 
-Note the use of the set $G_n$ to only allow generators at node $n$ to contribute to the power balance (similarly for storage technologies). Another way of describing this would have been through an incidence matrix.
+Note the use of the set $G_n$ to only allow generators at node $n$ to contribute to the power balance (similarly for storage technologies). Another way of describing this would have been through an incidence matrix~\cite{Belderbos2020}.
+
+\subsubsection{Limiting day ahead load shedding}
 
 The equation below limits load shedding to the demand at that node. In copper plate systems this constraint is not needed, however in nodal systems this constraint is required as unphysical load shedding may be exploited to improve congestion (as was the case during this exercise).
 
@@ -209,7 +212,7 @@ Ramping constraints:
     (1 - y_{st}) \cdot c_{st} \leq K_s                                  & \quad s \in S, \; t \in T
 \end{align}
 
-The binary variable $y_{st}$ prevents simultaneous charging and discharging. While such unphysical behaviour is not typical, in this case the constraint was deemed necessary since such behaviour could be exploited to reduce congestion. This was also investigated in the results.
+The binary variable $y_{st}$ prevents simultaneous charging and discharging. While such unphysical behaviour is not typical, in this case the constraint was deemed necessary since such behaviour could be exploited to reduce congestion. This was also investigated in the results, where including this binary variable is referred to as PSCD (`Prevent Simultaneous Charge / Discharge').
 
 When carrying out this exercise it was noticed that the system being studied was very sensitive to assumptions on storage due to the high penetration of batteries (~92 GWh). Assuming that all storage technologies were empty at the beginning of the day led to load shedding at this time because the system relies on charging storage during the day. Assuming they were full led to no scarcity issues at all. Assuming they were half full sometimes led to a single spike in load shedding \emph{despite there being sufficient energy in the storage units to avoid this}. This is because of the cyclic constraint on the state of charge given by \eqref{eq:storage_cyclic_constrant}, that is that the load shedding was occurring so as to satisfy this constraint and not because there was any real scarcity.
 
@@ -286,11 +289,11 @@ The other possibility is to restrict $d_{nlt}^{L^+}$ and $d_{nlt}^{L^-}$ to lie 
     \caption{Illustration of convex hull constraints on $d_{nlt}^{L^+}$ and $d_{nlt}^{L^-}$. Blue circles are imbalance scenarios, shaded area is the convex hull, $d_{nt}^{min}$ and $d_{nt}^{max}$ are the x limits for TIHANGE 1 and the y limits for TIHANGE 2. \label{fig:convex_hull_tihange}}
 \end{figure}
 
-At the time of writing, this convex hull restriction led to model infeasibilities and so it was not implemented.
+This convex hull restriction led to model infeasibilities and so it was not implemented.
 
 \section{Input data - stylised Belgian grid with a large amount of variable renewable energy sources} \label{sec:data}
 
-All data used for this exercise can be found at: \href{https://www.dropbox.com/sh/mdvmc082gwng0tr/AABRyc3fZpxAFycmUfZmh8Csa?dl=0}.
+All data used for this exercise can be found \href{https://www.dropbox.com/sh/mdvmc082gwng0tr/AABRyc3fZpxAFycmUfZmh8Csa?dl=0}{here}.
 
 The grid and resource data used for this interaction is inspired by the case study in~\cite{Belderbos2020}, omitting the gas network and power to gas technologies. This data gives a stylised Belgian system with a high penetration (~8s0\%) of \ac{VRES}, which includes 75.7 GW of solar PV, 7.0 GW of Onshore Wind and 7.3 GW of Offshore Wind. The grid consists of 46 nodes connected by 69 lines. The total amount of conventional thermal generation is 9.9 GW, with all generators based on new \ac{CCGT} units apart from one new \ac{OCGT} unit at Lixhe. The nuclear generators of Doel and Tihange are therefore replaced with new \ac{CCGT} units.
 
@@ -302,11 +305,17 @@ The load time series used was the load as seen by Elia on the high-voltage grid 
 
 The \ac{VRES} availability factor time series are taken from Elia data for the year 2015, same as the load. This was done by dividing generation from offshore wind, wind and solar by the total installed capacities available. This allows scaling up the generation of \ac{VRES} to the previously mentioned capacities. The distribution of onshore wind and solar photovoltaic (PV) capacity was done according to the distribution made in~\cite{DelarueErik2016Dtio}.
 
-The residual load time series, aggregated across all nodes, for this system is plotted in \todo[inline]{Plot this}.
+The residual load time series, aggregated across all nodes, for this system is plotted in \figref{fig:residual_load_ts}.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9/textwidth]{../plots/process_input/residual_load_timeseries}
+    \caption{Residual load time series of test system.\label{fig:residual_load_ts}}
+\end{figure}
 
 A complete overview of the data is given in~\cite{Belderbos2020}, Appendix B.
 
-Four days were selected for analysis based on the results of a full year economic dispatch model which included network constraints. The load was multiplied uniformly across all nodes by a factor of 1.5 to ensure that some load shedding occurred and then four days were selected which represented the 0, 33, 66 and 100th percentile in terms of daily load shedding. The resulting days are presented in \tabref{tab:day_selection}.
+Four days were selected for analysis based on the results of a full year economic dispatch model which included network constraints. The load was multiplied uniformly across all nodes by a factor of 1.5 to ensure that some load shedding occurred and then four days were selected which represented the 0, 33, 66 and 100th percentile in terms of daily load shedding. The resulting days are presented in \tabref{tab:day_selection}. 
 
 \begin{table}[ht]
     \centering
@@ -323,7 +332,9 @@ Four days were selected for analysis based on the results of a full year economi
     \caption{Days selected for analysis. These were selected based on the results of a full year economic dispatch model with load multiplied uniformly across all nodes by a factor of 1.5. The 0, 33, 66 and 100th percentiles in terms of daily load shedding were then selected.}\label{tab:day_selection}
 \end{table}
 
-It should be noted that of the four days selected, only day 285 exhibited load shedding when the load was not scaled but operating reserves were present. This finding highlights how day ahead adequacy may occur for reasons other than insufficient capacity aggregated across the network, i.e. analysis of the aggregated residual load (the load net of renewable generation) may be uninformative.
+Of the four days selected, only day 285 exhibited load shedding when the load was not scaled but operating reserves were present. This finding highlights how day ahead adequacy may occur for reasons other than insufficient capacity aggregated across the network, i.e. analysis of the aggregated residual load (the load net of renewable generation) may be uninformative.
+
+We changed the days under investigation several times during this interaction. For this reason (and also for brevity), we only analysed day 285 in detail (see \secref{sec:initial_results}) and only have a comparison of the \ac{DUCPR} and power flow results for day 309.
 
 \section{Analysis of \acl{DUCPR} model results} \label{sec:initial_results}
 

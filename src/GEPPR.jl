@@ -165,7 +165,9 @@ function run_GEPPR(opts::Dict; load_only=false)
                 optimize_GEP_model!(gep)
                 save_optimisation_values!(gep)
             else
-                run_rolling_horizon(gep)
+                modify_network!(gep, opts)
+                modify_timeseries!(gep, opts)
+                run_rolling_horizon(gep; scheduleHorizon=168, slackVariables=(:sc, :sd, :z, :d⁺, :Δq, :v))
             end
             nothing
         end
@@ -562,7 +564,7 @@ function save_gep_for_security_analysis(gep::GEPM, path::String)
     e = gep[:e, SVC(missing)]
     sc = gep[:sc, SVC(missing)]
     sd = gep[:sd, SVC(missing)]
-    ls = gep[:loadShedding]
+    ls = gep[:loadShedding, gep[:ls, SVC(missing)] .+ gep[:lsel, SVC(missing)]]
     UC_results = Dict{Integer,Dict}()
     N, Y, P, T = GEPPR.get_set_of_nodes_and_time_indices(gep)
     GDN = GEPPR.get_set_of_nodal_dispatchable_generators(gep)
