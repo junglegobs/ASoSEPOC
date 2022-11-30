@@ -25,7 +25,10 @@ opts = options(
 gep = run_GEPPR(opts)
 
 # Plot the residual load duration curve
-function plot_residual_load_curve(gep)
+function plot_residual_load_curve(opts)
+    opts_cp = deepcopy(opts)
+    opts_cp["load_multiplier"] = 1.0
+    gep = gepm(opts)
     rl = demand_net_of_total_supply(gep)
     rl = demand_net_of_total_supply(gep)
     rl = sum(collect(values(rl)))
@@ -33,7 +36,7 @@ function plot_residual_load_curve(gep)
     plt = Plots.plot(rl, xlab="Day of year", ylab="Residual load [MWh]", lab="")
     Plots.savefig(plt, plotsdir(sn, "residual_load_timeseries.png"))
 end
-plot_residual_load_curve(gep)
+plot_residual_load_curve(opts)
 
 # Identify 4 days to investigate - no load shedding at all, almost load shedding and load shedding
 # Because I realised there were mistakes in the model later on, I save this to a "days_for_analysis_$(now()).csv" instead of "days_for_analysis.csv", so that I don't have to recreate all the scenarios.
